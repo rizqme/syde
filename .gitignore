@@ -1,0 +1,10 @@
+# Binaries (root only)
+/syde
+/syded
+*.exe
+
+# OS
+.DS_Store
+
+# Test artifacts
+test-report.md

@@ -14,9 +14,6 @@ purpose: Own the syde.yaml project config shape and IO
 relationships:
     - target: syde-cli
       type: belongs_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: Load/save/default the project config (name, version, component_paths, tree_ignore)
 slug: config-loader-bx7x
 updated_at: "2026-04-14T03:35:54Z"

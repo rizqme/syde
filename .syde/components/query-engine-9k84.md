@@ -15,9 +15,6 @@ relationships:
       type: belongs_to
     - target: storage-engine
       type: depends_on
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T10:58:06Z"
 responsibility: Resolve, format, and diff entities for the 'syde query' command
 capabilities:

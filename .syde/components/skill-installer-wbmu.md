@@ -29,9 +29,6 @@ files:
 relationships:
     - target: syde-cli
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T10:44:33Z"
 responsibility: Render and write skill files, hooks.json, and CLAUDE.md append rules
 capabilities:

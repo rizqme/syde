@@ -39,9 +39,6 @@ files:
     - internal/cli/writes.go
     - internal/cli/requirements.go
 relationships:
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
     - target: syde-5tdt
       type: belongs_to
 updated_at: "2026-04-15T11:05:36Z"

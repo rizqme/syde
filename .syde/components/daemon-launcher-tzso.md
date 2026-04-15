@@ -18,9 +18,6 @@ purpose: Make syded transparent — users never have to start the daemon manuall
 relationships:
     - target: syde-cli
       type: belongs_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: Probe syded at /health and spawn a detached syded process with sensible defaults when the probe fails
 slug: daemon-launcher-tzso
 updated_at: "2026-04-15T06:02:08Z"

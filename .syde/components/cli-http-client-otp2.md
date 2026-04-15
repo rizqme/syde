@@ -16,9 +16,6 @@ relationships:
       type: depends_on
     - target: http-api
       type: depends_on
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T09:27:08Z"
 responsibility: Wrap every syded read + write endpoint as a typed Go method and transparently auto-launch syded via daemon.EnsureRunning on first call
 capabilities:

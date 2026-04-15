@@ -8,8 +8,6 @@ purpose: Provide a migration-owned flow anchor for pre-existing contracts that w
 relationships:
     - target: syde-5tdt
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
 updated_at: "2026-04-15T06:37:43Z"
 trigger: An agent or user operates on the syde design model.
 goal: Maintain, inspect, and evolve syde design records through CLI, daemon, dashboard, and storage contracts.

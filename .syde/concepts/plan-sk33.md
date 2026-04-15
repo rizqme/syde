@@ -36,9 +36,6 @@ relationships:
       type: references
     - target: entity
       type: relates_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: plan-sk33
 structure_notes: Plan embeds BaseEntity plus plan_status, background, objective, scope, phases[]. Phases nest via parent_phase. Each phase has its own objective/changes/details/notes and a task list.
 updated_at: "2026-04-14T10:48:02Z"

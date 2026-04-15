@@ -16,9 +16,6 @@ files:
 relationships:
     - target: syde-cli
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T10:58:06Z"
 responsibility: BaseEntity + per-kind structs + validation rules + plan/task/relationship types
 capabilities:

@@ -20,9 +20,6 @@ relationships:
       type: belongs_to
     - target: skill-installer
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: skill-7fmf
 structure_notes: Embedded in the syde binary via go:embed from skill/. Installed into .claude/skills/syde/ + .claude/hooks/syde-hooks.json + CLAUDE.md append rules.
 updated_at: "2026-04-14T10:48:03Z"

@@ -29,9 +29,6 @@ relationships:
       type: belongs_to
     - target: summary-tree
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: scan-tree-vmkd
 updated_at: "2026-04-14T03:27:05Z"
 ---

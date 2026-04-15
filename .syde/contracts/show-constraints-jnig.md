@@ -9,9 +9,6 @@ relationships:
       type: belongs_to
     - target: cli-commands
       type: references
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
     - target: design-model-operations-coverage-wsrh
       type: involves
       label: flow

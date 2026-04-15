@@ -6,9 +6,6 @@ slug: syde-5tdt
 description: Text-first software design CLI + Claude Code skill + dashboard. Two standalone binaries (syde, syded) sharing one markdown-backed entity store.
 purpose: Let AI agents and humans co-own a living architecture model in version control — plans, tasks, components, contracts, concepts — without leaving the terminal or the editor.
 relationships:
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T11:09:22Z"
 context: Claude Code and similar agents have no persistent architectural memory between sessions. syde fills that gap with a file-native model that lives in the repo, stays human-readable, and is enforced by a mandatory skill workflow.
 scope: 'In: CLI for entity CRUD, plans/tasks, validation, file summary tree, dashboard. Out: runtime observability, code generation, LLM calls from syde itself.'

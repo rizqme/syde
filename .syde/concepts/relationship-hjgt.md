@@ -27,9 +27,6 @@ relationships:
       type: references
     - target: entity
       type: relates_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: relationship-hjgt
 structure_notes: Pair of (target, type). Target is a slug or ID. Type is one of belongs_to, depends_on, exposes, consumes, uses, involves, references, relates_to, implements, applies_to, modifies, visualizes.
 updated_at: "2026-04-14T10:48:03Z"

@@ -14,9 +14,6 @@ files:
     - internal/dashboard/run.go
     - internal/dashboard/html.go
 relationships:
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
     - target: syde-5tdt
       type: belongs_to
 updated_at: "2026-04-15T11:05:37Z"

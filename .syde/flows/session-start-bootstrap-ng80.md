@@ -16,9 +16,6 @@ relationships:
       type: involves
     - target: session-context
       type: involves
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: session-start-bootstrap-ng80
 trigger: Claude Code session starts in a project with a .syde/ directory
 updated_at: "2026-04-14T03:27:02Z"

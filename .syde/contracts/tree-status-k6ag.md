@@ -32,9 +32,6 @@ relationships:
       type: belongs_to
     - target: summary-tree
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
     - label: flow
       target: design-model-operations-coverage-wsrh
       type: involves

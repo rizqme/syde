@@ -22,9 +22,6 @@ relationships:
       type: belongs_to
     - target: storage-engine
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: fileref-7vac
 structure_notes: FileRef holds File (relative path), ID, Name, Kind, and Lines (field → [start,end] line range). Stored as the value of the entity index key.
 updated_at: "2026-04-14T10:48:03Z"

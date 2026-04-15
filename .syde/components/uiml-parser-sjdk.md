@@ -23,9 +23,6 @@ purpose: Parse and render UIML (UI Markup Language) design entities
 relationships:
     - target: syde-cli
       type: belongs_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: Lex, parse, validate, and render UIML bodies for design kind entities
 slug: uiml-parser-sjdk
 updated_at: "2026-04-15T06:06:09Z"

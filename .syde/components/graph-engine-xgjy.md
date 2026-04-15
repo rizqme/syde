@@ -17,9 +17,6 @@ relationships:
       type: belongs_to
     - target: storage-engine
       type: depends_on
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: BFS traversal + ASCII/DOT rendering for 'syde graph'
 slug: graph-engine-xgjy
 updated_at: "2026-04-14T03:35:54Z"

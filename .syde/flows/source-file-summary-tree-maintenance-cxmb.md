@@ -18,9 +18,6 @@ relationships:
       type: involves
     - target: scan-tree
       type: involves
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: source-file-summary-tree-maintenance-cxmb
 trigger: Session start, or any source file write during a session, or explicit 'syde tree scan'
 updated_at: "2026-04-14T03:27:02Z"

@@ -15,9 +15,6 @@ relationships:
       type: involves
     - target: complete-task
       type: involves
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: drift-detection-and-clearing-ltya
 trigger: syde validate runs, or the agent is reviewing an entity
 updated_at: "2026-04-14T03:27:02Z"

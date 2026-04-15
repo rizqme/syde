@@ -40,9 +40,6 @@ relationships:
       type: references
     - target: plan
       type: relates_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: task-d3oc
 structure_notes: Task embeds BaseEntity plus task_status, priority, objective, details, acceptance, plan_ref, plan_phase, affected_entities, affected_files, entity_refs (legacy). Task done auto-bumps updated_at on every affected entity.
 updated_at: "2026-04-14T10:48:03Z"

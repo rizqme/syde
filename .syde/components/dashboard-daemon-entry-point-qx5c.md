@@ -15,9 +15,6 @@ relationships:
       type: belongs_to
     - target: http-api
       type: depends_on
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: Parse flags, start the HTTP server, wire the project registry
 slug: dashboard-daemon-entry-point-qx5c
 updated_at: "2026-04-14T06:24:45Z"

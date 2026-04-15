@@ -29,9 +29,6 @@ relationships:
       type: belongs_to
     - target: entity-model
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: decision-m2um
 structure_notes: Decision embeds BaseEntity plus category, statement, rationale, alternatives_considered, tradeoffs, consequences. Drives the constraints check.
 updated_at: "2026-04-14T10:48:03Z"

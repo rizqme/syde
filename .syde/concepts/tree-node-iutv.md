@@ -34,9 +34,6 @@ relationships:
       type: belongs_to
     - target: summary-tree
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: tree-node-iutv
 structure_notes: Node has type (file|dir), parent path, children list, size, hash (SHA-256), mtime, binary flag, summary text, summary_stale flag, updated_at, ignored flag. Stored in the flat Nodes map of .syde/tree.yaml.
 updated_at: "2026-04-14T10:48:03Z"

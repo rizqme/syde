@@ -14,9 +14,6 @@ purpose: Produce a shallow ScanGuide for the legacy 'syde scan' and 'sync --cove
 relationships:
     - target: syde-cli
       type: belongs_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 responsibility: Walk the source tree and emit file counts, language breakdown, key files per dir
 slug: scan-helpers-legacy-sa6d
 updated_at: "2026-04-14T03:35:54Z"

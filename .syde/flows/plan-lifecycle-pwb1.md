@@ -17,9 +17,6 @@ relationships:
       type: involves
     - target: cli-commands
       type: involves
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: plan-lifecycle-pwb1
 trigger: User asks the agent to implement a non-trivial change
 updated_at: "2026-04-15T06:30:48Z"

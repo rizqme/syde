@@ -10,9 +10,6 @@ files:
 relationships:
     - target: syded-dashboard
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T09:27:08Z"
 responsibility: Broadcast entity/tree change events over WebSocket
 capabilities:

@@ -31,9 +31,6 @@ relationships:
       type: belongs_to
     - target: entity-model
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: entity-8x6p
 structure_notes: Every entity is a markdown file with YAML frontmatter + free-form body. Shared BaseEntity fields (id, kind, name, slug, description, purpose, tags, files, notes, relationships, updated_at) are embedded by every kind-specific struct.
 updated_at: "2026-04-14T10:48:02Z"

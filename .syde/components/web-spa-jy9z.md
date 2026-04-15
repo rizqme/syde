@@ -49,13 +49,6 @@ files:
 relationships:
     - target: syded-dashboard
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
-    - target: requirements-belong-in-dashboard-behavior-nav-ahyi
-      type: references
-    - target: dashboard-must-show-relationship-totals-clearly-rc5w
-      type: references
 updated_at: "2026-04-15T11:05:37Z"
 responsibility: React 18 + TypeScript + Vite + Tailwind v4 single-page app rendered by syded
 capabilities:

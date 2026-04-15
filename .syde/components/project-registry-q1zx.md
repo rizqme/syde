@@ -12,9 +12,6 @@ notes:
 files:
     - internal/dashboard/registry.go
 relationships:
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
     - target: syde-5tdt
       type: belongs_to
 updated_at: "2026-04-15T10:58:06Z"

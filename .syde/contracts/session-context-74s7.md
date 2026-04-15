@@ -20,9 +20,6 @@ relationships:
       type: belongs_to
     - target: cli-commands
       type: references
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: session-context-74s7
 updated_at: "2026-04-14T03:27:04Z"
 ---

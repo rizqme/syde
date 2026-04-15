@@ -11,9 +11,6 @@ files:
 relationships:
     - target: syde-cli
       type: belongs_to
-    - target: existing-syde-model-baseline-hcvj
-      type: references
-      label: requirement
 updated_at: "2026-04-15T10:15:40Z"
 responsibility: Provide Slugify, SlugifyWithSuffix, BaseSlug, HasSuffix, and a deprecated ID stub
 capabilities:

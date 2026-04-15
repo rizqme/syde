@@ -20,9 +20,6 @@ relationships:
       type: references
     - target: tree-node
       type: relates_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: summary-tree-u2fo
 structure_notes: Persisted as .syde/tree.yaml. Flat map keyed by relative path. Contains metadata scanned_at, root, and nodes.
 updated_at: "2026-04-14T10:48:03Z"

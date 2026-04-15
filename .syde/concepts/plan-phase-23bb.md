@@ -40,9 +40,6 @@ relationships:
       type: references
     - target: plan
       type: relates_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
-      type: references
 slug: plan-phase-23bb
 structure_notes: PlanPhase has id (phase_N), name, parent_phase, description, objective, changes, details, notes, status, and a Tasks slice with affected-entity/affected-file references.
 updated_at: "2026-04-14T10:48:03Z"

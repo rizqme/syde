@@ -136,7 +136,7 @@ func extractWords(b *model.BaseEntity, body string) map[string]string {
 	// Body indexing: skip plan/task because their bodies are procedural
 	// execution notes that churn every write and pollute search results
 	// with transient implementation detail. Components, contracts,
-	// concepts, decisions, flows, learnings, and systems hold the
+	// concepts, decisions, flows, and systems hold the
 	// substantive prose agents actually want to find.
 	if b.Kind != model.KindPlan && b.Kind != model.KindTask {
 		addWords(body, "body")

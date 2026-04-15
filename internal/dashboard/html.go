@@ -71,7 +71,7 @@ tailwind.config = {
 const API='/api';
 let proj=null, page='overview';
 
-const pages=['overview','entities','plans','learnings','tasks','designs'];
+const pages=['overview','entities','plans','tasks','designs'];
 
 function nav(p){
   page=p;
@@ -85,7 +85,6 @@ function render(){
     case 'overview': renderOverview(c); break;
     case 'entities': renderEntities(c); break;
     case 'plans': renderPlans(c); break;
-    case 'learnings': renderLearnings(c); break;
     case 'tasks': renderTasks(c); break;
     case 'designs': renderDesigns(c); break;
   }
@@ -115,7 +114,7 @@ async function api(path){
 }
 
 async function renderOverview(el){
-  const [status,plans,learnings]=await Promise.all([api('status'),api('plans'),api('learnings')]);
+  const [status,plans]=await Promise.all([api('status'),api('plans')]);
   const c=status.counts||{};
   const stats=Object.entries(c).map(([k,v])=>'<div class="card p-4"><div class="text-xs text-muted-foreground uppercase tracking-wider">'+k+'</div><div class="text-2xl font-semibold mt-1">'+v+'</div></div>').join('');
 
@@ -127,24 +126,15 @@ async function renderOverview(el){
     }).join('');
   }
 
-  let learnHTML='';
-  if(learnings.learnings&&learnings.learnings.length){
-    learnHTML=learnings.learnings.map(l=>{
-      const icon=l.category==='gotcha'||l.category==='constraint'?'⚠':'ℹ';
-      return '<div class="flex items-center gap-2 py-1.5"><span>'+icon+'</span><span class="badge badge-'+l.category+'">'+l.category+'</span><span class="text-sm">'+esc(l.description)+'</span><span class="badge">'+l.confidence+'</span></div>';
-    }).join('');
-  }
-
   el.innerHTML='<div class="mb-8"><h1 class="text-2xl font-semibold tracking-tight">'+(proj.name||proj.slug)+'</h1><p class="text-muted-foreground text-sm mt-1">Design model overview</p></div>'
     +'<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">'+stats+'</div>'
-    +(planHTML?'<h2 class="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Plans</h2><div class="space-y-3 mb-8">'+planHTML+'</div>':'')
-    +(learnHTML?'<h2 class="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Learnings</h2><div class="card p-4">'+learnHTML+'</div>':'');
+    +(planHTML?'<h2 class="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Plans</h2><div class="space-y-3 mb-8">'+planHTML+'</div>':'');
 }
 
 async function renderEntities(el){
   const data=await api('entities');
   const entities=data.entities||[];
-  const rows=entities.map(e=>'<tr class="table-row"><td class="p-3"><span class="badge badge-draft">'+e.kind+'</span></td><td class="p-3 font-medium">'+esc(e.name)+'</td><td class="p-3"><span class="badge badge-'+e.status+'">'+e.status+'</span></td><td class="p-3 text-muted-foreground text-sm">'+esc(e.description||'')+'</td><td class="p-3 text-muted-foreground text-sm">'+e.relationship_count+' rels'+(e.learning_count?' · '+e.learning_count+' ⚠':'')+'</td></tr>').join('');
+  const rows=entities.map(e=>'<tr class="table-row"><td class="p-3"><span class="badge badge-draft">'+e.kind+'</span></td><td class="p-3 font-medium">'+esc(e.name)+'</td><td class="p-3"><span class="badge badge-'+e.status+'">'+e.status+'</span></td><td class="p-3 text-muted-foreground text-sm">'+esc(e.description||'')+'</td><td class="p-3 text-muted-foreground text-sm">'+e.relationship_count+' rels</td></tr>').join('');
   el.innerHTML='<div class="mb-6"><h1 class="text-xl font-semibold tracking-tight">Entities</h1><p class="text-muted-foreground text-sm mt-1">'+entities.length+' total</p></div><div class="card"><table class="w-full text-sm"><thead><tr class="border-b border-border text-left text-muted-foreground"><th class="p-3 font-medium">Kind</th><th class="p-3 font-medium">Name</th><th class="p-3 font-medium">Status</th><th class="p-3 font-medium">Description</th><th class="p-3 font-medium">Refs</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -161,24 +151,6 @@ async function renderPlans(el){
     return '<div class="card p-4 mb-4"><div class="flex items-center justify-between mb-3"><h2 class="font-medium">'+esc(p.name)+'</h2><span class="badge badge-'+p.status+'">'+p.status+'</span></div><div class="progress-bar mb-2"><div class="progress-fill" style="width:'+pct+'%"></div></div><div class="text-xs text-muted-foreground mb-3">'+pct+'% complete'+(p.created?' · Created '+p.created.slice(0,10):'')+'</div>'+steps+'</div>';
   }).join('');
   el.innerHTML='<h1 class="text-xl font-semibold mb-4">Plans</h1>'+html;
-}
-
-async function renderLearnings(el){
-  const data=await api('learnings');
-  const items=data.learnings||[];
-  if(!items.length){el.innerHTML='<h1 class="text-xl font-semibold mb-4">Learnings</h1><p class="text-muted-foreground">No learnings yet.</p>';return;}
-  const grouped={};
-  items.forEach(l=>{const c=l.category||'other';(grouped[c]=grouped[c]||[]).push(l)});
-  let html='<h1 class="text-xl font-semibold mb-6">Learnings</h1>';
-  for(const[cat,ls]of Object.entries(grouped)){
-    html+='<h2 class="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2 mt-6">'+cat+'</h2><div class="space-y-2">';
-    ls.forEach(l=>{
-      const icon=cat==='gotcha'||cat==='constraint'?'⚠':'ℹ';
-      html+='<div class="card p-4"><div class="flex items-center gap-2 mb-1"><span>'+icon+'</span><span class="badge badge-'+cat+'">'+cat+'</span><span class="badge">'+l.confidence+'</span></div><p class="text-sm">'+esc(l.description)+'</p>'+(l.entity_refs&&l.entity_refs.length?'<p class="text-xs text-muted-foreground mt-1">Entities: '+l.entity_refs.join(', ')+'</p>':'')+'<p class="text-xs text-muted-foreground mt-1 font-mono">'+l.file+'</p></div>';
-    });
-    html+='</div>';
-  }
-  el.innerHTML=html;
 }
 
 async function renderTasks(el){

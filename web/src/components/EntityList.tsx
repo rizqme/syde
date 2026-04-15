@@ -78,9 +78,6 @@ export function EntityList({ entities, kind, onSelect, selectedSlug }: EntityLis
                 {entity.relationship_count > 0 && (
                   <span>{entity.relationship_count} rels</span>
                 )}
-                {entity.learning_count > 0 && (
-                  <span>{entity.learning_count} learnings</span>
-                )}
               </div>
             </button>
           );

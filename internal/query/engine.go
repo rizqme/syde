@@ -56,7 +56,6 @@ func (e *Engine) Filter(kind model.EntityKind, tag string) ([]EntitySummary, err
 
 			relCount := len(b.Relationships)
 			canonSlug := b.CanonicalSlug()
-			learnCount := e.countLearningsFor(b.ID, canonSlug)
 			desc := b.Description
 
 			rels := make([]SummaryRelation, 0, len(b.Relationships))
@@ -71,7 +70,6 @@ func (e *Engine) Filter(kind model.EntityKind, tag string) ([]EntitySummary, err
 				Description:   desc,
 				File:          e.Store.FS.RelativePath(b.Kind, canonSlug),
 				RelCount:      relCount,
-				LearningCount: learnCount,
 				Tags:          b.Tags,
 				Files:         b.Files,
 				Relationships: rels,
@@ -108,7 +106,6 @@ type EntitySummary struct {
 	Description   string   `json:"description"`
 	File          string   `json:"file"`
 	RelCount      int      `json:"relationship_count"`
-	LearningCount int      `json:"learning_count"`
 	Tags          []string `json:"tags,omitempty"`
 	Files         []string `json:"files,omitempty"`
 	// Outbound relationships only — enough for client-side filtering by
@@ -221,12 +218,11 @@ func (e *Engine) FlowComponents(slug string) (*FlowDecomposition, error) {
 			continue
 		}
 		summary := EntitySummary{
-			ID:            ref.ID,
-			Kind:          string(ref.Kind),
-			Name:          ref.Name,
-			Slug:          utils.Slugify(ref.Name),
-			File:          ref.File,
-			LearningCount: e.countLearningsFor(ref.ID, ""),
+			ID:   ref.ID,
+			Kind: string(ref.Kind),
+			Name: ref.Name,
+			Slug: utils.Slugify(ref.Name),
+			File: ref.File,
 		}
 		switch kind {
 		case model.KindComponent:
@@ -484,21 +480,6 @@ func snippetAround(text string, idx, width int) string {
 		out = out + " …"
 	}
 	return out
-}
-
-func (e *Engine) countLearningsFor(entityID, slug string) int {
-	learnings, _ := e.Store.List(model.KindLearning)
-	count := 0
-	for _, ewb := range learnings {
-		l := ewb.Entity.(*model.LearningEntity)
-		for _, ref := range l.EntityRefs {
-			if ref == entityID || ref == slug {
-				count++
-				break
-			}
-		}
-	}
-	return count
 }
 
 func hasTag(tags []string, tag string) bool {

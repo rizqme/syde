@@ -119,7 +119,6 @@ func handleContextAPI(w http.ResponseWriter, store *storage.Store) {
 	}
 	entitiesByKind := make(map[string][]entry)
 	var decisions []map[string]string
-	var learnings []map[string]string
 	var plans []map[string]interface{}
 	taskStats := map[string]int{"completed": 0, "in_progress": 0, "pending": 0, "blocked": 0}
 	total := 0
@@ -133,17 +132,10 @@ func handleContextAPI(w http.ResponseWriter, store *storage.Store) {
 		for _, ewb := range entities {
 			b := ewb.Entity.GetBase()
 			switch v := ewb.Entity.(type) {
-			case *model.DecisionEntity:
-				decisions = append(decisions, map[string]string{
-					"name": b.Name, "statement": v.Statement, "category": v.Category,
-				})
-			case *model.LearningEntity:
-				if v.ConfLevel == model.ConfidenceHigh || v.Category == model.CatGotcha || v.Category == model.CatConstraint {
-					learnings = append(learnings, map[string]string{
-						"name":        b.Name,
-						"category":    string(v.Category),
-						"confidence":  string(v.ConfLevel),
-						"description": v.Description,
+			case *model.RequirementEntity:
+				if v.RequirementStatus == "" || v.RequirementStatus == model.RequirementActive {
+					decisions = append(decisions, map[string]string{
+						"name": b.Name, "statement": v.Statement, "rationale": v.Rationale,
 					})
 				}
 			case *model.PlanEntity:
@@ -185,7 +177,6 @@ func handleContextAPI(w http.ResponseWriter, store *storage.Store) {
 		"project":   projectName,
 		"entities":  entitiesByKind,
 		"decisions": decisions,
-		"learnings": learnings,
 		"plans":     plans,
 		"tasks":     taskStats,
 		"total":     total,
@@ -194,7 +185,7 @@ func handleContextAPI(w http.ResponseWriter, store *storage.Store) {
 
 // handleConstraintsCheckAPI maps a source file path to its owning
 // component via syde.yaml's component_paths, then attaches the
-// component's boundaries + any learnings referencing it. Mirrors the
+// component's boundaries. Mirrors the
 // old `syde constraints check <file>` behavior.
 func handleConstraintsCheckAPI(w http.ResponseWriter, r *http.Request, store *storage.Store) {
 	relFile := r.URL.Query().Get("path")
@@ -243,29 +234,12 @@ func handleConstraintsCheckAPI(w http.ResponseWriter, r *http.Request, store *st
 	}
 	comp := entity.(*model.ComponentEntity)
 
-	learnings, _ := store.List(model.KindLearning)
-	var compLearnings []map[string]string
-	for _, ewb := range learnings {
-		l := ewb.Entity.(*model.LearningEntity)
-		for _, ref := range l.EntityRefs {
-			if ref == comp.ID || ref == componentSlug {
-				compLearnings = append(compLearnings, map[string]string{
-					"category":    string(l.Category),
-					"description": l.Description,
-					"confidence":  string(l.ConfLevel),
-				})
-				break
-			}
-		}
-	}
-
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"file":           relFile,
 		"component":      comp.Name,
 		"component_slug": componentSlug,
 		"responsibility": comp.Responsibility,
 		"boundaries":     comp.Boundaries,
-		"learnings":      compLearnings,
 	})
 }
 

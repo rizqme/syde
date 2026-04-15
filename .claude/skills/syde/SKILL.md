@@ -2,9 +2,9 @@
 name: syde
 description: >
   Always active when installed. Manages the project's software design model
-  in .syde/. Enforces architectural constraints, tracks plans and tasks,
-  captures learnings. Triggers on any code modification, design discussion,
-  plan creation, or architecture query.
+  in .syde/. Enforces architectural constraints, tracks plans and tasks.
+  Triggers on any code modification, design discussion, plan creation, or
+  architecture query.
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
@@ -12,7 +12,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 
 This project has a syde design model in `.syde/`. Architecture context is
 **auto-loaded at session start** via the SessionStart hook — you already have
-the full entity map, requirements, decisions, and learnings in your context. Do NOT re-run
+the full entity map and requirements in your context. Do NOT re-run
 `syde context` manually.
 
 ## Getting Context — syde first, always
@@ -64,8 +64,7 @@ code. Acting on them is part of the workflow, not a separate cleanup step.
 **Use `syde query` for everything tracked by the summary tree.** Including:
 finding a Go symbol, reading a source file with framing, listing all
 entities of a kind, finding what a file participates in, finding what
-depends on what, searching documentation, finding learnings, and
-triaging orphans / drift.
+depends on what, searching documentation, and triaging orphans / drift.
 
 **Reserve `Grep` and `Read` for files the summary tree intentionally
 ignores** — vendor/, node_modules/, generated assets, .git/, build
@@ -104,14 +103,14 @@ syde query --search "BadgerDB index"
 syde query --search "concept entity"   # broadened example
 
 # 6. SCOPED SEARCH — narrow by kind and/or tag.
-syde query --search migration --kind learning --tag critical --limit 5
+syde query --search migration --kind requirement --tag critical --limit 5
 
 # 7. ENTITY DETAIL — full context for one entity.
 syde query storage-engine --full
 
 # 8. LIST BY KIND — every entity of a given kind.
 syde query --kind concept
-syde query --kind decision --format refs
+syde query --kind requirement --format refs
 
 # 9. ORPHAN TRIAGE — find files the design model does not claim.
 syde files orphans
@@ -224,13 +223,13 @@ Phase 0 is NEVER skipped — always run `syde tree scan` at session start.
 Bootstrapping a non-trivial codebase creates dozens to hundreds of entities
 (one system + sub-systems, a component per package, a contract per CLI
 command / HTTP endpoint / schema prefix, concepts per domain type, flows,
-decisions). Doing this as individual tool calls burns tool-use budget
+requirements). Doing this as individual tool calls burns tool-use budget
 for nothing.
 
 **Instead, write a shell script to `/tmp/syde-<batch>.sh`** containing
 chained `syde add` / `syde update` commands, then execute it with one
 `bash` call. Group related entities per script (systems, components,
-contracts, concepts, flows, decisions) and run them in dependency order
+contracts, concepts, flows, requirements) and run them in dependency order
 so `belongs_to` targets already exist when children reference them.
 
 ```bash
@@ -264,9 +263,8 @@ rename and a single update may be lost. Mitigations:
 - Folder summaries are always written serially in the main session, so
   they never hit this race.
 
-Record this as a `gotcha` learning on first encounter so future sessions
-stay alert — the tool does not emit an error, the update just silently
-fails to stick.
+Be aware of this on first encounter so future sessions stay alert — the
+tool does not emit an error, the update just silently fails to stick.
 
 ### Orphan files: three valid resolutions
 
@@ -320,7 +318,7 @@ until the user answers. Clarification is not optional; only the transport
 changes.
 
 **Common mistake**: jumping straight to `syde plan create` because the request
-seems clear. Even "build a dashboard" has 20+ hidden decisions (framework,
+seems clear. Even "build a dashboard" has 20+ hidden choices (framework,
 routing, state management, responsiveness, accessibility, etc.). Always clarify.
 
 Example:
@@ -395,7 +393,7 @@ system                                   ← a standalone process / app / servic
 ├── concepts (belongs_to system)          ← domain objects of this system
 │   ├── references components (implements/used_by)
 │   └── relates_to other concepts (ERD)
-└── flows, decisions, requirements, plans, tasks, learnings
+└── flows, requirements, plans, tasks
 ```
 
 **What is a system?** A system is anything with its own process / binary /
@@ -787,7 +785,8 @@ should model each as its own sub-system.
   system they are part of — for a sub-system, that's the sub-system, not the
   top-level one.
 - Every entity except the single root system needs a `belongs_to` parent.
-- Every non-requirement entity must link to at least one requirement.
+- Every non-requirement entity, including components and contracts, must carry
+  an outbound relationship to at least one requirement.
 - Every contract must participate in at least one flow.
 
 Example: a project with a CLI binary and a daemon:
@@ -801,14 +800,73 @@ syde add system "MyApp Daemon" \
   --add-rel "myapp:belongs_to"
 ```
 
+### Requirement rules
+
+Requirements capture architectural intent in **EARS shall-form** and are the
+traceability backbone of the model. Every non-requirement entity must carry an
+outbound relationship to at least one requirement.
+
+**Statements MUST match one of the five EARS patterns.** The save validator
+parses every statement and rejects any non-conforming requirement — there is
+no way to persist a statement that does not match. The five patterns:
+
+| Pattern | Template |
+|---------|----------|
+| Ubiquitous | `The <subject> shall <action>.` |
+| Event-driven | `When <trigger>, the <subject> shall <action>.` |
+| State-driven | `While <state>, the <subject> shall <action>.` |
+| Unwanted-behavior | `If <unwanted condition>, then the <subject> shall <action>.` |
+| Optional-feature | `Where <feature is included>, the <subject> shall <action>.` |
+
+**Required fields on every requirement:**
+
+- `--statement` — EARS shall-form text (validated on save)
+- `--type` — one of `functional`, `non-functional`, `constraint`, `interface`,
+  `performance`, `security`, `usability`
+- `--priority` — MoSCoW: `must`, `should`, `could`, `wont`
+- `--verification` — short free-form description of how the requirement is
+  verified (e.g. "integration test hits /api/projects and asserts 200",
+  "manual review of CLI help output")
+- `--source` — `user`, `plan`, `migration`, or `manual`
+- `--rationale` — why the requirement exists
+
+The legacy acceptance field has been **removed** from requirements.
+`--acceptance` is no longer a flag on `syde add requirement` (it still exists
+on `syde task`). Use `--verification` instead.
+
+**Requirements never carry a `files` list.** They are pure design intent and
+link only to other entities via `refines`, `derives_from`, and `belongs_to`.
+Do not pass `--file` when creating a requirement.
+
+**Requirement relationships:**
+
+- `refines` — requirement → component / contract / concept / system, or
+  requirement → requirement. Use when a requirement narrows a higher-level
+  intent against a specific design target. Example: a performance requirement
+  `refines` the HTTP API component.
+- `derives_from` — requirement → parent requirement. Use when a child
+  requirement is logically implied by a parent (derivation chain).
+- `belongs_to` — requirement → system, same as every other entity.
+
+**Backfilling requirements from an existing codebase.** When the design model
+already has components / contracts / concepts / systems but lacks requirements,
+follow the deterministic algorithm in
+`references/requirement-derivation.md`. It produces one EARS statement per
+architectural property with stable slugs and the correct `refines` /
+`derives_from` chain, and is the canonical way subagents backfill the
+requirement layer.
+
 ### Validation
 
 `syde validate` enforces:
 - Components must have `purpose`, `responsibility`, `capabilities`
 - Contracts must have `contract_kind`
 - Requirements are append-only and must be `active`, `superseded`, or `obsolete`
+- Requirement statements must match one of the five EARS patterns (save-time)
+- Requirements must have `req_type`, `priority`, and `verification`
+- Requirements must not carry a `files` list
 - Superseded requirements must point to replacements; obsolete requirements must say why
-- Every non-requirement entity links to a requirement
+- Every non-requirement entity has an outbound relationship to a requirement
 - Every entity except the root system has `belongs_to`
 - Every contract has at least one flow relationship
 - No cyclic `depends_on` relationships between components
@@ -1071,11 +1129,11 @@ rename a syde task, immediately update the visible todo list to match.
 6. Verify new files: `syde constraints check <file>`
 7. Update entities as you go — don't wait until later:
    - New entity needed? → `syde add <kind> <name>` with `--file` references
-     and `--add-rel <requirement>:references`
+     and outbound requirement traceability such as
+     `--add-rel <requirement>:references`
    - Entity changed? → `syde update <slug>` with updated fields
    - New relationship? → `syde update <slug> --add-rel "<target>:<type>"`
-   - Decision made? → `syde add decision "<name>" --statement "..." --rationale "..."`
-   - Discovered something? → `syde remember "<text>" --category <type> --entity <name>`
+   - Architectural choice made? → `syde add requirement "<name>" --statement "The system shall ..." --type functional --priority must --verification "..." --source manual --rationale "..."`
 
 **AFTER — complete and verify:**
 8. Complete the task and **declare the real affected set** — this is
@@ -1148,15 +1206,17 @@ each phase, update the model before moving on:
 4. **New user-facing workflow** → `syde add flow` or `syde update`
    - Set `trigger`, `goal`, `narrative` with step-by-step detail
    - Document `happy_path`, `edge_cases`, `failure_modes`
-5. **Architecture decision made during implementation** → `syde add decision`
-   - Set `statement`, `rationale`, `tradeoffs`, `consequences`
-   - Even implicit decisions count (e.g., choosing a library, picking a pattern)
+5. **Architectural choice made during implementation** → `syde add requirement`
+   - Set `statement` (EARS shall-form, save-validated), `--type`, `--priority`,
+     `--verification`, `--source`, `--rationale`
+   - Link with `--add-rel <target>:refines` (component/contract/concept/system
+     or a parent requirement) and/or `--add-rel <parent-req>:derives_from`
+   - Never pass `--file` on a requirement — requirements have no files list
+   - Even implicit choices count (e.g., choosing a library, picking a pattern) — capture them as requirements so intent is preserved
 6. **Relationship changes** → `syde update <entity> --add-rel <target>:<type>`
    - New dependency? Add `depends_on`
    - Component exposes a contract? Add `exposes`
    - Flow involves a component? Add `involves`
-7. **Discovered undocumented behavior** → `syde remember`
-   - Gotchas, workarounds, performance quirks, hidden constraints
 
 **The test**: after every phase, run `syde context` and ask yourself:
 "If someone new read this model, would they understand the system as it exists
@@ -1219,8 +1279,7 @@ the Stop hook blocks session end with the same gate.
 6. **Delegate file summarization to subagents, never burn main context on it.** When summarizing stale files for the tree, dispatch subagents in parallel and give each a batch of paths. Each subagent calls `syde tree context <path>` + `syde tree summarize`. Main session only handles folder summaries (cheap, derived from children via `syde tree show`).
 7. **When creating entities on an existing codebase, use `syde tree context <path>`, never naive `Read`.** The tree context returns the ancestor breadcrumb + file summary + content in one call — that's the right framing for `--purpose`, `--responsibility`, `--boundaries`. `Read` is only for verification.
 8. **Always verify new source files** — run `syde constraints check` after writing
-9. **Always capture learnings** — when you discover undocumented behavior or constraints
-10. **Always document thoroughly** — entity descriptions must be specific, not vague. "Handles auth" is not enough. "Manages JWT token issuance, refresh, and revocation. Validates tokens on every request via middleware. Does NOT own user profiles — delegates to user-service." is what we need.
+9. **Always document thoroughly** — entity descriptions must be specific, not vague. "Handles auth" is not enough. "Manages JWT token issuance, refresh, and revocation. Validates tokens on every request via middleware. Does NOT own user profiles — delegates to user-service." is what we need.
 11. **Use `syde query` for targeted lookups** — architecture is already in your context from session start, use query only when you need full detail on a specific entity
 12. **Bulk entity creation goes through a shell script, not individual tool calls.** For bootstrap (many entities at once), write a `/tmp/syde-<batch>.sh` and run it in one bash call. One-off creates during task implementation can still be direct `syde add` calls.
 13. **Clear orphan files deliberately** — every ERROR from `syde sync check` is either (a) a file that should join an existing component's `--file` list, (b) a file that warrants a new component, or (c) a file that isn't part of the design model and should be `syde tree ignore`d. Use `syde files orphans` to list them and `syde files coverage <path>` to check ownership. Do not mass-ignore to silence the gate.
@@ -1231,3 +1290,4 @@ the Stop hook blocks session end with the same gate.
 - `references/entity-spec.md` — entity kinds, fields, valid values
 - `references/commands.md` — complete CLI reference with all flags
 - `references/sync-workflow.md` — syncing design model with codebase (new projects + existing models)
+- `references/requirement-derivation.md` — deterministic algorithm for backfilling EARS requirements from existing components / contracts / concepts / systems

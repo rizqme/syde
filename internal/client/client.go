@@ -203,7 +203,6 @@ type EntitySummary struct {
 	Description       string   `json:"description"`
 	File              string   `json:"file"`
 	RelationshipCount int      `json:"relationship_count"`
-	LearningCount     int      `json:"learning_count"`
 	Tags              []string `json:"tags,omitempty"`
 	Statement         string   `json:"statement,omitempty"`
 	RequirementStatus string   `json:"requirement_status,omitempty"`
@@ -325,8 +324,8 @@ func (c *Client) ConstraintsCheck(path string) ([]byte, error) {
 	return c.getRaw("constraints-check", q)
 }
 
-// Constraints fetches the active-constraints list (decisions +
-// high-confidence gotcha/constraint learnings) for the current project.
+// Constraints fetches the active-constraints list (decisions) for
+// the current project.
 func (c *Client) Constraints() ([]byte, error) {
 	return c.getRaw("constraints", nil)
 }

@@ -68,7 +68,7 @@ This creates:
 
 **1. Session starts — architecture auto-loads**
 
-The SessionStart hook runs `syde context --json` and injects your full architecture into Claude's context: all requirements, components, contracts, flows, decisions, and learnings. Claude starts every session already knowing your system's design.
+The SessionStart hook runs `syde context --json` and injects your full architecture into Claude's context: all requirements, components, contracts, flows, and decisions. Claude starts every session already knowing your system's design.
 
 **2. Claude asks clarifying questions first**
 
@@ -117,18 +117,7 @@ syde task done create-auth-middleware     # Marks complete, updates plan progres
 syde plan phase add-user-auth phase_1 --status completed
 ```
 
-**5. Claude captures learnings**
-
-When Claude discovers undocumented behavior during implementation:
-
-```bash
-syde remember "JWT tokens must be refreshed before each API call" \
-  --category constraint --entity auth-middleware --confidence high
-```
-
-These learnings persist across sessions — next time Claude (or anyone) works on the auth component, the constraint surfaces automatically.
-
-**6. Post-write verification**
+**5. Post-write verification**
 
 The PostToolUse hook fires after every file write. If a new source file isn't mapped to any syde component, Claude gets a reminder to update the design model.
 
@@ -153,8 +142,8 @@ Wait for approval ← USER APPROVES HERE
 Implement with task tracking
   │ (syde task start → write code → constraints check → task done)
   ▼
-Validate and capture learnings
-  │ (syde validate + syde remember)
+Validate
+  │ (syde validate)
   ▼
 Done
 ```
@@ -170,7 +159,7 @@ When `syde plan estimate` detects a plan with >10 phases, it recommends splittin
 
 ## Entity Types
 
-syde models your architecture with 11 entity types:
+syde models your architecture with 10 entity types:
 
 | Kind | What it represents | Key fields |
 |------|-------------------|------------|
@@ -184,7 +173,6 @@ syde models your architecture with 11 entity types:
 | **plan** | A tracked implementation plan | phases with action/status |
 | **task** | A work item linked to plans/entities | priority, status, entity_refs |
 | **design** | A UI mockup in UIML format | design_type, UIML body |
-| **learning** | Captured design knowledge | category, confidence, entity_refs |
 
 Each entity is a markdown file with YAML frontmatter in `.syde/<kind-plural>/<slug>.md`. Human-readable, git-friendly, editable by hand or via CLI.
 
@@ -193,7 +181,7 @@ Each entity is a markdown file with YAML frontmatter in `.syde/<kind-plural>/<sl
 ### Architecture overview
 
 ```bash
-syde context                    # Full snapshot: entities, decisions, learnings, plans, tasks
+syde context                    # Full snapshot: entities, decisions, plans, tasks
 syde context --json             # Machine-readable (used by session start hook)
 syde status                     # Entity counts
 syde validate                   # Check integrity (broken refs, missing fields)
@@ -240,7 +228,7 @@ Relationship types: `belongs_to`, `depends_on`, `exposes`, `consumes`, `uses`, `
 ### Rich queries
 
 ```bash
-syde query auth-service                    # Entity + relationships + learnings + tasks + decisions
+syde query auth-service                    # Entity + relationships + tasks + decisions
 syde query auth-service --full             # Everything including body
 syde query auth-service --full --format json  # Machine-readable with file:line refs
 syde query --kind component --tag security # Filter
@@ -278,29 +266,10 @@ syde task link build-payment-webhook payment-service  # Link to entity
 syde task list
 ```
 
-### Learnings
-
-```bash
-# Capture
-syde remember "Payment webhooks retry up to 5 times with exponential backoff" \
-  --category constraint \
-  --entity payment-service \
-  --confidence high
-
-# Query
-syde learn list                         # All learnings
-syde learn about payment-service        # Learnings for a specific entity
-syde learn search "webhook"             # Search text
-syde learn stale                        # Learnings referencing changed entities
-syde learn promote webhook-retry --to decision  # Promote to formal decision
-```
-
-Learning categories: `gotcha`, `constraint`, `convention`, `context`, `dependency`, `performance`, `workaround`
-
 ### Constraints
 
 ```bash
-syde constraints                        # Active decisions + critical learnings
+syde constraints                        # Active decisions
 syde constraints --json                 # For hook injection
 syde constraints check src/auth/handler.go  # Map file → component → constraints
 ```
@@ -362,7 +331,7 @@ syde server stop                        # Stop
 syde open                               # Start + register project + open browser
 ```
 
-Dashboard at `http://localhost:5703/<project-slug>` shows: entity overview, plans with progress, learnings, tasks, and design previews.
+Dashboard at `http://localhost:5703/<project-slug>` shows: entity overview, plans with progress, tasks, and design previews.
 
 ### Sync with existing codebase
 
@@ -373,16 +342,6 @@ syde sync --coverage                    # Check which directories map to compone
 ```
 
 Sync generates a `scan-guide.json` with directory structure and language detection. For new projects, the syde skill in Claude Code uses this guide to drive 5 rounds of agent-powered extraction. For existing models, it verifies entities against the implementation and detects drift.
-
-### Memory sync
-
-```bash
-syde memory sync                        # Generate Claude Code memory files from learnings
-syde memory list                        # Show memory files
-syde memory clean                       # Remove all syde memories
-```
-
-Syncs learnings to `.claude/projects/<hash>/memory/` so they persist across Claude Code sessions.
 
 ## `.syde/` directory structure
 
@@ -398,8 +357,7 @@ Syncs learnings to `.claude/projects/<hash>/memory/` so they persist across Clau
 ├── decisions/             # Decision entities
 ├── plans/                 # Plan entities
 ├── tasks/                 # Task entities
-├── designs/               # Design entities (UIML)
-└── learnings/             # Captured learnings
+└── designs/               # Design entities (UIML)
 ```
 
 Add to `.gitignore`:

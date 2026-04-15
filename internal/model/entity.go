@@ -11,11 +11,8 @@ const (
 	KindContract    EntityKind = "contract"
 	KindConcept     EntityKind = "concept"
 	KindFlow        EntityKind = "flow"
-	KindDecision    EntityKind = "decision"
 	KindPlan        EntityKind = "plan"
 	KindTask        EntityKind = "task"
-	KindDesign      EntityKind = "design"
-	KindLearning    EntityKind = "learning"
 	KindRequirement EntityKind = "requirement"
 )
 
@@ -23,7 +20,7 @@ const (
 func AllEntityKinds() []EntityKind {
 	return []EntityKind{
 		KindSystem, KindComponent, KindContract, KindConcept,
-		KindFlow, KindDecision, KindPlan, KindTask, KindDesign, KindLearning,
+		KindFlow, KindPlan, KindTask,
 		KindRequirement,
 	}
 }
@@ -41,16 +38,10 @@ func (k EntityKind) KindPlural() string {
 		return "concepts"
 	case KindFlow:
 		return "flows"
-	case KindDecision:
-		return "decisions"
 	case KindPlan:
 		return "plans"
 	case KindTask:
 		return "tasks"
-	case KindDesign:
-		return "designs"
-	case KindLearning:
-		return "learnings"
 	case KindRequirement:
 		return "requirements"
 	default:
@@ -72,16 +63,10 @@ func (k EntityKind) IDPrefix() string {
 		return "CPT"
 	case KindFlow:
 		return "FLW"
-	case KindDecision:
-		return "DEC"
 	case KindPlan:
 		return "PLN"
 	case KindTask:
 		return "TSK"
-	case KindDesign:
-		return "DSG"
-	case KindLearning:
-		return "LRN"
 	case KindRequirement:
 		return "REQ"
 	default:
@@ -358,19 +343,6 @@ type FlowEntity struct {
 	PerformanceNotes   string `yaml:"performance_notes,omitempty"`
 }
 
-// DecisionEntity captures architectural intent.
-type DecisionEntity struct {
-	BaseEntity             `yaml:",inline"`
-	Category               string `yaml:"category,omitempty"`
-	Statement              string `yaml:"statement,omitempty"`
-	Rationale              string `yaml:"rationale,omitempty"`
-	AlternativesConsidered string `yaml:"alternatives_considered,omitempty"`
-	Tradeoffs              string `yaml:"tradeoffs,omitempty"`
-	Consequences           string `yaml:"consequences,omitempty"`
-	ReviewNotes            string `yaml:"review_notes,omitempty"`
-	Supersedes             string `yaml:"supersedes,omitempty"`
-}
-
 // RequirementStatus describes whether a requirement is currently
 // active or retained only as historical context.
 type RequirementStatus string
@@ -381,22 +353,63 @@ const (
 	RequirementObsolete   RequirementStatus = "obsolete"
 )
 
-// RequirementEntity captures a user- or plan-approved requirement as
-// immutable design intent. Requirements are append-only audit records:
-// conflicts are represented by supersedes / superseded_by links and
-// status changes, not by deleting historical requirement files.
+// RequirementType classifies a requirement by what kind of property
+// it asserts about the system. Used by audits and dashboard filters.
+type RequirementType string
+
+const (
+	ReqTypeFunctional    RequirementType = "functional"
+	ReqTypeNonFunctional RequirementType = "non-functional"
+	ReqTypeConstraint    RequirementType = "constraint"
+	ReqTypeInterface     RequirementType = "interface"
+	ReqTypePerformance   RequirementType = "performance"
+	ReqTypeSecurity      RequirementType = "security"
+	ReqTypeUsability     RequirementType = "usability"
+)
+
+// AllRequirementTypes returns every valid req_type value.
+func AllRequirementTypes() []RequirementType {
+	return []RequirementType{
+		ReqTypeFunctional, ReqTypeNonFunctional, ReqTypeConstraint,
+		ReqTypeInterface, ReqTypePerformance, ReqTypeSecurity, ReqTypeUsability,
+	}
+}
+
+// RequirementPriority is the MoSCoW priority of a requirement.
+type RequirementPriority string
+
+const (
+	ReqPriorityMust   RequirementPriority = "must"
+	ReqPriorityShould RequirementPriority = "should"
+	ReqPriorityCould  RequirementPriority = "could"
+	ReqPriorityWont   RequirementPriority = "wont"
+)
+
+// AllRequirementPriorities returns every valid priority value.
+func AllRequirementPriorities() []RequirementPriority {
+	return []RequirementPriority{
+		ReqPriorityMust, ReqPriorityShould, ReqPriorityCould, ReqPriorityWont,
+	}
+}
+
+// RequirementEntity captures a declarative system property in EARS
+// shall-form. Requirements are append-only audit records: conflicts
+// are represented by supersedes / superseded_by links and status
+// changes, not by deleting historical requirement files.
 type RequirementEntity struct {
-	BaseEntity         `yaml:",inline"`
-	Statement          string            `yaml:"statement,omitempty"`
-	Source             string            `yaml:"source,omitempty"`     // user, plan, migration, manual
-	SourceRef          string            `yaml:"source_ref,omitempty"` // plan slug, transcript ref, issue URL, etc.
-	RequirementStatus  RequirementStatus `yaml:"requirement_status,omitempty"`
-	Rationale          string            `yaml:"rationale,omitempty"`
-	AcceptanceCriteria string            `yaml:"acceptance_criteria,omitempty"`
-	Supersedes         []string          `yaml:"supersedes,omitempty"`
-	SupersededBy       []string          `yaml:"superseded_by,omitempty"`
-	ObsoleteReason     string            `yaml:"obsolete_reason,omitempty"`
-	ApprovedAt         string            `yaml:"approved_at,omitempty"`
+	BaseEntity        `yaml:",inline"`
+	Statement         string              `yaml:"statement,omitempty"`
+	ReqType           RequirementType     `yaml:"req_type,omitempty"`
+	Priority          RequirementPriority `yaml:"priority,omitempty"`
+	Verification      string              `yaml:"verification,omitempty"`
+	Source            string              `yaml:"source,omitempty"`     // user, plan, migration, manual
+	SourceRef         string              `yaml:"source_ref,omitempty"` // plan slug, transcript ref, issue URL, etc.
+	RequirementStatus RequirementStatus   `yaml:"requirement_status,omitempty"`
+	Rationale         string              `yaml:"rationale,omitempty"`
+	Supersedes        []string            `yaml:"supersedes,omitempty"`
+	SupersededBy      []string            `yaml:"superseded_by,omitempty"`
+	ObsoleteReason    string              `yaml:"obsolete_reason,omitempty"`
+	ApprovedAt        string              `yaml:"approved_at,omitempty"`
 }
 
 // NewEntityForKind creates a zero-value entity of the given kind.
@@ -412,16 +425,10 @@ func NewEntityForKind(kind EntityKind) Entity {
 		return &ConceptEntity{BaseEntity: BaseEntity{Kind: kind}}
 	case KindFlow:
 		return &FlowEntity{BaseEntity: BaseEntity{Kind: kind}}
-	case KindDecision:
-		return &DecisionEntity{BaseEntity: BaseEntity{Kind: kind}}
 	case KindPlan:
 		return &PlanEntity{BaseEntity: BaseEntity{Kind: kind}}
 	case KindTask:
 		return &TaskEntity{BaseEntity: BaseEntity{Kind: kind}}
-	case KindDesign:
-		return &DesignEntity{BaseEntity: BaseEntity{Kind: kind}}
-	case KindLearning:
-		return &LearningEntity{BaseEntity: BaseEntity{Kind: kind}}
 	case KindRequirement:
 		return &RequirementEntity{
 			BaseEntity:        BaseEntity{Kind: kind},

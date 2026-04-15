@@ -19,7 +19,7 @@ import { SearchIcon } from './icons';
 //   slug:cli                → slug substring
 //   file:internal/cli/      → any file path substring
 //   has:files               → at least one file
-//   has:rels / has:learnings
+//   has:rels
 //   rel:depends_on          → has any outbound relationship of this type
 //   belongs_to:syde-cli     → outbound belongs_to with this target
 //   depends_on:storage      → outbound depends_on with this target
@@ -177,7 +177,6 @@ function matchToken(e: EntitySummary, tok: FilterToken): boolean {
       if (v === 'files') return (e.files || []).length > 0;
       if (v === 'tags') return (e.tags || []).length > 0;
       if (v === 'rels' || v === 'relationships') return (e.relationships || []).length > 0;
-      if (v === 'learnings') return e.learning_count > 0;
       if (v === 'description') return !!e.description;
       return false;
     case 'rel':
@@ -230,10 +229,10 @@ const KEY_SUGGESTIONS: { key: string; hint: string }[] = [
   { key: 'involves:', hint: 'outbound involves target' },
   { key: 'applies_to:', hint: 'outbound applies_to target' },
   { key: 'rel:', hint: 'has any rel of type' },
-  { key: 'has:', hint: 'has any (files|tags|rels|learnings)' },
+  { key: 'has:', hint: 'has any (files|tags|rels)' },
 ];
 
-const HAS_VALUES = ['files', 'tags', 'rels', 'learnings', 'description'];
+const HAS_VALUES = ['files', 'tags', 'rels', 'description'];
 
 function suggestionsForToken(
   token: FilterToken | null,
@@ -263,7 +262,7 @@ function suggestionsForToken(
   const startsWith = (s: string) => s.toLowerCase().startsWith(v);
 
   if (k === 'kind') {
-    const kinds = ['system', 'component', 'contract', 'concept', 'flow', 'decision', 'plan', 'task', 'learning', 'design'];
+    const kinds = ['system', 'component', 'contract', 'concept', 'flow', 'decision', 'plan', 'task', 'design'];
     return kinds.filter(startsWith).map((kind) => ({
       insert: `kind:${kind}`,
       label: kind,
@@ -364,7 +363,6 @@ const KIND_PILL_PALETTE: Record<string, string> = {
   decision: 'border-kind-decision/40 bg-kind-decision/10 text-kind-decision',
   plan: 'border-kind-plan/40 bg-kind-plan/10 text-kind-plan',
   task: 'border-kind-task/40 bg-kind-task/10 text-kind-task',
-  learning: 'border-kind-learning/40 bg-kind-learning/10 text-kind-learning',
 };
 
 // Each relationship type rides the colour of the kind it most often points at.

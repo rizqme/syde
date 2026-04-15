@@ -1,0 +1,20 @@
+---
+id: REQ-0043
+kind: requirement
+name: HTTP API Lists Entities Per Project
+slug: http-api-lists-entities-per-project-1yjc
+relationships:
+    - target: http-api-afos
+      type: refines
+    - target: syded-dashboard-e82c
+      type: belongs_to
+updated_at: "2026-04-15T10:52:22Z"
+statement: When a client invokes GET /api/<project>/entities, the syded daemon shall respond with a JSON list of entities scoped to that project.
+req_type: interface
+priority: must
+verification: integration test against /api/<project>/entities
+source: manual
+source_ref: component:http-api-afos
+requirement_status: active
+rationale: The SPA depends on per-project entity listings for every inbox view.
+---

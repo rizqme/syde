@@ -17,8 +17,8 @@ import { useApi } from '../hooks/useApi';
 import { api, EntityDetailResponse, GraphResponse } from '../lib/api';
 import { iconForKind } from '../components/icons';
 
-// Only architectural kinds appear on the entity graph. Plan/task/learning/
-// design are workflow concerns and are kept out so the network reads as a
+// Only architectural kinds appear on the entity graph. Plan/task/design
+// are workflow concerns and are kept out so the network reads as a
 // pure architecture map.
 const INCLUDED_KINDS = new Set(['system', 'component', 'contract', 'concept', 'flow', 'decision']);
 

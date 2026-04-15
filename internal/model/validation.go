@@ -2,10 +2,59 @@ package model
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/feedloop/syde/internal/uiml"
 )
+
+// EARSPattern names one of the five Easy Approach to Requirements
+// Syntax templates a requirement statement must match.
+type EARSPattern string
+
+const (
+	EARSUbiquitous       EARSPattern = "ubiquitous"        // The <subject> shall <action>.
+	EARSEventDriven      EARSPattern = "event-driven"      // When <trigger>, the <subject> shall <action>.
+	EARSStateDriven      EARSPattern = "state-driven"      // While <state>, the <subject> shall <action>.
+	EARSUnwantedBehavior EARSPattern = "unwanted-behavior" // If <unwanted condition>, then the <subject> shall <action>.
+	EARSOptionalFeature  EARSPattern = "optional-feature"  // Where <feature is included>, the <subject> shall <action>.
+)
+
+// earsRegexes anchors each EARS template. Patterns are deliberately
+// loose on subject naming and require "shall" so non-shall imperative
+// statements ("Add a button.", "Make X visible.") are rejected.
+var earsRegexes = []struct {
+	pattern EARSPattern
+	re      *regexp.Regexp
+}{
+	{EARSEventDriven, regexp.MustCompile(`(?is)^\s*when\b.+,\s*the\b.+\bshall\b.+\.\s*$`)},
+	{EARSStateDriven, regexp.MustCompile(`(?is)^\s*while\b.+,\s*the\b.+\bshall\b.+\.\s*$`)},
+	{EARSUnwantedBehavior, regexp.MustCompile(`(?is)^\s*if\b.+,\s*then\s+the\b.+\bshall\b.+\.\s*$`)},
+	{EARSOptionalFeature, regexp.MustCompile(`(?is)^\s*where\b.+,\s*the\b.+\bshall\b.+\.\s*$`)},
+	// Ubiquitous goes last so the conditional patterns above win
+	// when a sentence opens with When/While/If/Where.
+	{EARSUbiquitous, regexp.MustCompile(`(?is)^\s*the\b.+\bshall\b.+\.\s*$`)},
+}
+
+// MatchEARS returns the matching EARS pattern (and true) for a
+// requirement statement, or "" and false if no template matches.
+// Statements may end in a period or not; the regexes tolerate
+// trailing whitespace.
+func MatchEARS(statement string) (EARSPattern, bool) {
+	s := strings.TrimSpace(statement)
+	if s == "" {
+		return "", false
+	}
+	if !strings.HasSuffix(s, ".") {
+		s += "."
+	}
+	for _, r := range earsRegexes {
+		if r.re.MatchString(s) {
+			return r.pattern, true
+		}
+	}
+	return "", false
+}
 
 // ValidationError represents a single validation issue.
 type ValidationError struct {
@@ -120,13 +169,11 @@ func ValidateEntity(e Entity) []ValidationError {
 		if v.Trigger == "" {
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "trigger", Message: "recommended"})
 		}
-	case *DecisionEntity:
-		if v.Statement == "" {
-			errs = append(errs, ValidationError{EntityID: b.ID, Field: "statement", Message: "recommended"})
-		}
 	case *RequirementEntity:
 		if strings.TrimSpace(v.Statement) == "" {
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "statement", Message: "required"})
+		} else if _, ok := MatchEARS(v.Statement); !ok {
+			errs = append(errs, ValidationError{EntityID: b.ID, Field: "statement", Message: "must match an EARS pattern: 'The X shall Y.', 'When Z, the X shall Y.', 'While Z, the X shall Y.', 'If Z, then the X shall Y.', or 'Where Z, the X shall Y.'"})
 		}
 		switch v.RequirementStatus {
 		case RequirementActive:
@@ -145,10 +192,6 @@ func ValidateEntity(e Entity) []ValidationError {
 		case "user", "plan", "migration", "manual":
 		default:
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "source", Message: "must be user, plan, migration, or manual"})
-		}
-	case *LearningEntity:
-		if v.Category == "" {
-			errs = append(errs, ValidationError{EntityID: b.ID, Field: "category", Message: "required"})
 		}
 	case *ConceptEntity:
 		// Meaning is the one-line elevator pitch for the concept;

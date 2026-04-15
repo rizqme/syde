@@ -23,6 +23,11 @@ var ClarifyGuideRef = mustRead("references/clarify-guide.md")
 // SyncWorkflowRef is the sync workflow reference.
 var SyncWorkflowRef = mustRead("references/sync-workflow.md")
 
+// RequirementDerivationRef is the deterministic procedure for
+// backfilling EARS requirements from existing entities. Subagents
+// in phase-4 backfill use this as their algorithm spec.
+var RequirementDerivationRef = mustRead("references/requirement-derivation.md")
+
 func mustRead(path string) string {
 	data, err := skillembed.FS.ReadFile(path)
 	if err != nil {

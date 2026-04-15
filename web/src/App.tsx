@@ -7,7 +7,6 @@ import { SearchPalette } from './components/SearchPalette';
 import { Overview } from './pages/Overview';
 import { PlanView } from './pages/PlanView';
 import { TaskBoard } from './pages/TaskBoard';
-import { LearningFeed } from './pages/LearningFeed';
 import { FileTree } from './pages/FileTree';
 import { Graph } from './pages/Graph';
 import { ERD } from './pages/ERD';
@@ -16,7 +15,7 @@ import { useApi } from './hooks/useApi';
 import { useWebSocket } from './hooks/useWebSocket';
 import { api, fetchProjects, setProject, getProject, StatusResponse, EntitiesResponse } from './lib/api';
 
-const SPECIAL_VIEWS = ['plan', 'task', 'learning', '__tree__', '__graph__'];
+const SPECIAL_VIEWS = ['plan', 'task', '__tree__', '__graph__'];
 
 export default function App() {
   const [projectName, setProjectName] = useState('Loading...');
@@ -178,11 +177,6 @@ export default function App() {
             <TaskBoard onSelectEntity={handleSelectEntity} />
           </div>
         )}
-        {activeKind === 'learning' && (
-          <div className="flex-1 overflow-y-auto px-8 py-8 max-w-4xl">
-            <LearningFeed onSelectEntity={handleSelectEntity} />
-          </div>
-        )}
         {activeKind === '__tree__' && ready && (
           <div className="flex-1 min-w-0 min-h-0">
             <FileTree key={reloadKey} />
@@ -264,7 +258,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating detail panel only used by special views (plan / task / learning) */}
+      {/* Floating detail panel only used by special views (plan / task) */}
       {selectedSlug && activeKind && SPECIAL_VIEWS.includes(activeKind) && (
         <EntityDetail
           slug={selectedSlug}

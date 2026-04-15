@@ -14,7 +14,7 @@ var contextJSON bool
 var contextCmd = &cobra.Command{
 	Use:   "context",
 	Short: "Full architecture snapshot in one call",
-	Long:  "Outputs project architecture: entities, decisions, learnings, plans, tasks. Replaces separate status + constraints + list + plan list calls.",
+	Long:  "Outputs project architecture: entities, decisions, plans, tasks. Replaces separate status + constraints + list + plan list calls.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := openClient()
 		if err != nil {
@@ -40,7 +40,6 @@ var contextCmd = &cobra.Command{
 				Desc string `json:"description,omitempty"`
 			} `json:"entities"`
 			Decisions []map[string]string      `json:"decisions"`
-			Learnings []map[string]string      `json:"learnings"`
 			Plans     []map[string]interface{} `json:"plans"`
 			Tasks     map[string]int           `json:"tasks"`
 			Total     int                      `json:"total"`
@@ -77,13 +76,6 @@ var contextCmd = &cobra.Command{
 					s = d["name"]
 				}
 				fmt.Printf("  • %s\n", s)
-			}
-		}
-
-		if len(payload.Learnings) > 0 {
-			fmt.Printf("Learnings (%d):\n", len(payload.Learnings))
-			for _, l := range payload.Learnings {
-				fmt.Printf("  ⚠ %s: %s\n", strings.ToUpper(l["category"]), l["description"])
 			}
 		}
 

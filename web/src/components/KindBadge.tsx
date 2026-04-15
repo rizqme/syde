@@ -5,9 +5,9 @@ const KIND_COLORS: Record<string, string> = {
   concept: 'border-kind-concept/40 text-kind-concept',
   flow: 'border-kind-flow/40 text-kind-flow',
   decision: 'border-kind-decision/40 text-kind-decision',
+  requirement: 'border-kind-requirement/40 text-kind-requirement',
   plan: 'border-kind-plan/40 text-kind-plan',
   task: 'border-kind-task/40 text-kind-task',
-  learning: 'border-kind-learning/40 text-kind-learning',
   design: 'border-kind-design/40 text-kind-design',
 };
 

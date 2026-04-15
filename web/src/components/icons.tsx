@@ -162,6 +162,21 @@ export function ScaleIcon(props: IconProps) {
   );
 }
 
+export function RequirementIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 5h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+      <path d="M10 3v4" />
+      <path d="M16 3v4" />
+      <path d="M10 12h6" />
+      <path d="M10 16h4" />
+      <path d="M4 9h4" />
+      <path d="M4 13h4" />
+      <path d="M4 17h4" />
+    </Svg>
+  );
+}
+
 export function ClipboardIcon(props: IconProps) {
   return (
     <Svg {...props}>
@@ -222,9 +237,9 @@ const KIND_ICON_MAP: Record<string, ComponentType<IconProps>> = {
   concept: DiamondIcon,
   flow: GitBranchIcon,
   decision: ScaleIcon,
+  requirement: RequirementIcon,
   plan: ClipboardIcon,
   task: CheckSquareIcon,
-  learning: LightbulbIcon,
 };
 export function iconForKind(kind: string | undefined): ComponentType<IconProps> | null {
   if (!kind) return null;

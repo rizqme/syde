@@ -27,7 +27,6 @@ export const api = {
   entity: (slug: string) => fetchJSON<EntityDetailResponse>(`entity/${slug}`),
   graph: () => fetchJSON<GraphResponse>('graph'),
   plans: () => fetchJSON<PlansResponse>('plans'),
-  learnings: () => fetchJSON<LearningsResponse>('learnings'),
   tasks: () => fetchJSON<TasksResponse>('tasks'),
   designs: () => fetchJSON<DesignsResponse>('designs'),
   search: (q: string) => fetchJSON<SearchResponse>(`search?q=${encodeURIComponent(q)}`),
@@ -90,7 +89,6 @@ export interface EntitySummary {
   description: string;
   file: string;
   relationship_count: number;
-  learning_count: number;
   tags?: string[];
   files?: string[];
   relationships?: { type: string; target: string; label?: string }[];
@@ -117,7 +115,6 @@ export interface EntityDetailResponse {
   entity: Record<string, any>;
   file_refs?: FileRef[];
   relationships: Relationship[];
-  learnings: any[];
   tasks: any[];
   suggested_queries: string[];
 }
@@ -176,19 +173,6 @@ export interface PlansResponse {
   plans: Plan[];
 }
 
-export interface Learning {
-  name: string;
-  category: string;
-  confidence: string;
-  description: string;
-  entity_refs: string[];
-  file: string;
-}
-
-export interface LearningsResponse {
-  learnings: Learning[];
-}
-
 export interface Task {
   name: string;
   status: string;
@@ -221,5 +205,4 @@ export interface SearchResponse {
 
 export interface ConstraintsResponse {
   decisions: { name: string; statement: string; category: string }[];
-  learnings: { name: string; category: string; description: string }[];
 }

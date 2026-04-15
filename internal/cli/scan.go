@@ -102,7 +102,7 @@ var syncCmd = &cobra.Command{
 		total := 0
 		designKinds := []model.EntityKind{
 			model.KindSystem, model.KindComponent, model.KindContract,
-			model.KindConcept, model.KindFlow, model.KindDecision,
+			model.KindConcept, model.KindFlow, model.KindRequirement,
 		}
 		for _, kind := range designKinds {
 			entities, _ := store.List(kind)
@@ -140,7 +140,7 @@ func runCompletenessCheck(store interface {
 	contracts, _ := store.List(model.KindContract)
 	concepts, _ := store.List(model.KindConcept)
 	flows, _ := store.List(model.KindFlow)
-	decisions, _ := store.List(model.KindDecision)
+	requirements, _ := store.List(model.KindRequirement)
 	systems, _ := store.List(model.KindSystem)
 
 	// 1. System entity
@@ -205,7 +205,7 @@ func runCompletenessCheck(store interface {
 	noRels := 0
 	allKinds := []model.EntityKind{
 		model.KindComponent, model.KindContract, model.KindConcept,
-		model.KindFlow, model.KindDecision,
+		model.KindFlow, model.KindRequirement,
 	}
 	for _, kind := range allKinds {
 		entities, _ := store.List(kind)
@@ -225,12 +225,12 @@ func runCompletenessCheck(store interface {
 	// 5. Entity kind coverage
 	fmt.Println("\n5. Entity kind coverage")
 	kindCounts := map[string]int{
-		"system":    len(systems),
-		"component": len(components),
-		"contract":  len(contracts),
-		"concept":   len(concepts),
-		"flow":      len(flows),
-		"decision":  len(decisions),
+		"system":      len(systems),
+		"component":   len(components),
+		"contract":    len(contracts),
+		"concept":     len(concepts),
+		"flow":        len(flows),
+		"requirement": len(requirements),
 	}
 	for kind, count := range kindCounts {
 		if count == 0 {
@@ -281,7 +281,7 @@ func runCompletenessCheck(store interface {
 	}
 
 	// Summary
-	total := len(systems) + len(components) + len(contracts) + len(concepts) + len(flows) + len(decisions)
+	total := len(systems) + len(components) + len(contracts) + len(concepts) + len(flows) + len(requirements)
 	fmt.Printf("\n═══ Summary ═══\n")
 	fmt.Printf("Entities: %d | Gaps: %d\n", total, gaps)
 	if gaps == 0 {

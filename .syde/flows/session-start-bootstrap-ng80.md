@@ -7,7 +7,7 @@ happy_path: Hook runs → syde context emits JSON → Claude Code injects snapsh
 id: FLW-0001
 kind: flow
 name: Session Start Bootstrap
-narrative: SessionStart hook from .claude/hooks/syde-hooks.json invokes 'syde context --json'. syde loads the project config, the index, and all entities, formats a snapshot of decisions, components, plans, tasks, and recent learnings, and writes it into the agent's context window. Agent begins the session already knowing the architecture.
+narrative: SessionStart hook from .claude/hooks/syde-hooks.json invokes 'syde context --json'. syde loads the project config, the index, and all entities, formats a snapshot of decisions, components, plans, and tasks, and writes it into the agent's context window. Agent begins the session already knowing the architecture.
 performance_notes: Full context load is O(entities). Must stay under 1s for typical projects (<500 entities). Dominant cost is markdown parsing, not BadgerDB.
 relationships:
     - target: syde

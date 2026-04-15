@@ -1,6 +1,6 @@
 ---
 description: Leaves-first summarize loop with subagent delegation that keeps tree.yaml fresh.
-edge_cases: Binary files and >1 MiB files get auto-summaries and never become stale from content. Deleted files prune from tree and mark parent stale. Ignored nodes are skipped by status --strict. Parallel tree.yaml writers race on the atomic rename — subagents must retry sequentially on collision (see learning gotcha).
+edge_cases: Binary files and >1 MiB files get auto-summaries and never become stale from content. Deleted files prune from tree and mark parent stale. Ignored nodes are skipped by status --strict. Parallel tree.yaml writers race on the atomic rename — subagents must retry sequentially on collision.
 failure_modes: Race condition on .syde/tree.yaml.tmp when multiple writers run concurrently → some summaries lost → caught by the next 'syde tree status' showing a straggler stale. SessionEnd hook exits non-zero if the tree isn't clean, blocking the session from ending quietly.
 goal: Keep .syde/tree.yaml in lock-step with the source tree — every file and folder has a current human-written summary
 happy_path: scan → stale list → subagent batch → main session folder pass → strict status OK

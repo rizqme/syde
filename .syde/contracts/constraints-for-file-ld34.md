@@ -13,16 +13,13 @@ input_parameters:
 interaction_pattern: request-response
 kind: contract
 name: Constraints For File
-output: Applicable decisions + critical learnings for the file's component
+output: Applicable decisions for the file's component
 output_parameters:
     - description: matched component slug (from syde.yaml component_paths)
       path: component
       type: string
     - description: applicable architecture decisions
       path: decisions
-      type: '[]string'
-    - description: critical learnings tagged to the component
-      path: learnings
       type: '[]string'
 relationships:
     - target: syde-cli

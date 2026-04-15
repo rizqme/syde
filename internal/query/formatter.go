@@ -63,19 +63,6 @@ func FormatRich(r *ResolvedEntity) string {
 		}
 	}
 
-	// Learnings
-	if len(r.Learnings) > 0 {
-		sb.WriteString(fmt.Sprintf("\n── Learnings (%d) ──\n", len(r.Learnings)))
-		for _, l := range r.Learnings {
-			icon := "ℹ"
-			if l.Category == "gotcha" || l.Category == "constraint" {
-				icon = "⚠"
-			}
-			sb.WriteString(fmt.Sprintf("  %s %s: %s [%s]\n", icon, strings.ToUpper(l.Category), l.Desc, l.Confidence))
-			sb.WriteString(fmt.Sprintf("    %s\n", l.File))
-		}
-	}
-
 	// Tasks
 	if len(r.Tasks) > 0 {
 		sb.WriteString(fmt.Sprintf("\n── Tasks (%d) ──\n", len(r.Tasks)))
@@ -90,19 +77,6 @@ func FormatRich(r *ResolvedEntity) string {
 				icon = "✗"
 			}
 			sb.WriteString(fmt.Sprintf("  %s %s [%s, %s]\n", icon, t.Name, t.Status, t.Priority))
-		}
-	}
-
-	// Decisions
-	if len(r.Decisions) > 0 {
-		sb.WriteString(fmt.Sprintf("\n── Decisions ──\n"))
-		for _, d := range r.Decisions {
-			sb.WriteString(fmt.Sprintf("  ✓ %s", d.Name))
-			if d.Statement != "" {
-				sb.WriteString(fmt.Sprintf(": %s", d.Statement))
-			}
-			sb.WriteString("\n")
-			sb.WriteString(fmt.Sprintf("    %s\n", d.File))
 		}
 	}
 
@@ -191,21 +165,15 @@ func FormatJSON(r *ResolvedEntity) string {
 		entityMap["edge_cases"] = e.EdgeCases
 		entityMap["failure_modes"] = e.FlowFailureModes
 		entityMap["performance_notes"] = e.PerformanceNotes
-	case *model.DecisionEntity:
-		entityMap["category"] = e.Category
-		entityMap["statement"] = e.Statement
-		entityMap["rationale"] = e.Rationale
-		entityMap["alternatives_considered"] = e.AlternativesConsidered
-		entityMap["tradeoffs"] = e.Tradeoffs
-		entityMap["consequences"] = e.Consequences
-		entityMap["supersedes"] = e.Supersedes
 	case *model.RequirementEntity:
 		entityMap["statement"] = e.Statement
+		entityMap["req_type"] = e.ReqType
+		entityMap["priority"] = e.Priority
+		entityMap["verification"] = e.Verification
 		entityMap["source"] = e.Source
 		entityMap["source_ref"] = e.SourceRef
 		entityMap["requirement_status"] = e.RequirementStatus
 		entityMap["rationale"] = e.Rationale
-		entityMap["acceptance_criteria"] = e.AcceptanceCriteria
 		entityMap["supersedes"] = e.Supersedes
 		entityMap["superseded_by"] = e.SupersededBy
 		entityMap["obsolete_reason"] = e.ObsoleteReason
@@ -242,9 +210,7 @@ func FormatJSON(r *ResolvedEntity) string {
 		"entity":            entityMap,
 		"file_refs":         r.FileRefs, // also at top-level so the SPA can read it without digging into entity
 		"relationships":     r.Relationships,
-		"learnings":         r.Learnings,
 		"tasks":             r.Tasks,
-		"decisions":         r.Decisions,
 		"suggested_queries": r.Suggested,
 	}
 	if r.Body != "" {
@@ -454,11 +420,7 @@ func FormatFlowDecomposition(fd *FlowDecomposition) string {
 	if len(fd.Components) > 0 {
 		sb.WriteString("Components in this flow:\n")
 		for i, c := range fd.Components {
-			warn := ""
-			if c.LearningCount > 0 {
-				warn = fmt.Sprintf(" | %d learnings ⚠", c.LearningCount)
-			}
-			sb.WriteString(fmt.Sprintf("  %d. %s%s\n", i+1, c.Name, warn))
+			sb.WriteString(fmt.Sprintf("  %d. %s\n", i+1, c.Name))
 			sb.WriteString(fmt.Sprintf("     %s\n", c.File))
 		}
 	}

@@ -24,6 +24,7 @@ files:
     - skill/references/clarify-guide.md
     - skill/references/commands.md
     - skill/references/entity-spec.md
+    - skill/references/requirement-derivation.md
     - skill/references/sync-workflow.md
 relationships:
     - target: syde-cli
@@ -31,7 +32,7 @@ relationships:
     - target: existing-syde-model-baseline-hcvj
       type: references
       label: requirement
-updated_at: "2026-04-15T07:08:44Z"
+updated_at: "2026-04-15T10:44:33Z"
 responsibility: Render and write skill files, hooks.json, and CLAUDE.md append rules
 capabilities:
     - Write .claude/skills/syde/SKILL.md + references/

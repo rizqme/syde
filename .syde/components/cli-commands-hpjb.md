@@ -13,7 +13,6 @@ files:
     - internal/cli/codex_hook.go
     - internal/cli/constraints.go
     - internal/cli/context.go
-    - internal/cli/design.go
     - internal/cli/files.go
     - internal/cli/get.go
     - internal/cli/graph.go
@@ -21,13 +20,11 @@ files:
     - internal/cli/init.go
     - internal/cli/install_skill.go
     - internal/cli/list.go
-    - internal/cli/memory.go
     - internal/cli/open.go
     - internal/cli/output.go
     - internal/cli/plan.go
     - internal/cli/query.go
     - internal/cli/reindex.go
-    - internal/cli/remember.go
     - internal/cli/remove.go
     - internal/cli/root.go
     - internal/cli/scan.go
@@ -47,7 +44,7 @@ relationships:
       label: requirement
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T07:05:30Z"
+updated_at: "2026-04-15T11:05:36Z"
 responsibility: Define and register all syde CLI commands under the root cobra tree
 capabilities:
     - Entity CRUD (add, get, list, update, remove)

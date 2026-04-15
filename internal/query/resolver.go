@@ -36,19 +36,8 @@ type ResolvedEntity struct {
 	File          string                 `json:"file"`
 	FileRefs      []ResolvedFileRef      `json:"file_refs,omitempty"`
 	Relationships []ResolvedRelationship `json:"relationships,omitempty"`
-	Learnings     []LearningSummary      `json:"learnings,omitempty"`
 	Tasks         []TaskSummary          `json:"tasks,omitempty"`
-	Decisions     []DecisionSummary      `json:"decisions,omitempty"`
 	Suggested     []string               `json:"suggested_queries,omitempty"`
-}
-
-// LearningSummary is a compact learning reference.
-type LearningSummary struct {
-	Name       string `json:"name"`
-	Category   string `json:"category"`
-	Confidence string `json:"confidence"`
-	Desc       string `json:"description"`
-	File       string `json:"file"`
 }
 
 // TaskSummary is a compact task reference.
@@ -57,14 +46,6 @@ type TaskSummary struct {
 	Status   string `json:"status"`
 	Priority string `json:"priority"`
 	File     string `json:"file"`
-}
-
-// DecisionSummary is a compact decision reference.
-type DecisionSummary struct {
-	Name      string `json:"name"`
-	Statement string `json:"statement"`
-	Category  string `json:"category"`
-	File      string `json:"file"`
 }
 
 // Resolve builds a full ResolvedEntity for the given slug.
@@ -181,24 +162,6 @@ func Resolve(store *storage.Store, slug string) (*ResolvedEntity, error) {
 		result.Relationships = append(result.Relationships, rr)
 	}
 
-	// Resolve learnings referencing this entity
-	learnings, _ := store.List(model.KindLearning)
-	for _, ewb := range learnings {
-		l := ewb.Entity.(*model.LearningEntity)
-		for _, ref := range l.EntityRefs {
-			if ref == b.ID || ref == entitySlug {
-				result.Learnings = append(result.Learnings, LearningSummary{
-					Name:       l.Name,
-					Category:   string(l.Category),
-					Confidence: string(l.ConfLevel),
-					Desc:       l.Description,
-					File:       store.FS.RelativePath(model.KindLearning, utils.Slugify(l.Name)),
-				})
-				break
-			}
-		}
-	}
-
 	// Resolve tasks referencing this entity
 	tasks, _ := store.List(model.KindTask)
 	for _, ewb := range tasks {
@@ -216,28 +179,10 @@ func Resolve(store *storage.Store, slug string) (*ResolvedEntity, error) {
 		}
 	}
 
-	// Resolve applicable decisions
-	decisions, _ := store.List(model.KindDecision)
-	for _, ewb := range decisions {
-		d := ewb.Entity.(*model.DecisionEntity)
-		for _, rel := range d.Relationships {
-			if rel.Target == b.ID {
-				result.Decisions = append(result.Decisions, DecisionSummary{
-					Name:      d.Name,
-					Statement: d.Statement,
-					Category:  d.Category,
-					File:      store.FS.RelativePath(model.KindDecision, utils.Slugify(d.Name)),
-				})
-				break
-			}
-		}
-	}
-
 	// Suggested queries
 	result.Suggested = []string{
 		"syde query --impacts " + entitySlug,
 		"syde graph " + entitySlug + " --depth 2",
-		"syde learn about " + entitySlug,
 	}
 
 	return result, nil

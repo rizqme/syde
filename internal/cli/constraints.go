@@ -30,7 +30,6 @@ var constraintsCmd = &cobra.Command{
 		}
 		var payload struct {
 			Decisions []map[string]string `json:"decisions"`
-			Learnings []map[string]string `json:"learnings"`
 		}
 		if err := json.Unmarshal(body, &payload); err != nil {
 			return err
@@ -45,15 +44,7 @@ var constraintsCmd = &cobra.Command{
 				fmt.Println()
 			}
 			fmt.Println()
-		}
-		if len(payload.Learnings) > 0 {
-			fmt.Println("Critical Learnings:")
-			for _, l := range payload.Learnings {
-				fmt.Printf("  ⚠ %s: %s\n", l["category"], l["description"])
-			}
-			fmt.Println()
-		}
-		if len(payload.Decisions) == 0 && len(payload.Learnings) == 0 {
+		} else {
 			fmt.Println("No active constraints.")
 		}
 		return nil
@@ -95,11 +86,10 @@ var constraintsCheckCmd = &cobra.Command{
 		}
 
 		var payload struct {
-			File           string              `json:"file"`
-			Component      string              `json:"component"`
-			Responsibility string              `json:"responsibility"`
-			Boundaries     string              `json:"boundaries"`
-			Learnings      []map[string]string `json:"learnings"`
+			File           string `json:"file"`
+			Component      string `json:"component"`
+			Responsibility string `json:"responsibility"`
+			Boundaries     string `json:"boundaries"`
 		}
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return err
@@ -116,9 +106,6 @@ var constraintsCheckCmd = &cobra.Command{
 		}
 		if payload.Responsibility != "" {
 			fmt.Printf("  Responsibility: %s\n", payload.Responsibility)
-		}
-		for _, l := range payload.Learnings {
-			fmt.Printf("\n  ⚠ %s: %s\n", l["category"], l["description"])
 		}
 		return nil
 	},

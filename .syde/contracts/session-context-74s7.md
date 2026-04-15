@@ -12,7 +12,7 @@ kind: contract
 name: Session Context
 output: Full architecture snapshot printed on stdout (used by SessionStart hook)
 output_parameters:
-    - description: project metadata, entity counts, key decisions, top-level components, active plans, recent learnings
+    - description: project metadata, entity counts, key decisions, top-level components, active plans
       path: snapshot
       type: string
 relationships:

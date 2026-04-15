@@ -12,7 +12,6 @@ const KIND_PALETTE: Record<string, { border: string; bg: string; ring: string; a
   decision:  { border: 'border-kind-decision/30',  bg: 'bg-kind-decision/5',  ring: 'hover:border-kind-decision/60',  accent: 'text-kind-decision',  text: 'text-foreground' },
   plan:      { border: 'border-kind-plan/30',      bg: 'bg-kind-plan/5',      ring: 'hover:border-kind-plan/60',      accent: 'text-kind-plan',      text: 'text-foreground' },
   task:      { border: 'border-kind-task/30',      bg: 'bg-kind-task/5',      ring: 'hover:border-kind-task/60',      accent: 'text-kind-task',      text: 'text-foreground' },
-  learning:  { border: 'border-kind-learning/30',  bg: 'bg-kind-learning/5',  ring: 'hover:border-kind-learning/60',  accent: 'text-kind-learning',  text: 'text-foreground' },
 };
 
 const FALLBACK = { border: 'border-border', bg: 'bg-card', ring: 'hover:border-muted-foreground', accent: 'text-muted-foreground', text: 'text-foreground' };

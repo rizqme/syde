@@ -86,5 +86,5 @@ This project uses syde for architecture management. These rules are mandatory:
 5. **Design before code**: Create a plan with `syde plan create`, add entity drafts with `syde plan add-entity`, add phases with `syde plan add-phase`. Present to user. Do NOT implement until approved.
 6. **Track implementation**: Use `syde task create` / `syde task start` / `syde task done` for each unit of work.
 7. **Verify after writing files**: Run `syde constraints check <file>` to verify new files are mapped to components.
-8. **Finish**: Run `syde validate`, capture learnings with `syde remember`, then **refresh the summary tree**: `syde tree scan` + leaves-first summarize loop until `syde tree status --strict` exits 0. The Stop hook will block the session from ending cleanly if the tree is dirty.
+8. **Finish**: Run `syde validate`, then **refresh the summary tree**: `syde tree scan` + leaves-first summarize loop until `syde tree status --strict` exits 0. The Stop hook will block the session from ending cleanly if the tree is dirty.
 9. **Never read .syde/ files directly** — always use syde CLI commands.

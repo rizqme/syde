@@ -3,8 +3,8 @@ name: syde
 description: >
   Use whenever a repository has a .syde/ design model, or when the user asks
   about architecture, design constraints, implementation planning, tasks,
-  learnings, codebase synchronization, or syde commands. Keeps Codex aligned
-  with syde's text-first architecture model.
+  codebase synchronization, or syde commands. Keeps Codex aligned with
+  syde's text-first architecture model.
 ---
 
 # syde for Codex
@@ -30,6 +30,31 @@ The Codex `UserPromptSubmit` hook records each user prompt as a
 prompt conflicts, create a new requirement and mark the older one superseded
 or obsolete instead of deleting it.
 
+## Requirements (EARS)
+
+Requirement statements MUST match one of the five EARS patterns. The save
+validator rejects any non-conforming statement:
+
+- Ubiquitous: `The <subject> shall <action>.`
+- Event-driven: `When <trigger>, the <subject> shall <action>.`
+- State-driven: `While <state>, the <subject> shall <action>.`
+- Unwanted-behavior: `If <unwanted condition>, then the <subject> shall <action>.`
+- Optional-feature: `Where <feature is included>, the <subject> shall <action>.`
+
+`syde add requirement` requires `--statement`, `--type`
+(`functional|non-functional|constraint|interface|performance|security|usability`),
+`--priority` (MoSCoW: `must|should|could|wont`), `--verification` (short
+free-form note on how fulfillment is verified), `--source`, and `--rationale`.
+The legacy `--acceptance` flag is gone for requirements — use `--verification`.
+
+Requirements never carry a `files` list. They link only via `refines`
+(requirement → component/contract/concept/system, or req → req) and
+`derives_from` (requirement → parent requirement), plus the usual
+`belongs_to`.
+
+Backfilling requirements from an existing codebase follows the deterministic
+algorithm in `references/requirement-derivation.md`.
+
 Before changing source files:
 
 1. Clarify requirements and assumptions with the user through the available
@@ -49,8 +74,9 @@ Before changing source files:
 7. Run `syde plan approve <slug>`; approval creates a plan-sourced
    requirement and links it to the plan.
 8. Start tasks with `syde task start` as implementation begins.
-9. Link every new or changed design entity back to the relevant requirement
-   with a relationship such as `--add-rel <requirement>:references`.
+9. Link every new or changed entity back to the relevant requirement
+   with an outbound relationship such as
+   `--add-rel <requirement>:references`.
 
 Do not rely on Codex hooks as a complete enforcement boundary. Codex hooks
 currently intercept Bash, not every file-editing tool. You still need to follow
@@ -64,7 +90,6 @@ this workflow when using `apply_patch` or other non-Bash tools.
 - If a file is unmapped, attach it to the owning component with
   `syde update <component> --file <path>` or ignore intentional non-design
   files through the summary tree.
-- Capture discovered constraints with `syde remember`.
 
 ## Finish Gate
 
@@ -83,3 +108,4 @@ Before reporting done:
 - `references/commands.md` documents syde CLI commands.
 - `references/clarify-guide.md` helps with requirement questions.
 - `references/sync-workflow.md` describes bootstrapping an existing codebase.
+- `references/requirement-derivation.md` — deterministic EARS backfill algorithm.

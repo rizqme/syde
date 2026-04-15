@@ -9,9 +9,9 @@ const KIND_ACCENT: Record<string, { stroke: string; glow: string; icon: string }
   concept:   { stroke: 'stroke-kind-concept',   glow: 'fill-kind-concept/10',   icon: 'text-kind-concept' },
   flow:      { stroke: 'stroke-kind-flow',      glow: 'fill-kind-flow/10',      icon: 'text-kind-flow' },
   decision:  { stroke: 'stroke-kind-decision',  glow: 'fill-kind-decision/10',  icon: 'text-kind-decision' },
+  requirement: { stroke: 'stroke-kind-requirement', glow: 'fill-kind-requirement/10', icon: 'text-kind-requirement' },
   plan:      { stroke: 'stroke-kind-plan',      glow: 'fill-kind-plan/10',      icon: 'text-kind-plan' },
   task:      { stroke: 'stroke-kind-task',      glow: 'fill-kind-task/10',      icon: 'text-kind-task' },
-  learning:  { stroke: 'stroke-kind-learning',  glow: 'fill-kind-learning/10',  icon: 'text-kind-learning' },
 };
 
 const FALLBACK = { stroke: 'stroke-muted-foreground', glow: 'fill-muted/40', icon: 'text-muted-foreground' };
@@ -117,7 +117,7 @@ export function EntityEmptyState({ kind }: { kind: string }) {
       </h3>
       <p className="text-sm text-muted-foreground mt-2 max-w-sm">
         Choose an entry from the list on the left to see its full details, files,
-        relationships, and learnings.
+        and relationships.
       </p>
     </div>
   );

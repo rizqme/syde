@@ -4,7 +4,7 @@ description: Create a new entity of any kind with all its kind-specific fields.
 id: CON-0008
 input: syde add <kind> <name> [flags]
 input_parameters:
-    - description: positional, required. One of system|component|contract|concept|flow|decision|plan|task|design|learning
+    - description: positional, required. One of system|component|contract|concept|flow|decision|plan|task|design|requirement
       path: kind
       type: string
     - description: positional, required. Human-readable entity name

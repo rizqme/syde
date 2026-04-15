@@ -23,7 +23,6 @@ const KIND_ORDER = [
   'plan',
   'task',
   'design',
-  'learning',
 ];
 
 export function SearchPalette({ open, onClose, onSelect }: SearchPaletteProps) {

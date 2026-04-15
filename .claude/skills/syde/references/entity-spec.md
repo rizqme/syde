@@ -9,12 +9,9 @@
 | `contract` | An API, event, or protocol boundary |
 | `concept` | A domain object or business entity |
 | `flow` | An end-to-end workflow or user journey |
-| `decision` | An architectural decision (ADR) |
-| `requirement` | Append-only user/plan/migration requirement |
+| `requirement` | Append-only user/plan/migration requirement (architectural intent in EARS shall-form) |
 | `plan` | A tracked implementation plan |
 | `task` | A work item linked to plans/entities |
-| `design` | A UI mockup in UIML format |
-| `learning` | Captured design knowledge |
 
 ## Shared Fields (all entity kinds)
 
@@ -163,42 +160,69 @@ stays valid and renders an unlabeled edge in the ERD view.
 | `failure_modes` | `--failure-modes` | Failure modes |
 | `performance_notes` | `--performance-notes` | Performance notes |
 
-### Decision
-| YAML key | CLI flag | Description |
-|----------|----------|-------------|
-| `category` | `--category` | Category (e.g., data, api, security) |
-| `statement` | `--statement` | The decision itself |
-| `rationale` | `--rationale` | Why |
-| `alternatives_considered` | `--alternatives` | Alternatives |
-| `tradeoffs` | `--tradeoffs` | Tradeoffs |
-| `consequences` | `--consequences` | Consequences |
-
 ### Requirement
 Requirements preserve user intent and approved plan intent as append-only
-records. Do not delete requirements. If a later requirement conflicts with an
-older one, create the newer requirement and mark the older requirement
-`superseded` or `obsolete`.
+records in **EARS shall-form**. Do not delete requirements. If a later
+requirement conflicts with an older one, create the newer requirement and
+mark the older requirement `superseded` or `obsolete`.
 
 | YAML key | CLI flag | Description |
 |----------|----------|-------------|
-| `statement` | `--statement` | Required requirement text; can satisfy the base description rule |
+| `statement` | `--statement` | Required EARS shall-form text; save validator rejects non-conforming statements. Can satisfy the base description rule. |
+| `req_type` | `--type` | **Required** — `functional`, `non-functional`, `constraint`, `interface`, `performance`, `security`, `usability` |
+| `priority` | `--priority` | **Required** — MoSCoW: `must`, `should`, `could`, `wont` |
+| `verification` | `--verification` | **Required** — short free-form description of how the requirement is verified (test, review, demo, metric, etc.) |
 | `source` | `--source` | `user`, `plan`, `migration`, or `manual` |
 | `source_ref` | `--source-ref` | Stable pointer to the prompt, plan, issue, migration, etc. |
 | `requirement_status` | `--requirement-status` | `active`, `superseded`, or `obsolete` |
 | `rationale` | `--rationale` | Why this requirement exists |
-| `acceptance_criteria` | `--acceptance` | How fulfillment is recognized |
 | `supersedes` | `--supersedes` | Comma-separated requirement refs replaced by this one |
 | `superseded_by` | `--superseded-by` | Comma-separated newer requirement refs |
 | `obsolete_reason` | `--obsolete-reason` | Required when status is `obsolete` |
 | `approved_at` | `--approved-at` | Approval/capture timestamp |
 
+**EARS patterns** — every `statement` must match exactly one of these:
+
+| Pattern | Template |
+|---------|----------|
+| Ubiquitous | `The <subject> shall <action>.` |
+| Event-driven | `When <trigger>, the <subject> shall <action>.` |
+| State-driven | `While <state>, the <subject> shall <action>.` |
+| Unwanted-behavior | `If <unwanted condition>, then the <subject> shall <action>.` |
+| Optional-feature | `Where <feature is included>, the <subject> shall <action>.` |
+
+The legacy acceptance field has been **removed** from requirements. Use
+`verification` (a short description of how fulfillment is checked) instead.
+`--acceptance` is no longer a flag on `syde add requirement` (it still exists
+on `syde task`).
+
+**Requirements never carry a `files` list.** They are pure design intent and
+link only via the relationships below. Do not pass `--file` on a requirement.
+
+**Requirement-specific relationships:**
+
+- `refines` — requirement → component / contract / concept / system, or
+  requirement → requirement. Used when a requirement narrows higher-level
+  intent against a specific design target.
+- `derives_from` — requirement → parent requirement. Used for derivation
+  chains where a child requirement is logically implied by a parent.
+
 Validation rules:
 
-- `statement`, `source`, and valid `requirement_status` are required.
+- `statement`, `source`, valid `requirement_status`, `req_type`, `priority`,
+  and `verification` are required.
+- `statement` must match one of the five EARS patterns (enforced on save).
+- Requirements must not have a `files` list.
 - `superseded` requirements must have `superseded_by`.
 - `obsolete` requirements must have `obsolete_reason`.
 - Supersede links must point to requirement entities and be reciprocal.
 - Requirements are append-only; `syde remove` refuses to delete them.
+
+**Backfilling from an existing codebase.** See
+`references/requirement-derivation.md` for the deterministic algorithm
+subagents use to derive EARS requirements from existing components,
+contracts, concepts, and systems (with stable slugs and the correct
+`refines` / `derives_from` chains).
 
 ### Plan
 | YAML key | CLI flag | Description |
@@ -233,14 +257,6 @@ Each `PlanPhase` has:
 | `plan_phase` | `--phase` | Parent phase ID |
 | `entity_refs` | `--entity` | Linked entities |
 
-### Learning
-| YAML key | CLI flag | Description |
-|----------|----------|-------------|
-| `category` | `--category` | `gotcha`, `constraint`, `convention`, `context`, `dependency`, `performance`, `workaround` |
-| `entity_refs` | `--entity` | Linked entity slugs |
-| `confidence` | `--confidence` | `high`, `medium`, `low` |
-| `source` | `--source` | Where this was learned |
-
 ## Relationships
 
 Add with `--add-rel "target-slug:type"`. Valid types:
@@ -256,14 +272,17 @@ Add with `--add-rel "target-slug:type"`. Valid types:
 | `references` | Points to (contract→concept, concept→component) |
 | `relates_to` | ERD-style relationship (concept→concept) |
 | `implements` | Implements (component→concept) |
-| `applies_to` | Applies to target (decision→component) |
+| `applies_to` | Applies to target (requirement→component) |
+| `refines` | Requirement narrows a design target (requirement→component/contract/concept/system, or requirement→requirement) |
+| `derives_from` | Requirement is derived from a parent requirement (requirement→requirement) |
 | `modifies` | Changes target |
 | `visualizes` | UI for target |
 
 Every entity except the single root system must have a `belongs_to` parent.
-Every non-requirement entity must link to at least one requirement, usually
-with `references` or `implements`. Every contract must participate in at least
-one flow through either an outbound or inbound relationship.
+Every non-requirement entity, including every component and contract, must
+carry an outbound relationship to at least one requirement, usually with
+`references` or `implements`. Every contract must participate in at least one
+flow through either an outbound or inbound relationship.
 
 ## Creating Entities via Plans
 

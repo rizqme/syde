@@ -51,19 +51,17 @@ var (
 	addEdgeCases    string
 	addFailureModes string
 	addPerfNotes    string
-	// Decision
-	addCategory     string
-	addStatement    string
-	addRationale    string
-	addAlternatives string
-	addTradeoffs    string
-	addConsequences string
-	addSupersedes   string
+	// Requirement (statement/rationale/supersedes shared with legacy decision flags)
+	addStatement  string
+	addRationale  string
+	addSupersedes string
 	// Requirement
+	addReqType           string
+	addReqPriority       string
+	addReqVerification   string
 	addReqSource         string
 	addReqSourceRef      string
 	addReqStatus         string
-	addReqAcceptance     string
 	addReqSupersededBy   string
 	addReqObsoleteReason string
 	addReqApprovedAt     string
@@ -267,20 +265,15 @@ var addCmd = &cobra.Command{
 			v.EdgeCases = addEdgeCases
 			v.FlowFailureModes = addFailureModes
 			v.PerformanceNotes = addPerfNotes
-		case *model.DecisionEntity:
-			v.Category = addCategory
-			v.Statement = addStatement
-			v.Rationale = addRationale
-			v.AlternativesConsidered = addAlternatives
-			v.Tradeoffs = addTradeoffs
-			v.Consequences = addConsequences
-			v.Supersedes = addSupersedes
 		case *model.RequirementEntity:
 			status, err := parseRequirementStatus(addReqStatus)
 			if err != nil {
 				return err
 			}
 			v.Statement = addStatement
+			v.ReqType = model.RequirementType(addReqType)
+			v.Priority = model.RequirementPriority(addReqPriority)
+			v.Verification = addReqVerification
 			v.Source = addReqSource
 			if v.Source == "" {
 				v.Source = "manual"
@@ -288,7 +281,6 @@ var addCmd = &cobra.Command{
 			v.SourceRef = addReqSourceRef
 			v.RequirementStatus = status
 			v.Rationale = addRationale
-			v.AcceptanceCriteria = addReqAcceptance
 			v.Supersedes = parseRefList(addSupersedes)
 			v.SupersededBy = parseRefList(addReqSupersededBy)
 			v.ObsoleteReason = addReqObsoleteReason
@@ -304,6 +296,24 @@ var addCmd = &cobra.Command{
 			v.DesignPrinciples = addSysPrinciples
 			v.QualityGoals = addSysQuality
 			v.Assumptions = addSysAssumptions
+		}
+
+		// Pre-create validation: skip the ID check because Create() is
+		// what allocates the ID. Any remaining errors are real and
+		// should block the write.
+		var contentErrs []model.ValidationError
+		for _, ve := range model.ValidateEntity(entity) {
+			if ve.Field == "id" {
+				continue
+			}
+			contentErrs = append(contentErrs, ve)
+		}
+		if len(contentErrs) > 0 {
+			var msgs []string
+			for _, ve := range contentErrs {
+				msgs = append(msgs, fmt.Sprintf("  - %s: %s", ve.Field, ve.Message))
+			}
+			return fmt.Errorf("validation failed:\n%s", strings.Join(msgs, "\n"))
 		}
 
 		filePath, err := store.Create(entity, addBody)
@@ -368,19 +378,16 @@ func init() {
 	f.StringVar(&addEdgeCases, "edge-cases", "", "edge cases")
 	f.StringVar(&addFailureModes, "failure-modes", "", "failure modes")
 	f.StringVar(&addPerfNotes, "performance-notes", "", "performance notes")
-	// Decision
-	f.StringVar(&addCategory, "category", "", "decision category")
-	f.StringVar(&addStatement, "statement", "", "decision statement")
-	f.StringVar(&addRationale, "rationale", "", "rationale")
-	f.StringVar(&addAlternatives, "alternatives", "", "alternatives considered")
-	f.StringVar(&addTradeoffs, "tradeoffs", "", "tradeoffs")
-	f.StringVar(&addConsequences, "consequences", "", "consequences")
-	f.StringVar(&addSupersedes, "supersedes", "", "slug/ref superseded by this decision or requirement")
 	// Requirement
+	f.StringVar(&addStatement, "statement", "", "requirement statement (EARS shall-form)")
+	f.StringVar(&addRationale, "rationale", "", "requirement rationale")
+	f.StringVar(&addSupersedes, "supersedes", "", "slug/ref superseded by this requirement")
 	f.StringVar(&addReqSource, "source", "", "requirement source (user/plan/migration/manual)")
 	f.StringVar(&addReqSourceRef, "source-ref", "", "requirement source reference")
 	f.StringVar(&addReqStatus, "requirement-status", "", "requirement status (active/superseded/obsolete)")
-	f.StringVar(&addReqAcceptance, "acceptance", "", "requirement acceptance criteria")
+	f.StringVar(&addReqType, "type", "", "requirement type (functional/non-functional/constraint/interface/performance/security/usability)")
+	f.StringVar(&addReqPriority, "priority", "", "requirement priority (must/should/could/wont)")
+	f.StringVar(&addReqVerification, "verification", "", "how the requirement is verified (automated/integration-test/inspection/manual)")
 	f.StringVar(&addReqSupersededBy, "superseded-by", "", "requirement refs that supersede this one, comma-separated")
 	f.StringVar(&addReqObsoleteReason, "obsolete-reason", "", "why the requirement is obsolete")
 	f.StringVar(&addReqApprovedAt, "approved-at", "", "requirement approval timestamp")

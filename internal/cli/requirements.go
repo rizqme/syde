@@ -8,15 +8,14 @@ import (
 )
 
 type requirementCapture struct {
-	Name               string
-	Statement          string
-	Source             string
-	SourceRef          string
-	Rationale          string
-	AcceptanceCriteria string
-	ApprovedAt         string
-	Relationships      []model.Relationship
-	Body               string
+	Name          string
+	Statement     string
+	Source        string
+	SourceRef     string
+	Rationale     string
+	ApprovedAt    string
+	Relationships []model.Relationship
+	Body          string
 }
 
 func createRequirementIfMissing(store *writeClient, cap requirementCapture) (*model.RequirementEntity, bool, string, error) {
@@ -42,13 +41,12 @@ func createRequirementIfMissing(store *writeClient, cap requirementCapture) (*mo
 			Name:          cap.Name,
 			Relationships: cap.Relationships,
 		},
-		Statement:          cap.Statement,
-		Source:             source,
-		SourceRef:          cap.SourceRef,
-		RequirementStatus:  model.RequirementActive,
-		Rationale:          cap.Rationale,
-		AcceptanceCriteria: cap.AcceptanceCriteria,
-		ApprovedAt:         approvedAt,
+		Statement:         cap.Statement,
+		Source:            source,
+		SourceRef:         cap.SourceRef,
+		RequirementStatus: model.RequirementActive,
+		Rationale:         cap.Rationale,
+		ApprovedAt:        approvedAt,
 	}
 	if !hasRelationshipType(req.Relationships, model.RelBelongsTo) {
 		if parent := rootSystemTarget(store); parent != "" {

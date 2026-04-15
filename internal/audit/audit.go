@@ -115,6 +115,9 @@ func Run(store *storage.Store, t *tree.Tree, opts Options) (*Report, error) {
 	if !opts.SkipRelationships {
 		rep.Findings = append(rep.Findings, relationshipFindings(all)...)
 		rep.Findings = append(rep.Findings, requirementTraceFindings(all)...)
+		rep.Findings = append(rep.Findings, requirementFanoutFindings(all)...)
+		rep.Findings = append(rep.Findings, goodRequirementFindings(all)...)
+		rep.Findings = append(rep.Findings, coverageFindings(all)...)
 		rep.Findings = append(rep.Findings, hierarchyFindings(all)...)
 		rep.Findings = append(rep.Findings, contractFlowFindings(all)...)
 	}

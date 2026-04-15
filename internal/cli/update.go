@@ -59,19 +59,17 @@ var (
 	updFlowEdgeCases   string
 	updFlowFailures    string
 	updFlowPerformance string
-	// Decision
-	updDecCategory     string
-	updDecStatement    string
-	updDecRationale    string
-	updDecAlternatives string
-	updDecTradeoffs    string
-	updDecConsequences string
-	updDecSupersedes   string
+	// Requirement (statement/rationale/supersedes)
+	updDecStatement  string
+	updDecRationale  string
+	updDecSupersedes string
 	// Requirement
+	updReqType           string
+	updReqPriority       string
+	updReqVerification   string
 	updReqSource         string
 	updReqSourceRef      string
 	updReqStatus         string
-	updReqAcceptance     string
 	updReqSupersededBy   string
 	updReqObsoleteReason string
 	updReqApprovedAt     string
@@ -315,44 +313,6 @@ var updateCmd = &cobra.Command{
 				v.PerformanceNotes = updFlowPerformance
 				changed = true
 			}
-		case *model.DecisionEntity:
-			if cmd.Flags().Changed("category") {
-				v.Category = updDecCategory
-				changed = true
-			}
-			if cmd.Flags().Changed("statement") {
-				v.Statement = updDecStatement
-				changed = true
-			}
-			if cmd.Flags().Changed("rationale") {
-				v.Rationale = updDecRationale
-				changed = true
-			}
-			if cmd.Flags().Changed("alternatives") {
-				v.AlternativesConsidered = updDecAlternatives
-				changed = true
-			}
-			if cmd.Flags().Changed("tradeoffs") {
-				v.Tradeoffs = updDecTradeoffs
-				changed = true
-			}
-			if cmd.Flags().Changed("consequences") {
-				v.Consequences = updDecConsequences
-				changed = true
-			}
-			if cmd.Flags().Changed("supersedes") {
-				v.Supersedes = updDecSupersedes
-				// Auto-deprecate the superseded decision
-				if oldDec, _, err := store.Get(updDecSupersedes); err == nil {
-					old := oldDec.GetBase()
-					old.Deprecated = true
-					old.DeprecatedReason = "Superseded by " + b.Name
-					old.ReplacedBy = b.CanonicalSlug()
-					store.Update(oldDec, "")
-					fmt.Printf("  Auto-deprecated: %s (superseded by %s)\n", old.Name, b.Name)
-				}
-				changed = true
-			}
 		case *model.RequirementEntity:
 			if cmd.Flags().Changed("statement") {
 				v.Statement = updDecStatement
@@ -378,8 +338,16 @@ var updateCmd = &cobra.Command{
 				v.Rationale = updDecRationale
 				changed = true
 			}
-			if cmd.Flags().Changed("acceptance") {
-				v.AcceptanceCriteria = updReqAcceptance
+			if cmd.Flags().Changed("type") {
+				v.ReqType = model.RequirementType(updReqType)
+				changed = true
+			}
+			if cmd.Flags().Changed("priority") {
+				v.Priority = model.RequirementPriority(updReqPriority)
+				changed = true
+			}
+			if cmd.Flags().Changed("verification") {
+				v.Verification = updReqVerification
 				changed = true
 			}
 			if cmd.Flags().Changed("supersedes") {
@@ -444,6 +412,14 @@ var updateCmd = &cobra.Command{
 
 		if !changed {
 			return fmt.Errorf("no changes specified")
+		}
+
+		if verrs := model.ValidateEntity(entity); len(verrs) > 0 {
+			var msgs []string
+			for _, ve := range verrs {
+				msgs = append(msgs, fmt.Sprintf("  - %s: %s", ve.Field, ve.Message))
+			}
+			return fmt.Errorf("validation failed:\n%s", strings.Join(msgs, "\n"))
 		}
 
 		filePath, err := store.Update(entity, body)
@@ -532,19 +508,16 @@ func init() {
 	f.StringVar(&updFlowEdgeCases, "edge-cases", "", "edge cases")
 	f.StringVar(&updFlowFailures, "failure-modes", "", "failure modes")
 	f.StringVar(&updFlowPerformance, "performance-notes", "", "performance notes")
-	// Decision
-	f.StringVar(&updDecCategory, "category", "", "decision category")
-	f.StringVar(&updDecStatement, "statement", "", "decision statement")
-	f.StringVar(&updDecRationale, "rationale", "", "rationale")
-	f.StringVar(&updDecAlternatives, "alternatives", "", "alternatives considered")
-	f.StringVar(&updDecTradeoffs, "tradeoffs", "", "tradeoffs")
-	f.StringVar(&updDecConsequences, "consequences", "", "consequences")
-	f.StringVar(&updDecSupersedes, "supersedes", "", "slug/ref superseded by this decision or requirement")
 	// Requirement
+	f.StringVar(&updDecStatement, "statement", "", "requirement statement (EARS shall-form)")
+	f.StringVar(&updDecRationale, "rationale", "", "requirement rationale")
+	f.StringVar(&updDecSupersedes, "supersedes", "", "slug/ref superseded by this requirement")
 	f.StringVar(&updReqSource, "source", "", "requirement source (user/plan/migration/manual)")
 	f.StringVar(&updReqSourceRef, "source-ref", "", "requirement source reference")
 	f.StringVar(&updReqStatus, "requirement-status", "", "requirement status (active/superseded/obsolete)")
-	f.StringVar(&updReqAcceptance, "acceptance", "", "requirement acceptance criteria")
+	f.StringVar(&updReqType, "type", "", "requirement type (functional/non-functional/constraint/interface/performance/security/usability)")
+	f.StringVar(&updReqPriority, "priority", "", "requirement priority (must/should/could/wont)")
+	f.StringVar(&updReqVerification, "verification", "", "how the requirement is verified")
 	f.StringVar(&updReqSupersededBy, "superseded-by", "", "requirement refs that supersede this one, comma-separated")
 	f.StringVar(&updReqObsoleteReason, "obsolete-reason", "", "why the requirement is obsolete")
 	f.StringVar(&updReqApprovedAt, "approved-at", "", "requirement approval timestamp")

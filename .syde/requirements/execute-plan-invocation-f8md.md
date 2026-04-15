@@ -1,0 +1,20 @@
+---
+id: REQ-0270
+kind: requirement
+name: Execute Plan Invocation
+slug: execute-plan-invocation-f8md
+relationships:
+    - target: execute-plan-50cg
+      type: refines
+    - target: syde-cli-2478
+      type: belongs_to
+updated_at: "2026-04-15T11:00:55Z"
+statement: When the user runs syde plan execute <slug>, the syde CLI shall transition the plan's plan_status field to in-progress.
+req_type: interface
+priority: must
+verification: integration test invoking syde plan execute on an approved plan
+source: manual
+source_ref: contract:execute-plan-50cg
+requirement_status: active
+rationale: Execution state signals that implementation work is underway against the plan.
+---

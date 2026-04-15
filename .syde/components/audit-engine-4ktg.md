@@ -28,7 +28,7 @@ relationships:
     - target: existing-syde-model-baseline-hcvj
       type: references
       label: requirement
-updated_at: "2026-04-15T06:47:18Z"
+updated_at: "2026-04-15T11:06:07Z"
 responsibility: Produce categorized Findings (errors/warnings/hints) covering entity field validation, relationship integrity, cycles, tree file references, orphan detection, and file drift
 capabilities:
     - Run full audit with per-category opt-out

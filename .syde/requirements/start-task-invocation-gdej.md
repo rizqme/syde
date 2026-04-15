@@ -1,0 +1,20 @@
+---
+id: REQ-0306
+kind: requirement
+name: Start Task Invocation
+slug: start-task-invocation-gdej
+relationships:
+    - target: start-task-wa36
+      type: refines
+    - target: syde-cli-2478
+      type: belongs_to
+updated_at: "2026-04-15T11:02:37Z"
+statement: When the user runs syde task start <slug>, the syde CLI shall transition the task's task_status field to in_progress.
+req_type: interface
+priority: must
+verification: integration test invoking syde task start
+source: manual
+source_ref: contract:start-task-wa36
+requirement_status: active
+rationale: Start transitions signal active work and gate subsequent completion operations.
+---

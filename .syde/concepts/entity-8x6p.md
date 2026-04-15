@@ -2,7 +2,7 @@
 attributes:
     - description: counter-based ID, globally unique within kind, never reused
       name: id
-    - description: one of system/component/contract/concept/flow/decision/plan/task/design/learning
+    - description: one of system/component/contract/concept/flow/decision/plan/task/design/requirement
       name: kind
     - description: filename slug with 4-char random suffix, unique on disk
       name: slug
@@ -24,7 +24,7 @@ id: CPT-0001
 invariants: ID is unique within kind. Slug filename is unique on disk. Every relationship target must resolve to an existing entity. Component must have purpose, responsibility, ≥1 capability. Contract must have input, ≥1 input_parameter, output, ≥1 output_parameter.
 kind: concept
 lifecycle: draft (in memory) → created via 'syde add' with allocated ID + slug → updated via 'syde update' → removed via 'syde remove'. IDs are never reused.
-meaning: A typed, persisted node in the syde design model — system, component, contract, concept, flow, decision, plan, task, design, or learning
+meaning: A typed, persisted node in the syde design model — system, component, contract, concept, flow, decision, plan, task, design, or requirement
 name: Entity
 relationships:
     - target: syde

@@ -10,7 +10,7 @@ Always run `syde sync` after `syde init` on a project that already has code.
 ## Prerequisite: the summary tree must be clean
 
 `syde sync` **automatically runs `syde tree scan` as its first step**, so
-you don't need to remember to do it separately. But syde only *scans*
+you do not need to run it separately. But syde only *scans*
 the tree — it does not *summarize* stale nodes for you. If the scan
 reports stale paths, you must run the leaves-first summarize loop
 before entity extraction:
@@ -118,16 +118,16 @@ syde add flow "<flow name>" \
   --narrative "Step 1: ... Step 2: ..."
 ```
 
-### Round 4: Decisions (single agent)
+### Round 4: Requirements (single agent)
 
 Read all entities created so far plus any architecture docs (ADRs, README, design docs).
-Extract implicit architectural decisions:
+Capture architectural intent as requirements in EARS shall-form:
 
 ```bash
-syde add decision "<decision>" \
-  --statement "..." \
-  --rationale "..." \
-  --category "..."
+syde add requirement "<short name>" \
+  --statement "The system shall ..." \
+  --source migration \
+  --rationale "..."
 ```
 
 ### Round 5: Completeness (single agent)
@@ -138,7 +138,7 @@ syde add decision "<decision>" \
    syde update <component> --add-rel "<contract>:exposes"
    syde update <contract> --add-rel "<component>:belongs_to"
    syde update <flow> --add-rel "<component>:involves"
-   syde update <decision> --add-rel "<component>:applies_to"
+   syde update <requirement> --add-rel "<component>:applies_to"
    syde update <concept> --add-rel "<component>:references"
    ```
    **Important**: `--add-rel` only accepts one relationship per call. Run separate
@@ -159,11 +159,6 @@ syde add decision "<decision>" \
 4. Fix all gaps reported by `--check` and `--coverage`.
 
 5. Validate: `syde validate` — must show 0 errors.
-
-6. Capture learnings:
-   ```bash
-   syde remember "..." --category gotcha --entity <name>
-   ```
 
 ---
 
@@ -227,20 +222,11 @@ syde sync --check
 This verifies the model is comprehensive:
 - Every component has file references and exposes contracts
 - Every entity has relationships to other entities
-- All entity kinds are represented (system, component, contract, concept, flow, decision)
+- All entity kinds are represented (system, component, contract, concept, flow, requirement)
 - Descriptions are substantial, not placeholder text
 - Components have responsibility and boundaries defined
 
 Fix all reported gaps before proceeding.
-
-### Step 5: Check learnings
-
-```bash
-syde learn stale
-```
-
-This shows learnings that reference entities whose files have changed since the
-learning was captured. Review each one — it may be outdated.
 
 ### Step 5: Validate
 

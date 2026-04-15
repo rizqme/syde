@@ -3,7 +3,7 @@
 ## Entity CRUD
 
 ### syde add <kind> <name> [flags]
-Create an entity. Kind must be one of: `system`, `component`, `contract`, `concept`, `flow`, `decision`, `requirement`, `plan`, `task`, `design`, `learning`
+Create an entity. Kind must be one of: `system`, `component`, `contract`, `concept`, `flow`, `requirement`, `plan`, `task`
 
 **Base flags (all kinds):**
 ```
@@ -145,30 +145,35 @@ syde add concept "Order" \
 --performance-notes  performance notes
 ```
 
-**Decision flags:**
+**Requirement flags:** (statements are save-validated against EARS patterns)
 ```
---category      decision category (e.g., data, api, security)
---statement     the decision itself
---rationale     why this was decided
---alternatives  alternatives considered
---tradeoffs     tradeoffs of this decision
---consequences  consequences of this decision
---supersedes    slug/ref superseded by this decision or requirement
-```
-
-**Requirement flags:**
-```
---statement            requirement text (required)
+--statement            EARS shall-form text (REQUIRED). Must match one of:
+                         Ubiquitous:        "The <subject> shall <action>."
+                         Event-driven:      "When <trigger>, the <subject> shall <action>."
+                         State-driven:      "While <state>, the <subject> shall <action>."
+                         Unwanted-behavior: "If <unwanted>, then the <subject> shall <action>."
+                         Optional-feature:  "Where <feature>, the <subject> shall <action>."
+--type                 functional|non-functional|constraint|interface|performance|security|usability  (REQUIRED)
+--priority             must|should|could|wont  (MoSCoW, REQUIRED)
+--verification         short description of how fulfillment is verified (REQUIRED)
 --source               user|plan|migration|manual
 --source-ref           prompt/plan/issue/migration reference
 --requirement-status   active|superseded|obsolete
 --rationale            why this requirement exists
---acceptance           acceptance criteria
 --supersedes           comma-separated requirement refs this one replaces
 --superseded-by        comma-separated newer requirement refs
 --obsolete-reason      required when obsolete
 --approved-at          capture/approval timestamp
+--add-rel              "target:refines" or "parent-req:derives_from" (repeatable)
 ```
+Requirements MUST belong_to a system: `--add-rel "<system-slug>:belongs_to"`.
+Requirements **never** carry a `--file` list — they are pure design intent.
+There is no `--acceptance` flag on `syde add requirement` (that flag still
+applies to `syde task create`); use `--verification` instead.
+
+See `references/requirement-derivation.md` for the deterministic algorithm
+to backfill EARS requirements from existing components / contracts /
+concepts / systems.
 
 ### syde get <id-or-slug>
 Show full entity details.
@@ -220,8 +225,8 @@ Plus filter listings (`--kind`, `--tag` with no slug and no search term).
 Entity-prose search:
 --search "text"       full-text search across name, description, purpose,
                       notes, and body (for component/contract/concept/
-                      decision/flow/learning/system — plan/task bodies
-                      are excluded because they churn). Tokens are
+                      flow/system — plan/task bodies are
+                      excluded because they churn). Tokens are
                       AND-merged by default; the engine auto-broadens to
                       OR if AND yields zero hits and labels the results
                       "broadened". CamelCase and snake_case identifiers
@@ -296,14 +301,14 @@ syde query --search "BadgerDB index"
 syde query --search "concept entity"   # broadened example
 
 # 6. SCOPED SEARCH — narrow by kind and/or tag.
-syde query --search migration --kind learning --tag critical --limit 5
+syde query --search migration --kind requirement --tag critical --limit 5
 
 # 7. ENTITY DETAIL — full context for one entity.
 syde query storage-engine --full
 
 # 8. LIST BY KIND — every entity of a given kind.
 syde query --kind concept
-syde query --kind decision --format refs
+syde query --kind requirement --format refs
 
 # 9. ORPHAN TRIAGE — find files the design model does not claim.
 syde files orphans
@@ -448,39 +453,15 @@ List tasks. Status values: `pending`, `in_progress`, `completed`, `blocked`, `ca
 Create a subtask under a parent task.
 
 ### syde task link <task-slug> <entity-slug>
-Link a task to a design entity.
-
-## Learnings
-
-### syde remember "<text>" [flags]
-```
---category    gotcha|constraint|convention|context|dependency|performance|workaround
---entity      linked entity slug
---confidence  high|medium|low (default: high)
-```
-
-### syde learn list
-List all learnings.
-
-### syde learn about <entity-slug>
-Learnings for a specific entity.
-
-### syde learn search "<text>"
-Search learning text.
-
-### syde learn stale
-Learnings referencing changed entities.
-
-### syde learn promote <slug> --to decision
-Promote a learning to a formal decision.
+Link a task to an entity.
 
 ## Constraints
 
 ### syde constraints [--json]
-Show active decisions + critical learnings.
+Show active requirements.
 
 ### syde constraints check <file> [--json]
-Map source file to component via `component_paths` in `syde.yaml`, then show applicable constraints. Returns `{}` if file is not mapped to any component.
+Map source file to component via `component_paths` in `syde.yaml`, then show applicable requirements. Returns `{}` if file is not mapped to any component.
 
 ## Summary Tree
 
@@ -553,7 +534,6 @@ syde validate                  # Check model integrity
 syde reindex                   # Rebuild BadgerDB index from markdown files
 syde graph [entity] [--format dot]   # Relationship graph (ASCII or Graphviz DOT)
 syde sync [--dry-run --coverage --check]  # Sync/audit design model against codebase
-syde design create/show/preview/export/validate/link  # UIML designs
 syde memory sync/list/clean    # Claude Code memory sync
 syde open                      # Start dashboard + open browser
 syde install-skill             # Install skill files into .claude/

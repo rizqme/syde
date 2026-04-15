@@ -9,7 +9,6 @@ import (
 	"github.com/feedloop/syde/internal/query"
 	"github.com/feedloop/syde/internal/storage"
 	"github.com/feedloop/syde/internal/tree"
-	"github.com/feedloop/syde/internal/utils"
 )
 
 // handleProjectAPI handles all /api/{project-slug}/... requests.
@@ -60,12 +59,8 @@ func handleProjectAPI(w http.ResponseWriter, r *http.Request) {
 		handleGraph(w, r, store)
 	case endpoint == "plans":
 		handlePlans(w, store)
-	case endpoint == "learnings":
-		handleLearnings(w, store)
 	case endpoint == "tasks":
 		handleTasks(w, store)
-	case endpoint == "designs":
-		handleDesigns(w, store)
 	case endpoint == "search":
 		handleSearchAPI(w, r, store)
 	case endpoint == "constraints":
@@ -240,23 +235,6 @@ func handlePlans(w http.ResponseWriter, store *storage.Store) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"plans": result})
 }
 
-func handleLearnings(w http.ResponseWriter, store *storage.Store) {
-	learnings, _ := store.List(model.KindLearning)
-	var result []map[string]interface{}
-	for _, ewb := range learnings {
-		l := ewb.Entity.(*model.LearningEntity)
-		result = append(result, map[string]interface{}{
-			"name":        l.Name,
-			"category":    l.Category,
-			"confidence":  l.ConfLevel,
-			"description": l.Description,
-			"entity_refs": l.EntityRefs,
-			"file":        store.FS.RelativePath(model.KindLearning, utils.Slugify(l.Name)),
-		})
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"learnings": result})
-}
-
 func handleTasks(w http.ResponseWriter, store *storage.Store) {
 	tasks, _ := store.List(model.KindTask)
 	var result []map[string]interface{}
@@ -272,19 +250,6 @@ func handleTasks(w http.ResponseWriter, store *storage.Store) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"tasks": result})
 }
 
-func handleDesigns(w http.ResponseWriter, store *storage.Store) {
-	designs, _ := store.List(model.KindDesign)
-	var result []map[string]interface{}
-	for _, ewb := range designs {
-		d := ewb.Entity.(*model.DesignEntity)
-		result = append(result, map[string]interface{}{
-			"name":        d.Name,
-			"design_type": d.DesignType,
-		})
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"designs": result})
-}
-
 func handleSearchAPI(w http.ResponseWriter, r *http.Request, store *storage.Store) {
 	q := r.URL.Query().Get("q")
 	if q == "" {
@@ -297,29 +262,20 @@ func handleSearchAPI(w http.ResponseWriter, r *http.Request, store *storage.Stor
 }
 
 func handleConstraintsAPI(w http.ResponseWriter, store *storage.Store) {
-	decisions, _ := store.List(model.KindDecision)
-	var activeDecisions []map[string]string
-	for _, ewb := range decisions {
-		d := ewb.Entity.(*model.DecisionEntity)
-		activeDecisions = append(activeDecisions, map[string]string{
-			"name": d.Name, "statement": d.Statement, "category": d.Category,
+	requirements, _ := store.List(model.KindRequirement)
+	var activeReqs []map[string]string
+	for _, ewb := range requirements {
+		r := ewb.Entity.(*model.RequirementEntity)
+		if r.RequirementStatus != "" && r.RequirementStatus != model.RequirementActive {
+			continue
+		}
+		activeReqs = append(activeReqs, map[string]string{
+			"name": r.Name, "statement": r.Statement, "rationale": r.Rationale,
 		})
 	}
 
-	learnings, _ := store.List(model.KindLearning)
-	var criticalLearnings []map[string]string
-	for _, ewb := range learnings {
-		l := ewb.Entity.(*model.LearningEntity)
-		if l.ConfLevel == model.ConfidenceHigh && (l.Category == model.CatGotcha || l.Category == model.CatConstraint) {
-			criticalLearnings = append(criticalLearnings, map[string]string{
-				"name": l.Name, "category": string(l.Category), "description": l.Description,
-			})
-		}
-	}
-
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"decisions": activeDecisions,
-		"learnings": criticalLearnings,
+		"requirements": activeReqs,
 	})
 }
 

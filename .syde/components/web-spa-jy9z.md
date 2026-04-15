@@ -1,12 +1,20 @@
 ---
-boundaries: Read-only — no entity editing. Does NOT talk to BadgerDB directly (always via HTTP API).
-capabilities:
-    - Overview page with entity counts and relationships
-    - Kind-scoped entity list and detail views
-    - Plan and task board views with status tracking
-    - Learning feed and file tree explorer
-    - Command palette search over all entities
+id: COM-0018
+kind: component
+name: Web SPA
+slug: web-spa-jy9z
 description: React 18 + TypeScript + Vite + Tailwind v4 dashboard UI embedded in syded.
+purpose: Provide the browser-facing UI for syde projects
+notes:
+    - App.tsx gates FileTree render on 'ready' state so project slug is set before api.tree() fires — fixes 'No tree available' flash on page reload (2026-04-13).
+    - 'FileTree.tsx: moved useMemo ahead of early returns — fix for React error #310 (hook count mismatch across renders) (2026-04-13).'
+    - Entity views are now inbox-style 2-column (420px list + flex-1 detail). EntityDetail.onNavigate accepts an optional target kind so relationship chips switch pages when crossing kinds (2026-04-14).
+    - 'Sidebar: File Tree promoted to a top-level item under Overview'
+    - ' Codebase group removed; all sidebar icons replaced with hand-rolled flat outline SVGs (web/src/components/icons.tsx'
+    - ' lucide-style'
+    - ' currentColor) (2026-04-14).'
+    - Component cards now show description (always present
+    - ' validator-enforced) (2026-04-14).'
 files:
     - web/src/main.tsx
     - web/src/App.tsx
@@ -25,7 +33,6 @@ files:
     - web/src/lib/api.ts
     - web/src/pages/Overview.tsx
     - web/src/pages/FileTree.tsx
-    - web/src/pages/LearningFeed.tsx
     - web/src/pages/PlanView.tsx
     - web/src/pages/TaskBoard.tsx
     - web/src/pages/Graph.tsx
@@ -39,27 +46,23 @@ files:
     - web/tsconfig.node.json
     - web/eslint.config.js
     - scripts/wireframe-shot.sh
-id: COM-0018
-kind: component
-name: Web SPA
-notes:
-    - App.tsx gates FileTree render on 'ready' state so project slug is set before api.tree() fires — fixes 'No tree available' flash on page reload (2026-04-13).
-    - 'FileTree.tsx: moved useMemo ahead of early returns — fix for React error #310 (hook count mismatch across renders) (2026-04-13).'
-    - Entity views are now inbox-style 2-column (420px list + flex-1 detail). EntityDetail.onNavigate accepts an optional target kind so relationship chips switch pages when crossing kinds (2026-04-14).
-    - 'Sidebar: File Tree promoted to a top-level item under Overview'
-    - ' Codebase group removed; all sidebar icons replaced with hand-rolled flat outline SVGs (web/src/components/icons.tsx'
-    - ' lucide-style'
-    - ' currentColor) (2026-04-14).'
-    - Component cards now show description (always present
-    - ' validator-enforced) (2026-04-14).'
-purpose: Provide the browser-facing UI for syde projects
 relationships:
     - target: syded-dashboard
       type: belongs_to
-    - label: requirement
-      target: existing-syde-model-baseline-hcvj
+    - target: existing-syde-model-baseline-hcvj
       type: references
+      label: requirement
+    - target: requirements-belong-in-dashboard-behavior-nav-ahyi
+      type: references
+    - target: dashboard-must-show-relationship-totals-clearly-rc5w
+      type: references
+updated_at: "2026-04-15T11:05:37Z"
 responsibility: React 18 + TypeScript + Vite + Tailwind v4 single-page app rendered by syded
-slug: web-spa-jy9z
-updated_at: "2026-04-15T03:08:45Z"
+capabilities:
+    - Overview page with entity counts and relationships
+    - Kind-scoped entity list and detail views
+    - Plan and task board views with status tracking
+    - File tree explorer
+    - Command palette search over all entities
+boundaries: Read-only — no entity editing. Does NOT talk to BadgerDB directly (always via HTTP API).
 ---

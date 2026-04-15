@@ -84,7 +84,7 @@ func watchSydeDir(sydeDir string) {
 		return
 	}
 	// Watch entity subdirs
-	for _, sub := range []string{"systems", "components", "contracts", "concepts", "flows", "decisions", "plans", "tasks", "designs", "learnings"} {
+	for _, sub := range []string{"systems", "components", "contracts", "concepts", "flows", "decisions", "plans", "tasks", "designs", "requirements"} {
 		dir := filepath.Join(sydeDir, sub)
 		watcher.Add(dir) // ignore error if dir doesn't exist
 	}

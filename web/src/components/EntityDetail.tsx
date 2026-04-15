@@ -142,19 +142,6 @@ export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline, hi
           return <RelationshipsSection rels={visible} onNavigate={onNavigate} />;
         })()}
 
-        {data.learnings?.length > 0 && (
-          <Section title="Learnings">
-            {data.learnings.map((l: any, i: number) => (
-              <div key={i} className="text-xs mb-2">
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-kind-learning/30 text-kind-learning text-[10px] mr-1">
-                  {l.category}
-                </span>
-                <span className="text-muted-foreground">{l.description || l.name}</span>
-              </div>
-            ))}
-          </Section>
-        )}
-
         {data.tasks?.length > 0 && (
           <Section title="Tasks">
             {data.tasks.map((t: any, i: number) => (
@@ -184,7 +171,7 @@ export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline, hi
 function DetailShell({ children, onClose, inline, hideClose }: { children: React.ReactNode; onClose: () => void; inline?: boolean; hideClose?: boolean }) {
   // Inline: fills the right pane of the 2-column entity view, no border-l
   // (the list pane already has border-r), no fixed width.
-  // Floating: legacy 384px panel for special views (plan/task/learning).
+  // Floating: legacy 384px panel for special views (plan/task).
   const wrapperClass = inline
     ? 'flex flex-col h-full bg-background min-h-0'
     : 'w-96 border-l border-border bg-background flex flex-col h-full shrink-0';
@@ -322,21 +309,42 @@ function KindFields({ entity: e, kind }: { entity: Record<string, any>; kind: st
           {e.failure_modes && <Field label="Failure Modes" value={e.failure_modes} />}
         </div>
       );
-    case 'decision':
+    case 'requirement':
       return (
         <div className="space-y-3">
           {e.statement && (
-            <blockquote className="border-l-2 border-kind-decision pl-3 text-sm italic">{e.statement}</blockquote>
+            <blockquote className="border-l-2 border-kind-requirement pl-3 text-sm italic">{e.statement}</blockquote>
           )}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {e.req_type && (
+              <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">{e.req_type}</span>
+            )}
+            {e.priority && (
+              <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">priority: {e.priority}</span>
+            )}
+            {e.requirement_status && (
+              <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">{e.requirement_status}</span>
+            )}
+          </div>
           {e.rationale && <Field label="Rationale" value={e.rationale} />}
-          {e.tradeoffs && <Field label="Tradeoffs" value={e.tradeoffs} />}
-          {e.alternatives_considered && <Field label="Alternatives" value={e.alternatives_considered} />}
-          {e.consequences && <Field label="Consequences" value={e.consequences} />}
-          {e.supersedes && (
+          {e.verification && <Field label="Verification" value={e.verification} muted />}
+          {e.source && (
             <div className="text-xs text-muted-foreground">
-              Supersedes: <span className="text-kind-decision">{e.supersedes}</span>
+              Source: <span className="text-foreground">{e.source}</span>
+              {e.source_ref && <> · ref: <span className="text-foreground">{e.source_ref}</span></>}
             </div>
           )}
+          {Array.isArray(e.supersedes) && e.supersedes.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Supersedes: <span className="text-foreground">{e.supersedes.join(', ')}</span>
+            </div>
+          )}
+          {Array.isArray(e.superseded_by) && e.superseded_by.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Superseded by: <span className="text-foreground">{e.superseded_by.join(', ')}</span>
+            </div>
+          )}
+          {e.obsolete_reason && <Field label="Obsolete Reason" value={e.obsolete_reason} muted />}
         </div>
       );
     case 'plan':
@@ -502,7 +510,7 @@ function RelationshipsSection({
 }) {
   const groups = groupRelationships(rels);
   return (
-    <Section title="Relationships">
+    <Section title={`Relationships · ${rels.length}`}>
       <div className="space-y-3">
         {groups.map((g) => (
           <RelationshipGroup key={g.key} group={g} onNavigate={onNavigate} />
@@ -544,8 +552,8 @@ function RelationshipGroup({
         <span className="text-[11px] font-medium uppercase tracking-wider text-foreground/80">
           {group.direction === 'inbound' ? 'inbound ' : ''}{typeLabel}
         </span>
-        <span className="text-[11px] text-muted-foreground">
-          · {group.items.length} {kindLabel}
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          · {group.items.length} linked {kindLabel}
         </span>
         <span className="ml-auto text-[11px] text-muted-foreground">
           {expanded ? '▾' : '▸'}
@@ -586,7 +594,6 @@ const PILL_PALETTE: Record<string, string> = {
   decision:  'border-kind-decision/30 bg-kind-decision/5 hover:border-kind-decision/60 hover:bg-kind-decision/10 text-kind-decision',
   plan:      'border-kind-plan/30 bg-kind-plan/5 hover:border-kind-plan/60 hover:bg-kind-plan/10 text-kind-plan',
   task:      'border-kind-task/30 bg-kind-task/5 hover:border-kind-task/60 hover:bg-kind-task/10 text-kind-task',
-  learning:  'border-kind-learning/30 bg-kind-learning/5 hover:border-kind-learning/60 hover:bg-kind-learning/10 text-kind-learning',
 };
 
 function CompactRelPill({ rel, onClick }: { rel: Relationship; onClick: () => void }) {
@@ -616,7 +623,6 @@ const ACCENT_FOR_KIND: Record<string, string> = {
   decision: 'text-kind-decision',
   plan: 'text-kind-plan',
   task: 'text-kind-task',
-  learning: 'text-kind-learning',
 };
 
 // Order in which child kinds appear under a system. Sub-systems first

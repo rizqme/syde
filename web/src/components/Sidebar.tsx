@@ -9,9 +9,9 @@ import {
   DiamondIcon,
   GitBranchIcon,
   ScaleIcon,
+  RequirementIcon,
   ClipboardIcon,
   CheckSquareIcon,
-  LightbulbIcon,
   LayersIcon,
   SearchIcon,
 } from './icons';
@@ -31,6 +31,7 @@ const KIND_GROUPS = [
     items: [
       { kind: 'flow', label: 'Flows', Icon: GitBranchIcon },
       { kind: 'decision', label: 'Decisions', Icon: ScaleIcon },
+      { kind: 'requirement', label: 'Requirements', Icon: RequirementIcon },
     ],
   },
   {
@@ -38,7 +39,6 @@ const KIND_GROUPS = [
     items: [
       { kind: 'plan', label: 'Plans', Icon: ClipboardIcon },
       { kind: 'task', label: 'Tasks', Icon: CheckSquareIcon },
-      { kind: 'learning', label: 'Learnings', Icon: LightbulbIcon },
     ],
   },
 ];

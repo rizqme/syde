@@ -32,15 +32,24 @@ or obsolete instead of deleting it.
 
 Before changing source files:
 
-1. Clarify requirements and assumptions with the user.
+1. Clarify requirements and assumptions with the user through the available
+   ask-user-question tool. In Codex Plan mode use `request_user_input`; in
+   Default mode or runtimes without that tool, ask plainly in chat and wait.
 2. Create a syde plan with `syde plan create`.
 3. Add planned entities and phases with `syde plan add-entity` and
    `syde plan add-phase`.
-4. Show the plan and wait for user approval.
-5. Run `syde plan approve <slug>`; approval creates a plan-sourced
+4. Create a comprehensive, granular task list before approval:
+   `syde task create "<task>" --plan <slug> --phase <phase-id>`. Every phase
+   must have at least one concrete task; split broad tasks until each one has a
+   clear file/entity target or verification outcome.
+5. Mirror those syde tasks into Codex `update_plan` before showing the plan.
+   Keep statuses synced whenever a syde task is started, completed, split,
+   renamed, or blocked.
+6. Show the plan and task list, then wait for user approval.
+7. Run `syde plan approve <slug>`; approval creates a plan-sourced
    requirement and links it to the plan.
-6. Create/start tasks with `syde task create` and `syde task start`.
-7. Link every new or changed design entity back to the relevant requirement
+8. Start tasks with `syde task start` as implementation begins.
+9. Link every new or changed design entity back to the relevant requirement
    with a relationship such as `--add-rel <requirement>:references`.
 
 Do not rely on Codex hooks as a complete enforcement boundary. Codex hooks

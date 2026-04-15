@@ -308,8 +308,16 @@ propose constraints the user hasn't considered.
 3. For each question, provide your **recommended answer** with reasoning
 4. Ask "what happens when this fails?" for every feature
 5. Flag any requirements the user hasn't mentioned but should decide on
-6. Present **ALL questions in a single message** and WAIT for user confirmation
+6. Present **ALL questions through the runtime's ask-user-question tool**
+   and WAIT for the user's answer. In Codex Plan mode this is
+   `request_user_input`; in other runtimes use the equivalent
+   AskUserQuestion / user-input tool when it exists.
 7. **Do NOT proceed without explicit user approval**
+
+If the runtime does not expose an ask-user-question tool, stop and ask the
+questions in a plain assistant message. Do not create a plan, task, or entity
+until the user answers. Clarification is not optional; only the transport
+changes.
 
 **Common mistake**: jumping straight to `syde plan create` because the request
 seems clear. Even "build a dashboard" has 20+ hidden decisions (framework,
@@ -877,7 +885,14 @@ The plan shows two levels with inline objectives: **phase → tasks with objecti
 - `--objective` — what this phase achieves (1 sentence, success condition)
 - `--changes` — concrete list of things that change (files, entities, behavior)
 - `--details` — implementation walkthrough (HOW to build)
-- **Multiple tasks** — the concrete work items. Each task is a few hours max.
+- **Granular tasks** — concrete work items, not broad placeholders. Aim for
+  several tasks per phase when a phase changes more than one concern. Each task
+  should be small enough to start, finish, verify, and mark done independently.
+
+Before presenting a plan for approval, create the full task list with
+`syde task create --plan <plan-slug> --phase <phase-id> ...`. A phase with no
+tasks is invalid and `syde plan approve` rejects it. Do not ask for approval
+while any phase still has zero tasks.
 
 **Every task MUST have:**
 - `--objective` — what the task achieves
@@ -890,13 +905,17 @@ Use `--notes` for reminders, risks, or context.
 
 #### Large plans: use 3 levels
 
-For large plans (>20 tasks), use **parent phase → child phase → tasks**:
+For large plans (>20 tasks), use **parent phase → child phase → tasks**, but
+do not leave the parent phase taskless. Parent phases need at least one direct
+coordination/integration task before approval.
 
 ```
 # Parent phase (milestone)
 syde plan add-phase <plan-slug> --name "Frontend" \
   --description "Complete React SPA with all views" \
   --details "Milestone: all frontend views working against live API"
+syde task create "Coordinate frontend milestone integration" --plan <plan-slug> --phase phase_1 \
+  --objective "Keep child phases integrated and verify the whole frontend milestone"
 
 # Child phases (deliverables within the milestone)
 syde plan add-phase <plan-slug> --name "Layout + Sidebar" --parent phase_1 \
@@ -910,7 +929,8 @@ syde task create "Sidebar with kind groups" --plan <plan-slug> --phase phase_2
 
 This shows three levels:
 ```
-○ Frontend — pending [8 tasks]
+○ Frontend — pending [9 tasks]
+  ○ coordinate-frontend-milestone-integration — pending
   ○ Layout + Sidebar — pending [2 tasks]
     ○ app-layout-component — pending
     ○ sidebar-with-kind-groups — pending
@@ -920,9 +940,10 @@ This shows three levels:
     ○ relationship-chips — pending
 ```
 
-Parent phases aggregate all descendant tasks and entities. A parent cannot be
-completed until ALL children are completed. Children cannot be completed until
-ALL their tasks are done.
+Parent phases aggregate all descendant tasks and entities, while still carrying
+at least one direct task of their own. A parent cannot be completed until ALL
+children are completed. Children cannot be completed until ALL their tasks are
+done.
 
 **When to use 3 levels:** >20 tasks, or the plan spans multiple sessions.
 **When to use 2 levels:** <20 tasks, single session plan.
@@ -985,6 +1006,10 @@ approval — ask for confirmation. This chat approval is the explicit
 human-in-the-loop gate for every plan. Never approve your own plan without
 the user's explicit go-ahead.
 
+Approval also requires task coverage: every phase must already have at least
+one concrete task. If `syde plan approve` reports an empty phase, add granular
+tasks for that phase, show the updated plan, and ask for approval again.
+
 Approving a plan creates a plan-sourced requirement and links the plan to it.
 Treat all user prompts and approved plans as durable requirements: if intent
 changes later, create a new requirement and mark the older one superseded or
@@ -1022,11 +1047,13 @@ gate.
 This is non-negotiable. If you hit the block, do not work around it by
 moving files to excluded paths. Create a task, start it, then write.
 
-**Keep syde tasks and Claude TodoWrite in sync.** When you start a phase, write
-all its tasks to the TodoWrite tool so the user can see progress. When you
-`syde task start`, mark the corresponding todo as `in_progress`. When you
-`syde task done`, mark it `completed`. The syde plan is the source of truth —
-TodoWrite mirrors it for visibility.
+**Keep syde tasks and the visible todo/checklist tool in sync.** The syde plan
+is the source of truth, and the runtime todo tool mirrors it for visibility:
+Claude uses TodoWrite; Codex uses `update_plan`. Before starting a phase, mirror
+all of that phase's syde tasks into the visible todo list with matching task
+names. When you run `syde task start`, mark that todo `in_progress`. When you
+run `syde task done`, mark that todo `completed`. If you add, split, block, or
+rename a syde task, immediately update the visible todo list to match.
 
 #### For each task in the phase:
 

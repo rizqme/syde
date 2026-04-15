@@ -351,6 +351,8 @@ Update plan-level fields. Only changed flags are applied.
 
 ### syde plan add-phase <plan-slug> [flags]
 Add a phase to a plan. Phases can be nested using `--parent`. Returns auto-generated phase ID. Phases no longer hold entity drafts — use `--notes` to describe new entities the phase will require, then list them in tasks' `--affected-entity` after they're created via `syde add`.
+Before approval, each phase must also have at least one granular task created
+with `syde task create --plan <plan-slug> --phase <phase-id> ...`.
 ```
 --name           short phase label (shown in tree view)
 --parent         parent phase ID for nesting (e.g., phase_1)
@@ -372,6 +374,11 @@ Show plan as tree. Parent phases show aggregated task counts from children.
 Mark plan as approved. Required before implementation. Approval creates a
 plan-sourced requirement and links the plan to it; repeated approval reuses the
 existing plan requirement instead of creating a duplicate.
+
+Approval validates phase task coverage. If any phase has zero direct tasks,
+approval fails and prints the empty phase IDs. Add concrete tasks with
+`syde task create --plan <plan-slug> --phase <phase-id> ...`, show the updated
+plan, and ask for user approval again before re-running approval.
 
 ### syde plan phase <plan-slug> <phase-id> [flags]
 Update a plan phase. All fields are optional — only changed flags are applied.

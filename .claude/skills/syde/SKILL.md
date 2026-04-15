@@ -12,21 +12,124 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 
 This project has a syde design model in `.syde/`. Architecture context is
 **auto-loaded at session start** via the SessionStart hook — you already have
-the full entity map, decisions, and learnings in your context. Do NOT re-run
+the full entity map, requirements, decisions, and learnings in your context. Do NOT re-run
 `syde context` manually.
 
-## Finding Files to Read
+## Getting Context — syde first, always
 
-Use syde CLI to discover which files are relevant before reading code:
+**syde is the single entry point for understanding any file, symbol, or
+entity in this project.** It is not "an architecture tool you use alongside
+grep" — it is the unified surface where design entities, source files, and
+free-text content meet. Every query you run also tells you whether
+architecture and code are in sync. Bypassing syde to grep or read raw is
+not just inefficient — it silently disconnects the two and lets the
+design model rot.
 
-- `syde query <entity> --full` — shows the entity's `files` field (source paths/globs)
-- `syde get <entity>` — shows all fields including `files`
-- `syde constraints check <file>` — maps a source file to its component and constraints
-- `syde query --impacts <entity>` — shows what depends on this entity (and their files)
-- `syde query --related-to <entity>` — shows connected entities (and their files)
+### The three-question checklist (run before any Grep / Read)
 
-**Always check the entity's `files` field first** rather than guessing file paths.
-Each entity lists the source files it maps to (e.g., `files: ["internal/storage/*.go"]`).
+When you need context on something — a symbol, a file, a concept, a
+behaviour — ask these three questions in order:
+
+1. **What entity owns this?** → `syde query --file <path>` or
+   `syde query <slug>`
+2. **What does syde know about this term?** → `syde query --search "<term>"`
+   (then `--any` if AND yields nothing — the engine actually retries
+   automatically and labels the results "broadened")
+3. **What code references it?** → `syde query --code "<symbol>"` —
+   literal-string search across every tracked source file, with the
+   owning entity attached to every hit
+
+Three syde calls beat one wrong grep. The owning-entity annotation on
+every result is the architecture↔code bridge: you don't have to ask "is
+this file mapped?" separately, the answer arrives with the search.
+
+### Architecture↔code sync is a feedback loop, not a side effect
+
+Two specific signals show up in syde output and must be acted on
+immediately:
+
+- **`syde query --file <path>` reports `⚠ DRIFT: no owning entities`** —
+  this tracked file is an orphan. Either add it to a component's `--file`
+  list, or `syde tree ignore <path>` if it is genuinely not part of the
+  design model. Don't move on without resolving it.
+- **`syde query --code <pattern>` reports a hit on a file with `⚠ orphan`** —
+  same deal: code lives in a file the design model doesn't claim. Map it
+  or ignore it before continuing.
+
+These warnings are the model telling you it has rotted relative to the
+code. Acting on them is part of the workflow, not a separate cleanup step.
+
+### Tools to use, tools to avoid
+
+**Use `syde query` for everything tracked by the summary tree.** Including:
+finding a Go symbol, reading a source file with framing, listing all
+entities of a kind, finding what a file participates in, finding what
+depends on what, searching documentation, finding learnings, and
+triaging orphans / drift.
+
+**Reserve `Grep` and `Read` for files the summary tree intentionally
+ignores** — vendor/, node_modules/, generated assets, .git/, build
+artifacts, binary blobs. If a file is tracked by `syde tree scan`, you
+should not be reading it with `Read` — use `syde query --file <path>
+--content` instead, which gives you the same content plus the
+architectural framing in one call.
+
+If you find yourself reaching for `Grep` to find a symbol in code, stop
+and use `syde query --code` instead. If you find yourself reaching for
+`Read` to open a tracked file, use `syde query --file <path> --content`.
+
+### Recipe cookbook
+
+```bash
+# 1. SYMBOL LOOKUP — find every reference to a Go identifier in code,
+#    each hit annotated with its owning entity.
+syde query --code ConceptEntity
+syde query --code "func NewStore("
+
+# 2. FILE READ WITH FRAMING — read a source file and learn which
+#    entities own it + their one-hop neighbours, all in one call.
+syde query --file internal/storage/index.go --content
+
+# 3. FILE PARTICIPATION ONLY — same as #2 without the body, when
+#    you only want the architectural framing.
+syde query --file internal/storage/index.go
+
+# 4. DIRECTORY SWEEP — owners of every file under a directory.
+syde query --file internal/cli/
+
+# 5. KEYWORD SEARCH IN ENTITY PROSE — name, description, purpose,
+#    notes, body. Multi-word AND by default; auto-broadens to OR
+#    when AND yields zero, results labelled "broadened".
+syde query --search "BadgerDB index"
+syde query --search "concept entity"   # broadened example
+
+# 6. SCOPED SEARCH — narrow by kind and/or tag.
+syde query --search migration --kind learning --tag critical --limit 5
+
+# 7. ENTITY DETAIL — full context for one entity.
+syde query storage-engine --full
+
+# 8. LIST BY KIND — every entity of a given kind.
+syde query --kind concept
+syde query --kind decision --format refs
+
+# 9. ORPHAN TRIAGE — find files the design model does not claim.
+syde files orphans
+syde query --file <orphan-path>   # to decide map vs. ignore
+
+# 10. GRAPH WALKS — impact analysis and dependency tracing.
+syde query --impacts storage-engine
+syde query --depends-on query-engine
+syde query --depended-by query-engine
+syde query --related-to query-engine
+
+# 11. RECENT ACTIVITY ON ONE ENTITY — git history scoped to its files.
+syde query --diff storage-engine --since 7d
+```
+
+The two new flags introduced by this version are `--code <pattern>` and
+`--content` (paired with `--file`). They cover everything that used to
+require `Grep` or `Read` on a tracked file. Use them.
 
 ## Phase 0: Survey the Codebase (always run first)
 
@@ -205,8 +308,16 @@ propose constraints the user hasn't considered.
 3. For each question, provide your **recommended answer** with reasoning
 4. Ask "what happens when this fails?" for every feature
 5. Flag any requirements the user hasn't mentioned but should decide on
-6. Present **ALL questions in a single message** and WAIT for user confirmation
+6. Present **ALL questions through the runtime's ask-user-question tool**
+   and WAIT for the user's answer. In Codex Plan mode this is
+   `request_user_input`; in other runtimes use the equivalent
+   AskUserQuestion / user-input tool when it exists.
 7. **Do NOT proceed without explicit user approval**
+
+If the runtime does not expose an ask-user-question tool, stop and ask the
+questions in a plain assistant message. Do not create a plan, task, or entity
+until the user answers. Clarification is not optional; only the transport
+changes.
 
 **Common mistake**: jumping straight to `syde plan create` because the request
 seems clear. Even "build a dashboard" has 20+ hidden decisions (framework,
@@ -284,7 +395,7 @@ system                                   ← a standalone process / app / servic
 ├── concepts (belongs_to system)          ← domain objects of this system
 │   ├── references components (implements/used_by)
 │   └── relates_to other concepts (ERD)
-└── flows, decisions, plans, tasks, learnings
+└── flows, decisions, requirements, plans, tasks, learnings
 ```
 
 **What is a system?** A system is anything with its own process / binary /
@@ -354,8 +465,82 @@ endpoints. Fine-grained contracts are the rule.
 
 Every contract MUST have:
 - **Descriptive name** — a noun phrase describing what the boundary is ("User Login", "List Projects", "User Registered"). NOT the raw invocation.
-- **`--contract-kind`** — the type: `rest`, `cli`, `event`, `rpc`, `graphql`, `websocket`, `pubsub`
-- **`--interaction-pattern`** — `sync`, `async`, `request-response`, `pub-sub`, `streaming`
+- **`--contract-kind`** — one of:
+  - `rest` — HTTP REST endpoint (use with `--interaction-pattern request-response` or `async`)
+  - `cli` — command-line invocation (use with `request-response`)
+  - `event` — pub/sub event emitted on a topic (use with `pub-sub`)
+  - `rpc` — remote procedure call (use with `request-response` or `streaming`)
+  - `graphql` — GraphQL operation (use with `request-response`)
+  - `websocket` — WebSocket message (use with `streaming` or `async`)
+  - `pubsub` — pub/sub topic (use with `pub-sub`)
+  - `storage` — data schema (KV key prefix, SQL table, protobuf message, cache key, queue payload). Use with `--interaction-pattern schema`. Input is the key/table/type template, input parameters are the fields/columns, output parameters are indexes / constraints / foreign keys.
+  - `screen` — UI screen / page rendered to a user (a React route, a desktop window, a TUI view). Use with `--interaction-pattern render` and **`--wireframe`** carrying a UIML source describing the layout. Input is the route path / launch trigger; input parameters are route/query params; output is "rendered UI"; output parameters are user actions exposed by the screen. The dashboard renders the wireframe as a preview in the contract detail panel.
+- **`--interaction-pattern`** — one of `sync`, `async`, `request-response`, `pub-sub`, `streaming`, `schema`, `render`. Use `schema` only with `--contract-kind storage` and `render` only with `--contract-kind screen`.
+
+**Screen contracts** also require:
+- **`--wireframe`** — UIML source. Validator runs `uiml.Parse` on it and rejects malformed wireframes as ERRORs. The dashboard renders wireframes server-side via the dark-mode wireframe renderer (charcoal-on-dark, region badges, ✕-rect placeholders, line-bar text). You can also render wireframes from the terminal with `syde wireframe render <slug>` which supports `--format html|ascii|image` and `--out <path>` / `--open`.
+
+**UIML wireframe vocabulary** (attribute-rich — the lexer handles attributes correctly):
+
+| Tag | Effect | Common attributes |
+|---|---|---|
+| `<screen>` | Outer container, optional `name` chip | `name`, `direction="horizontal\|vertical"` |
+| `<layout>` | Flex container | `direction="horizontal\|vertical"` |
+| `<grid>` | CSS grid | `cols="N"` |
+| `<stack>` | Vertical stack | (none) |
+| `<sidebar>` | Side rail with `KINDS`-style label | `name`, `width="200"` |
+| `<main>` | Main content region | `name` |
+| `<panel>` | Sub-region (use beside `<sidebar>` and `<main>` for inboxes) | `name`, `width="360"` |
+| `<card>` | Bordered card | `name` |
+| `<section>` | Sub-section with optional title | `title="..."` |
+| `<navbar>` | Horizontal top bar | (none) |
+| `<heading>` | Bold heading text | (text content) |
+| `<text>` / `<paragraph>` | If empty → 3 line-bar placeholders; if filled → grey text | (text content) |
+| `<button>` | Bordered rounded label | (text content) |
+| `<button-group>` | Horizontal row of buttons | (none) |
+| `<list>` / `<item>` | Vertical list with optional `<image/>` thumbnail + labels | `<item active="true">` for selected row |
+| `<menu>` | Vertical nav stack | (none) |
+| `<image/>` / `<placeholder/>` | ✕-rect media stub | (self-closing) |
+| `<input>` | Label + thin underline | `label`, `placeholder` |
+| `<search>` | Bordered search box | `placeholder` |
+| `<metric>` | Stat label + value | `label`, `value` |
+| `<icon>` | Small bordered glyph | `glyph="✓"` |
+| `<divider/>` | Thick horizontal bar | (self-closing) |
+| `<tabs>` / `<tab>` | Horizontal tab strip | `<tab active="true">` |
+
+Use `<layout direction="horizontal">` to lay regions side-by-side.
+The classic inbox pattern is `<screen direction="horizontal"><sidebar/><panel width="360"/><main/></screen>`.
+
+Worked example for a screen contract:
+
+```bash
+syde add contract "Components Inbox" \
+  --description "2-column inbox with sidebar + list + detail" \
+  --contract-kind screen --interaction-pattern render \
+  --input "/component" \
+  --input-parameter "filter|string|optional filter DSL query" \
+  --output "rendered components list and detail" \
+  --output-parameter "click|event|select component in detail panel" \
+  --wireframe '<screen name="Components Inbox" direction="horizontal"><sidebar name="Kinds" width="200"><menu><item>Systems</item><item active="true">Components</item><item>Contracts</item></menu></sidebar><panel name="List" width="360"><heading>Components</heading><button-group><button>Filter</button><button>Sort</button></button-group><list><item active="true"><image/><label>CLI Commands</label><label>42 files</label></item><item><image/><label>Storage Engine</label><label>8 files</label></item></list></panel><main name="Detail"><heading>CLI Commands</heading><text/><section title="Files"><text/></section><button-group><button>Edit</button><button>Delete</button></button-group></main></screen>' \
+  --add-rel "syded-dashboard:belongs_to" \
+  --add-rel "web-spa:references"
+```
+
+Once created, render the wireframe from the terminal:
+
+```bash
+# HTML to stdout
+syde wireframe render components-inbox
+
+# Open in browser
+syde wireframe render components-inbox --out /tmp/x.html --open
+
+# PNG screenshot via headless Chrome
+syde wireframe render components-inbox --format image --out /tmp/x.png
+
+# Plain ASCII to stdout
+syde wireframe render components-inbox --format ascii
+```
 - **`--input`** — the invocation signature (the raw command/path, e.g. `GET /api/projects`, `syde plan create <name>`, `users.created` topic)
 - **`--input-parameter`** — structured parameter entry: `"path|type|description"` (repeatable, at least one required)
 - **`--output`** — output signature / response shape (e.g. `200 OK application/json`, `stdout text`, `event payload`)
@@ -447,27 +632,147 @@ syde add contract "User Registered" \
 
 ### Concept rules (ERD)
 
-Concepts are domain entities — like tables in an ERD. They form relationships
-with each other to express data modeling.
+Concepts are first-class ERD entities — high-level domain objects
+with named attributes, domain actions, and cardinality-labelled
+relationships. They render in the dashboard both as a detail panel
+(attributes + actions tables) and as draggable nodes in the ERD view
+(accessed via the List/ERD toggle on the Concepts page). Concepts are
+a **design-level lens** — they carry names and descriptions, never
+concrete Go/SQL/TypeScript types. Types live in code; concepts live
+in the model.
 
-Every concept MUST have:
-- `--meaning` — what it represents in the domain
-- `--invariants` — rules that must always hold
+**Every concept MUST have:**
+
+- `--meaning` — what the concept represents in the domain (enforced: ERROR)
+- **At least one `--attribute`** — ERD field `name|description[|refs]`
+  (enforced: ERROR). Each attribute needs a non-empty name; description
+  and refs are optional.
+- `--invariants` — rules that must always hold (recommended: WARN)
 - Relationship: `belongs_to:<system-slug>`
-- Optional: `references:<component-slug>` — which component owns/implements it
-- Optional: `relates_to:<concept-slug>` — ERD relationships (one-to-many, many-to-many)
 
-Example:
-```
+**Every concept MAY have:**
+
+- `--action "name|description"` — a domain verb / aggregate operation
+  (e.g. `place|move draft→placed`). Repeatable. Actions are design-
+  level indicators; full interaction surfaces live in contract entities.
+- `--add-rel "<target>:references:<component-slug>"` — the component
+  that owns / implements it.
+- `--add-rel "<target>:relates_to[:cardinality]"` — ERD relationships
+  to other concepts. Cardinality is the optional **third** part of the
+  `--add-rel` spec and must be one of:
+
+| Cardinality    | Meaning                                        |
+|----------------|------------------------------------------------|
+| `one-to-one`   | Each row on the left has exactly one row right |
+| `one-to-many`  | Each row on the left has many rows on the right |
+| `many-to-one`  | Many rows on the left share one row on the right |
+| `many-to-many` | Many-to-many via an explicit join               |
+
+Empty cardinality (two-part `target:relates_to`) is allowed but the
+ERD view will not render a label on that edge. The audit check
+rejects anything outside the four values above.
+
+**Attribute spec**: `name|description|refs` — pipe-separated, 1-3 parts.
+`name` is required. `description` is optional prose explaining what
+the attribute means, its constraints, or invariants. `refs` is an
+optional comma-separated list of concept slugs this attribute
+references — used by the ERD view to draw attribute-level FK-style
+edges from the attribute row to the referenced concept's card.
+There is **no type** — concepts are design-level, not code-level.
+
+**Action spec**: `name|description`. Simpler than attributes —
+actions are named verbs, no schema.
+
+**Worked example (Order / LineItem / Customer):**
+
+```bash
+# Parent domain
+syde add system "Ecommerce" --description "Online store"
+
+# Core aggregate
 syde add concept "Order" \
-  --meaning "A customer's purchase request" \
+  --description "A customer's purchase request" \
+  --meaning "Groups line items into a billable transaction" \
   --lifecycle "draft → placed → paid → shipped → delivered" \
   --invariants "total > 0. Must have at least one line item. Status transitions are forward-only." \
+  --attribute "id|primary key" \
+  --attribute "status|lifecycle state: draft, placed, paid, shipped, delivered" \
+  --attribute "total|sum of line items, must be > 0" \
+  --attribute "placed_at|timestamp when the order transitioned to placed, nullable" \
+  --action "place|transitions from draft to placed" \
+  --action "cancel|reverts to draft if not yet shipped" \
+  --action "ship|moves from paid to shipped" \
   --add-rel "ecommerce:belongs_to" \
-  --add-rel "order-service:references" \
-  --add-rel "customer:relates_to" \
-  --add-rel "line-item:relates_to"
+  --add-rel "customer:relates_to:many-to-one" \
+  --add-rel "line-item:relates_to:one-to-many"
+
+# Related aggregates — FK-style attribute refs draw per-attribute
+# arrows in the ERD canvas.
+syde add concept "LineItem" \
+  --description "One product in an order" \
+  --meaning "Individual product + quantity within an order" \
+  --invariants "quantity > 0. Subtotal = quantity * unit_price." \
+  --attribute "id|primary key" \
+  --attribute "order_id|foreign key to Order|order" \
+  --attribute "product_id|foreign key to Product|product" \
+  --attribute "quantity|must be > 0" \
+  --attribute "unit_price|price at purchase time" \
+  --add-rel "ecommerce:belongs_to" \
+  --add-rel "order:relates_to:many-to-one"
+
+syde add concept "Customer" \
+  --description "A registered buyer" \
+  --meaning "Person or org that can place orders" \
+  --invariants "email is unique and non-empty" \
+  --attribute "id|primary key" \
+  --attribute "email|unique, required" \
+  --attribute "created_at|registration timestamp" \
+  --action "register|creates a new customer account" \
+  --action "deactivate|marks the customer as closed" \
+  --add-rel "ecommerce:belongs_to" \
+  --add-rel "order:relates_to:one-to-many"
 ```
+
+After running the above, open the dashboard, click **Concepts** in
+the sidebar, and toggle the view-mode control at the top-right of
+the page from **List** to **ERD**. Every concept renders as a
+draggable card with its name + description in the header, attribute
+rows showing name + description, action chips in the footer, and
+labelled `relates_to` edges connecting related concepts. Attributes
+with refs draw dashed arrows from the attribute row to the target
+concept's card — that is how LineItem.order_id and LineItem.product_id
+visually link to the Order and Product cards above.
+
+**Attribute-level FK edges** — the 3rd pipe field on an attribute
+spec is an optional comma-separated list of concept slugs that
+attribute references. Use this for foreign-key-style links:
+
+```bash
+syde update LineItem \
+  --attribute "id|primary key" \
+  --attribute "order_id|foreign key|order" \
+  --attribute "product_id|foreign key|product"
+```
+
+The `order_id` and `product_id` rows will render attribute handles
+in the ERD; the canvas draws dashed arrows from each row to the
+target concept's card. `relates_to` edges remain available for
+aggregate-level cardinality (one-to-many etc.); attribute refs are
+the field-level complement.
+
+**Common mistakes:**
+
+- Forgetting `--attribute` on a new concept. `syde sync check` will
+  reject it as ERROR — concepts without attributes are not reviewable.
+- Typing `--add-rel "customer:relates_to:many"` (invalid cardinality).
+  The audit rejects anything outside the four-value enum above.
+- Putting domain attribute detail in `--structure-notes` prose
+  instead of structured `--attribute` specs. Prose is invisible to
+  the ERD view and to any future code-generation.
+- Leaking implementation types into attribute prose (`uuid`, `int`,
+  `timestamptz`). Concepts are a design-level lens — if you find
+  yourself writing a type, move it into the code entity or contract
+  schema where concrete types belong.
 
 ### System rules
 
@@ -481,6 +786,9 @@ should model each as its own sub-system.
 - Components, contracts, and concepts `belongs_to:<system-slug>` of the
   system they are part of — for a sub-system, that's the sub-system, not the
   top-level one.
+- Every entity except the single root system needs a `belongs_to` parent.
+- Every non-requirement entity must link to at least one requirement.
+- Every contract must participate in at least one flow.
 
 Example: a project with a CLI binary and a daemon:
 ```
@@ -498,6 +806,11 @@ syde add system "MyApp Daemon" \
 `syde validate` enforces:
 - Components must have `purpose`, `responsibility`, `capabilities`
 - Contracts must have `contract_kind`
+- Requirements are append-only and must be `active`, `superseded`, or `obsolete`
+- Superseded requirements must point to replacements; obsolete requirements must say why
+- Every non-requirement entity links to a requirement
+- Every entity except the root system has `belongs_to`
+- Every contract has at least one flow relationship
 - No cyclic `depends_on` relationships between components
 - All relationship targets must exist
 
@@ -572,7 +885,14 @@ The plan shows two levels with inline objectives: **phase → tasks with objecti
 - `--objective` — what this phase achieves (1 sentence, success condition)
 - `--changes` — concrete list of things that change (files, entities, behavior)
 - `--details` — implementation walkthrough (HOW to build)
-- **Multiple tasks** — the concrete work items. Each task is a few hours max.
+- **Granular tasks** — concrete work items, not broad placeholders. Aim for
+  several tasks per phase when a phase changes more than one concern. Each task
+  should be small enough to start, finish, verify, and mark done independently.
+
+Before presenting a plan for approval, create the full task list with
+`syde task create --plan <plan-slug> --phase <phase-id> ...`. A phase with no
+tasks is invalid and `syde plan approve` rejects it. Do not ask for approval
+while any phase still has zero tasks.
 
 **Every task MUST have:**
 - `--objective` — what the task achieves
@@ -585,13 +905,17 @@ Use `--notes` for reminders, risks, or context.
 
 #### Large plans: use 3 levels
 
-For large plans (>20 tasks), use **parent phase → child phase → tasks**:
+For large plans (>20 tasks), use **parent phase → child phase → tasks**, but
+do not leave the parent phase taskless. Parent phases need at least one direct
+coordination/integration task before approval.
 
 ```
 # Parent phase (milestone)
 syde plan add-phase <plan-slug> --name "Frontend" \
   --description "Complete React SPA with all views" \
   --details "Milestone: all frontend views working against live API"
+syde task create "Coordinate frontend milestone integration" --plan <plan-slug> --phase phase_1 \
+  --objective "Keep child phases integrated and verify the whole frontend milestone"
 
 # Child phases (deliverables within the milestone)
 syde plan add-phase <plan-slug> --name "Layout + Sidebar" --parent phase_1 \
@@ -605,7 +929,8 @@ syde task create "Sidebar with kind groups" --plan <plan-slug> --phase phase_2
 
 This shows three levels:
 ```
-○ Frontend — pending [8 tasks]
+○ Frontend — pending [9 tasks]
+  ○ coordinate-frontend-milestone-integration — pending
   ○ Layout + Sidebar — pending [2 tasks]
     ○ app-layout-component — pending
     ○ sidebar-with-kind-groups — pending
@@ -615,9 +940,10 @@ This shows three levels:
     ○ relationship-chips — pending
 ```
 
-Parent phases aggregate all descendant tasks and entities. A parent cannot be
-completed until ALL children are completed. Children cannot be completed until
-ALL their tasks are done.
+Parent phases aggregate all descendant tasks and entities, while still carrying
+at least one direct task of their own. A parent cannot be completed until ALL
+children are completed. Children cannot be completed until ALL their tasks are
+done.
 
 **When to use 3 levels:** >20 tasks, or the plan spans multiple sessions.
 **When to use 2 levels:** <20 tasks, single session plan.
@@ -680,6 +1006,15 @@ approval — ask for confirmation. This chat approval is the explicit
 human-in-the-loop gate for every plan. Never approve your own plan without
 the user's explicit go-ahead.
 
+Approval also requires task coverage: every phase must already have at least
+one concrete task. If `syde plan approve` reports an empty phase, add granular
+tasks for that phase, show the updated plan, and ask for approval again.
+
+Approving a plan creates a plan-sourced requirement and links the plan to it.
+Treat all user prompts and approved plans as durable requirements: if intent
+changes later, create a new requirement and mark the older one superseded or
+obsolete; never delete requirement history.
+
 **STOP. Do NOT implement until the plan is approved.** Check the plan status
 with `syde plan show <plan-slug>` — if it says `draft`, you are not allowed to
 start any tasks. Only after the user approves in chat, run `syde plan approve
@@ -712,11 +1047,13 @@ gate.
 This is non-negotiable. If you hit the block, do not work around it by
 moving files to excluded paths. Create a task, start it, then write.
 
-**Keep syde tasks and Claude TodoWrite in sync.** When you start a phase, write
-all its tasks to the TodoWrite tool so the user can see progress. When you
-`syde task start`, mark the corresponding todo as `in_progress`. When you
-`syde task done`, mark it `completed`. The syde plan is the source of truth —
-TodoWrite mirrors it for visibility.
+**Keep syde tasks and the visible todo/checklist tool in sync.** The syde plan
+is the source of truth, and the runtime todo tool mirrors it for visibility:
+Claude uses TodoWrite; Codex uses `update_plan`. Before starting a phase, mirror
+all of that phase's syde tasks into the visible todo list with matching task
+names. When you run `syde task start`, mark that todo `in_progress`. When you
+run `syde task done`, mark that todo `completed`. If you add, split, block, or
+rename a syde task, immediately update the visible todo list to match.
 
 #### For each task in the phase:
 
@@ -734,16 +1071,31 @@ TodoWrite mirrors it for visibility.
 6. Verify new files: `syde constraints check <file>`
 7. Update entities as you go — don't wait until later:
    - New entity needed? → `syde add <kind> <name>` with `--file` references
+     and `--add-rel <requirement>:references`
    - Entity changed? → `syde update <slug>` with updated fields
    - New relationship? → `syde update <slug> --add-rel "<target>:<type>"`
    - Decision made? → `syde add decision "<name>" --statement "..." --rationale "..."`
    - Discovered something? → `syde remember "<text>" --category <type> --entity <name>`
 
 **AFTER — complete and verify:**
-8. Complete the task:
+8. Complete the task and **declare the real affected set** — this is
+   how drift clears correctly at the end of the session:
    ```
-   syde task done <task-slug>
+   syde task done <task-slug> \
+     --affected-entity <slug1> --affected-entity <slug2> \
+     --affected-file path/one.go --affected-file path/two.go
    ```
+   The `--affected-entity` / `--affected-file` flags at done time are
+   MERGED into whatever was predicted at create time. Pass every entity
+   you actually modified and every file you actually touched — this
+   is the authoritative set the drift cascade uses to bump `UpdatedAt`
+   on each affected entity, and it's what makes `syde sync check`
+   pass at the end of the session. Create-time affected lists are
+   predictions; done-time affected lists are reality, and reality
+   wins. Never call `syde task done` without these flags if the task
+   touched anything — the omission will surface as drift warnings
+   during the finish gate, and you will have to go back and update
+   entities manually.
 9. Verify entity completeness:
    - Are all new/changed files referenced? → `syde update <entity> --file "path/*.go"`
    - Are all relationships wired? → `syde update <entity> --add-rel "<target>:<type>"`
@@ -862,7 +1214,7 @@ the Stop hook blocks session end with the same gate.
    approved in chat, run `syde plan approve`, then `syde task start
    <slug>` before any code change. The block prints a stderr message
    explaining which condition failed.
-4. **Never leave the model out of sync** — every code change that affects architecture must be reflected in syde entities. No exceptions. If you added a file, a function, an endpoint, a dependency, or made a design choice — update the model.
+4. **Never leave the model out of sync** — every code change that affects architecture must be reflected in syde entities. No exceptions. If you added a file, a function, an endpoint, a dependency, or made a design choice — update the model. At task completion time, always pass `syde task done <slug> --affected-entity ... --affected-file ...` declaring the **real** set of entities and files you touched. The done-time flags are merged into the task's existing affected lists, validated, and used by the drift cascade to bump `UpdatedAt` on each affected entity. Omitting them leaves drift warnings in `syde sync check` that you'll have to clear manually. See Phase 3 step 8 for the full invocation.
 5. **Always run `syde tree scan` at session start** and `syde sync check --strict` at session end. Between them, keep the tree clean via the leaves-first summarize loop. Stale tree = rotted understanding for the next session.
 6. **Delegate file summarization to subagents, never burn main context on it.** When summarizing stale files for the tree, dispatch subagents in parallel and give each a batch of paths. Each subagent calls `syde tree context <path>` + `syde tree summarize`. Main session only handles folder summaries (cheap, derived from children via `syde tree show`).
 7. **When creating entities on an existing codebase, use `syde tree context <path>`, never naive `Read`.** The tree context returns the ancestor breadcrumb + file summary + content in one call — that's the right framing for `--purpose`, `--responsibility`, `--boundaries`. `Read` is only for verification.

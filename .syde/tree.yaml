@@ -1,4 +1,4 @@
-scanned_at: "2026-04-15T06:45:49Z"
+scanned_at: "2026-04-15T07:08:48Z"
 root: .
 nodes:
     .:
@@ -14,8 +14,8 @@ nodes:
             - scripts
             - skill
             - web
-        summary: 'Repository for the syde design-model CLI and syded dashboard: Go binaries, React SPA, embedded Claude/Codex skills with requirement workflows, docs, scripts, and syde architecture metadata.'
-        updated_at: "2026-04-15T06:47:02Z"
+        summary: Repository for the syde design-model CLI and syded dashboard, combining Go command/daemon packages, embedded React dashboard assets, agent skill templates, CLI documentation, build tooling, and summary-tree metadata.
+        updated_at: "2026-04-15T07:08:59Z"
     .gitignore:
         type: file
         parent: .
@@ -110,8 +110,8 @@ nodes:
             - internal/tree
             - internal/uiml
             - internal/utils
-        summary: 'Internal Go packages for syde and syded: CLI commands with requirement capture, daemon client/launcher, dashboard APIs, model/storage/query/audit engines, tree scanning, UIML rendering, memory sync, and utilities.'
-        updated_at: "2026-04-15T06:46:42Z"
+        summary: Internal Go packages for the syde CLI and syded daemon, including command handling, storage, model validation, querying, dashboard APIs, tree summaries, skill installation, and integration utilities.
+        updated_at: "2026-04-15T07:06:57Z"
     internal/audit:
         type: dir
         parent: internal
@@ -244,8 +244,8 @@ nodes:
             - internal/cli/validate.go
             - internal/cli/wireframe.go
             - internal/cli/writes.go
-        summary: Cobra CLI command layer for syde, including entity CRUD with requirement handling, requirement capture helpers, plan/task lifecycle, Codex hooks, validation, query/status, tree maintenance, skill installation, and write-client helpers.
-        updated_at: "2026-04-15T06:46:29Z"
+        summary: Cobra CLI command layer for syde, covering entity CRUD, query, planning and task workflows, approval validation, learning/memory commands, tree maintenance, sync checks, wireframes, and dashboard/server helpers.
+        updated_at: "2026-04-15T07:06:43Z"
     internal/cli/add.go:
         type: file
         parent: internal/cli
@@ -369,11 +369,11 @@ nodes:
     internal/cli/plan.go:
         type: file
         parent: internal/cli
-        size: 22182
-        hash: 48f40a53399e5ecbe663161374c0746309d73675e42bf249919c529be5aa92e3
-        mtime: "2026-04-15T06:41:53Z"
-        summary: Implements plan lifecycle commands for create/list/show/update/approve/phase/sync/execute/estimate, including deduplicated plan-sourced requirement capture on approval.
-        updated_at: "2026-04-15T06:46:07Z"
+        size: 23002
+        hash: 64a9637b053f3d2c74bfa9b9e0987b197c8290d4a2307feb3f2ee0a9f1e10b53
+        mtime: "2026-04-15T07:04:28Z"
+        summary: Implements plan lifecycle CLI commands, including creation, display, approval with direct phase-task readiness validation, plan-sourced requirement capture, phase updates, estimates, execution, and sync helpers.
+        updated_at: "2026-04-15T07:06:26Z"
     internal/cli/query.go:
         type: file
         parent: internal/cli
@@ -1087,32 +1087,32 @@ nodes:
             - skill/embed.go
             - skill/hooks.json
             - skill/references
-        summary: Embedded syde skill templates and references for Claude and Codex, including requirement-aware command/entity docs, clarification guidance, sync workflow notes, and hook templates.
-        updated_at: "2026-04-15T06:46:49Z"
+        summary: Embedded syde agent skill templates and references for Claude and Codex, including hook templates, installable skill instructions, clarification workflow, granular per-phase planning rules, and command/entity documentation.
+        updated_at: "2026-04-15T07:08:59Z"
     skill/SKILL.md:
         type: file
         parent: skill
-        size: 61250
-        hash: 1218c85f664a549548a021973f4c51de4a635e1b207cd8cbc2107698981e8eb1
-        mtime: "2026-04-15T06:40:05Z"
-        summary: Claude-facing syde skill instructions covering syde-first context lookup, clarification, model bootstrapping, requirements, entity/relationship rules, planning, task workflow, validation, and finish gates.
-        updated_at: "2026-04-15T06:46:21Z"
+        size: 62939
+        hash: 396029ac67d7c2532e57a896d7f230c9b5318de7de54626aa70679c75b820278
+        mtime: "2026-04-15T07:08:20Z"
+        summary: Primary syde agent skill describing syde-first context gathering, mandatory clarification, granular task-first planning for every phase including parent phases, approval, implementation, task syncing, summary-tree maintenance, and finish gates.
+        updated_at: "2026-04-15T07:08:59Z"
     skill/codex:
         type: dir
         parent: skill
         children:
             - skill/codex/SKILL.md
             - skill/codex/hooks.json
-        summary: Codex skill and hooks template for syde, using the syde command to load context, capture prompts as requirements, enforce guardrails, and run finish validation.
-        updated_at: "2026-04-15T06:44:12Z"
+        summary: Codex-specific syde skill and hook templates that load syde context, capture user prompts, run hook checks, require clarification, and synchronize granular syde tasks with Codex planning.
+        updated_at: "2026-04-15T07:06:43Z"
     skill/codex/SKILL.md:
         type: file
         parent: skill/codex
-        size: 3114
-        hash: e8c8144984246b87eeac6564e972693ee2c0bb20883a05cd7ecb608919709cc1
-        mtime: "2026-04-15T06:29:43Z"
-        summary: Codex-facing syde skill instructions covering first moves, plan/task workflow, automatic requirement capture, requirement traceability, and finish-gate validation.
-        updated_at: "2026-04-15T06:43:27Z"
+        size: 3747
+        hash: 845240e0697a6e27f66df6ae53769bbcf06e6d8002a0f436f2e3be393f047fe4
+        mtime: "2026-04-15T07:01:15Z"
+        summary: Codex-specific syde skill instructions covering tree scan, user-question clarification, task-first plan approval, visible update_plan syncing, implementation checks, and finish gates.
+        updated_at: "2026-04-15T07:06:26Z"
     skill/codex/hooks.json:
         type: file
         parent: skill/codex
@@ -1145,8 +1145,8 @@ nodes:
             - skill/references/commands.md
             - skill/references/entity-spec.md
             - skill/references/sync-workflow.md
-        summary: 'Reference docs embedded with the syde skill: entity specifications, command catalog, clarification guide, and sync workflow notes including requirement lifecycle and traceability rules.'
-        updated_at: "2026-04-15T06:46:34Z"
+        summary: Reference documents embedded with the syde skill, covering clarification prompts, command usage, entity schemas, and sync/bootstrap workflows.
+        updated_at: "2026-04-15T07:06:43Z"
     skill/references/clarify-guide.md:
         type: file
         parent: skill/references
@@ -1158,11 +1158,11 @@ nodes:
     skill/references/commands.md:
         type: file
         parent: skill/references
-        size: 24084
-        hash: 335f3b80c89db2c920d5a0a72e07adb0ea4d584f0571b403274c99f1b1c39f5a
-        mtime: "2026-04-15T06:39:51Z"
-        summary: Command reference for syde CLI, including entity CRUD flags, requirement creation/update behavior, query modes, plan approval requirement capture, tasks, learnings, constraints, and tree commands.
-        updated_at: "2026-04-15T06:46:15Z"
+        size: 24522
+        hash: 6e656e24ce40a21eaf1a4ffb2b6a2b3f5f24c2b2dd0b478c28bb958da2e8c05a
+        mtime: "2026-04-15T07:01:48Z"
+        summary: Reference for syde CLI commands across entity CRUD, query, plan and task workflows, approval task coverage, learnings, constraints, summary tree, and miscellaneous tooling.
+        updated_at: "2026-04-15T07:06:26Z"
     skill/references/entity-spec.md:
         type: file
         parent: skill/references

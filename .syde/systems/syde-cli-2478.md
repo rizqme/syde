@@ -11,7 +11,7 @@ relationships:
     - target: existing-syde-model-baseline-hcvj
       type: references
       label: requirement
-updated_at: "2026-04-15T06:47:18Z"
+updated_at: "2026-04-15T07:08:44Z"
 context: Invoked on every session start (SessionStart hook), every file write (PostToolUse hook), and throughout a planning/implementation loop.
 scope: 'In: all subcommands under ''syde'' (add, get, list, update, query, plan, task, tree, validate, etc.). Out: HTTP serving (syded owns that).'
 ---

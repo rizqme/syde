@@ -342,6 +342,10 @@ var planApproveCmd = &cobra.Command{
 		}
 
 		p := entity.(*model.PlanEntity)
+		if err := validatePlanApprovalReadiness(p); err != nil {
+			return err
+		}
+
 		p.PlanStatus = model.PlanApproved
 		if p.ApprovedAt == "" {
 			p.ApprovedAt = time.Now().UTC().Format(time.RFC3339)
@@ -383,6 +387,35 @@ var planApproveCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func validatePlanApprovalReadiness(p *model.PlanEntity) error {
+	if len(p.Phases) == 0 {
+		return fmt.Errorf("cannot approve plan %q: add at least one phase with tasks first", p.Name)
+	}
+
+	var emptyPhases []string
+	for _, ph := range p.Phases {
+		if len(ph.Tasks) > 0 {
+			continue
+		}
+		label := ph.ID
+		if strings.TrimSpace(ph.Name) != "" {
+			label = fmt.Sprintf("%s (%s)", ph.ID, ph.Name)
+		}
+		if strings.TrimSpace(label) == "" {
+			label = "(unnamed phase)"
+		}
+		emptyPhases = append(emptyPhases, label)
+	}
+	if len(emptyPhases) > 0 {
+		return fmt.Errorf(
+			"cannot approve plan %q: every phase must have at least one direct task before approval; empty phases: %s",
+			p.Name,
+			strings.Join(emptyPhases, ", "),
+		)
+	}
+	return nil
 }
 
 func planRequirementStatement(p *model.PlanEntity) string {

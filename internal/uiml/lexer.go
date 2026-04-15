@@ -30,9 +30,15 @@ type Token struct {
 
 // Lexer tokenizes UIML source.
 type Lexer struct {
-	src  []rune
-	pos  int
-	line int
+	src   []rune
+	pos   int
+	line  int
+	// inTag is true while the lexer is between an opening tag's name
+	// and its closing `>` or `/>`. In that window we tokenize attribute
+	// names as identifiers (TokText) instead of falling through to
+	// readTextContent (which slurps everything until the next `<` and
+	// destroys attribute structure). Cleared on TokGT and TokSelfClose.
+	inTag bool
 }
 
 // NewLexer creates a lexer for the given source.
@@ -61,12 +67,14 @@ func (l *Lexer) Next() Token {
 		if l.pos < len(l.src) && l.src[l.pos] == '>' {
 			l.advance(1)
 		}
+		l.inTag = false
 		return Token{Kind: TokTagClose, Value: name, Line: l.line}
 	}
 
 	// Self-closing />
 	if l.match("/>") {
 		l.advance(2)
+		l.inTag = false
 		return Token{Kind: TokSelfClose, Line: l.line}
 	}
 
@@ -74,12 +82,14 @@ func (l *Lexer) Next() Token {
 	if l.src[l.pos] == '<' {
 		l.advance(1)
 		name := l.readTagName()
+		l.inTag = true
 		return Token{Kind: TokTagOpen, Value: name, Line: l.line}
 	}
 
 	// >
 	if l.src[l.pos] == '>' {
 		l.advance(1)
+		l.inTag = false
 		return Token{Kind: TokGT, Line: l.line}
 	}
 
@@ -92,6 +102,22 @@ func (l *Lexer) Next() Token {
 	// Quoted string (attribute value)
 	if l.src[l.pos] == '"' {
 		return l.readQuotedString()
+	}
+
+	// Inside an opening tag — read an identifier as an attribute name.
+	// readTextContent would otherwise slurp everything up to the next
+	// `<`, which collapses `name="value">\n  ` into one TokText that
+	// the parser cannot decompose. The parser's attribute loop expects
+	// a clean stream of TokText (name) + TokEquals + TokAttrValue.
+	if l.inTag {
+		name := l.readTagName()
+		if name != "" {
+			return Token{Kind: TokText, Value: name, Line: l.line}
+		}
+		// Unknown character inside a tag — skip it and recurse so we
+		// don't loop forever.
+		l.advance(1)
+		return l.Next()
 	}
 
 	// Text content (between tags)

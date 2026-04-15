@@ -1,0 +1,1539 @@
+scanned_at: "2026-04-15T06:45:49Z"
+root: .
+nodes:
+    .:
+        type: dir
+        parent: ""
+        children:
+            - .gitignore
+            - Makefile
+            - README.md
+            - cmd
+            - go.mod
+            - internal
+            - scripts
+            - skill
+            - web
+        summary: 'Repository for the syde design-model CLI and syded dashboard: Go binaries, React SPA, embedded Claude/Codex skills with requirement workflows, docs, scripts, and syde architecture metadata.'
+        updated_at: "2026-04-15T06:47:02Z"
+    .gitignore:
+        type: file
+        parent: .
+        size: 91
+        hash: bb1ec59dd60592b8df75e8603d461fc10b051a7202af263e590f4f3174d2ff05
+        mtime: "2026-04-12T12:07:36Z"
+        summary: 'Minimal gitignore for the syde repo: excludes the built syde/syded binaries at the repo root, Windows .exe files, macOS .DS_Store, and the test-report.md artifact.'
+        updated_at: "2026-04-13T04:40:28Z"
+        ignored: true
+    Makefile:
+        type: file
+        parent: .
+        size: 508
+        hash: d4279e28893188f4c63cfbf4dee280f5cf9df77a5697c815961a5fc29feebc38
+        mtime: "2026-04-12T23:44:52Z"
+        summary: 'Build automation for the syde repo. Targets: ''frontend'' (bun install + build in web/), ''build'' (frontend then go build for syde and syded), ''install''/''uninstall'' to PREFIX (default ~/.local/bin), ''clean'' (remove binaries and web/dist), and ''dev'' (run Vite dev server for the dashboard SPA).'
+        updated_at: "2026-04-13T04:40:34Z"
+        ignored: true
+    README.md:
+        type: file
+        parent: .
+        size: 14748
+        hash: b16241f7c9fc883b261240d2f484d9f956bbbfa1d54f5abeba365b497b9ce302
+        mtime: "2026-04-15T06:40:28Z"
+        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code skill. Covers install, quick start, the full Claude Code workflow (session start → clarify → plan → approve → implement → validate → remember), entity types, a thorough CLI reference, UIML designs, dashboard, sync, and the .syde/ directory layout.
+        updated_at: "2026-04-13T04:40:36Z"
+        ignored: true
+    cmd:
+        type: dir
+        parent: .
+        children:
+            - cmd/syde
+            - cmd/syded
+        summary: 'Top-level Go binary entry points: syde (CLI) and syded (dashboard daemon). Each subdirectory is a main package producing one executable.'
+        updated_at: "2026-04-13T04:43:00Z"
+    cmd/syde:
+        type: dir
+        parent: cmd
+        children:
+            - cmd/syde/main.go
+        summary: CLI binary entry point package. Contains main.go that delegates to internal/cli.Execute().
+        updated_at: "2026-04-13T04:43:00Z"
+    cmd/syde/main.go:
+        type: file
+        parent: cmd/syde
+        size: 93
+        hash: d674724848fc1700404575d4406e80ea740c29792a057a60d9b9546b566fdeef
+        mtime: "2026-04-12T09:41:51Z"
+        summary: Entry point for the syde CLI binary. Minimal main that delegates to cli.Execute() which wires up all cobra commands.
+        updated_at: "2026-04-13T04:39:39Z"
+    cmd/syded:
+        type: dir
+        parent: cmd
+        children:
+            - cmd/syded/main.go
+        summary: Dashboard daemon entry point package. Contains main.go that starts the HTTP server via internal/dashboard.Run().
+        updated_at: "2026-04-13T04:43:00Z"
+    cmd/syded/main.go:
+        type: file
+        parent: cmd/syded
+        size: 216
+        hash: bdd8850ce25fe7ad1a80927f0307c46a2a95487ebc0bd91a2ee0f8778544e664
+        mtime: "2026-04-12T09:41:53Z"
+        summary: Entry point for the syded dashboard daemon. Delegates to dashboard.Run() which starts the HTTP server with the embedded SPA.
+        updated_at: "2026-04-13T04:39:40Z"
+    go.mod:
+        type: file
+        parent: .
+        size: 1089
+        hash: 21a6f043a57b02693a31fa3f499a63aecb347ecd8f19d4b4699856c3cf423e2b
+        mtime: "2026-04-14T06:23:54Z"
+        summary: 'Go module manifest declaring module github.com/feedloop/syde on Go 1.26.2. Direct deps: BadgerDB v4 (index store), cobra (CLI framework), and yaml.v3 (entity frontmatter). Everything else is transitive (ristretto, fsnotify, otel, gorilla/websocket for the dashboard, go-gitignore for tree scanning).'
+        updated_at: "2026-04-13T04:40:39Z"
+        ignored: true
+    internal:
+        type: dir
+        parent: .
+        children:
+            - internal/audit
+            - internal/cli
+            - internal/client
+            - internal/config
+            - internal/daemon
+            - internal/dashboard
+            - internal/graph
+            - internal/memory
+            - internal/model
+            - internal/query
+            - internal/scan
+            - internal/skill
+            - internal/storage
+            - internal/tree
+            - internal/uiml
+            - internal/utils
+        summary: 'Internal Go packages for syde and syded: CLI commands with requirement capture, daemon client/launcher, dashboard APIs, model/storage/query/audit engines, tree scanning, UIML rendering, memory sync, and utilities.'
+        updated_at: "2026-04-15T06:46:42Z"
+    internal/audit:
+        type: dir
+        parent: internal
+        children:
+            - internal/audit/audit.go
+            - internal/audit/concepts.go
+            - internal/audit/cycles.go
+            - internal/audit/entity_fields.go
+            - internal/audit/graph_rules.go
+            - internal/audit/orphans.go
+            - internal/audit/plan_phases.go
+            - internal/audit/relationships.go
+            - internal/audit/requirements.go
+            - internal/audit/screens.go
+        summary: Audit engine checks syde model health for validate and sync-check, including entity fields, relationships, requirement lifecycle and traceability, hierarchy, contract-flow coverage, cycles, concepts, screens, file refs, orphans, and drift.
+        updated_at: "2026-04-15T06:43:45Z"
+    internal/audit/audit.go:
+        type: file
+        parent: internal/audit
+        size: 4652
+        hash: c6b854b3978e4fdce69e2110077a8201af2eef489370a8cf6d4060a2ac5c90d8
+        mtime: "2026-04-15T06:34:13Z"
+        summary: Coordinates model health checks for validate/sync-check, grouping entity-field, relationship, requirement traceability, hierarchy, contract-flow, cycle, concept, screen, orphan, and drift findings.
+        updated_at: "2026-04-15T06:42:21Z"
+    internal/audit/concepts.go:
+        type: file
+        parent: internal/audit
+        size: 1920
+        hash: 33733fe50750757d69dd61954ca4912a005fc0b41706310cf9ce4bbb53fb08c1
+        mtime: "2026-04-14T09:50:12Z"
+        summary: ERD integrity check for concept entities. conceptFindings walks every ConceptEntity and validates that each relates_to relationship with a non-empty Label uses one of the canonical cardinalities (one-to-one, one-to-many, many-to-one, many-to-many). Invalid labels emit ERROR findings under CatConceptIntegrity so sync check --strict blocks on corrupted ERD cardinality.
+        updated_at: "2026-04-14T10:01:49Z"
+    internal/audit/cycles.go:
+        type: file
+        parent: internal/audit
+        size: 2336
+        hash: 2626b40c3c76f1f70a2b542d96186cb2c1839e292963acf8522d4fb78edaee26
+        mtime: "2026-04-14T06:11:35Z"
+        summary: 'Part of internal/audit: DFS-based cycle detection for system nesting (belongs_to) and component dependencies (depends_on). Emits one Finding per cycle with an arrow-joined name path. Shared by syde validate and syde sync check.'
+        updated_at: "2026-04-14T06:26:01Z"
+    internal/audit/entity_fields.go:
+        type: file
+        parent: internal/audit
+        size: 906
+        hash: c7ce1b94dc9f598b1fd964cdfc517e1ba1f2fb0ee90ae704549726f6333e1c72
+        mtime: "2026-04-14T06:10:59Z"
+        summary: 'Part of internal/audit: runs model.ValidateEntity per entity and converts per-field errors to Findings. ''required'' -> error (CatMissingField), ''recommended'' -> warning (CatRecommendedField).'
+        updated_at: "2026-04-14T06:26:01Z"
+    internal/audit/graph_rules.go:
+        type: file
+        parent: internal/audit
+        size: 4385
+        hash: 7170ee3afdce2333d017747e013452f1b52e3485f02b361531355d108b1e79e9
+        mtime: "2026-04-15T06:34:50Z"
+        summary: Adds graph-wide audit rules requiring non-requirement entities to trace to requirements, every non-root entity to have belongs_to, and every contract to connect with a flow.
+        updated_at: "2026-04-15T06:42:32Z"
+    internal/audit/orphans.go:
+        type: file
+        parent: internal/audit
+        size: 3807
+        hash: f4f725ddda3bc2afa533b68db2fa0e34342cff78f02e6afafd8ffb3731e12b54
+        mtime: "2026-04-14T06:11:57Z"
+        summary: 'Part of internal/audit: file-level checks. FileCoverage returns path -> owner entities for every non-ignored tree file. Orphans returns files with zero owners. Emits orphanFindings (error), fileRefFindings (file listed by entity but missing in tree, error), and driftFindings (file mtime newer than owner UpdatedAt, warning).'
+        updated_at: "2026-04-14T06:26:01Z"
+    internal/audit/plan_phases.go:
+        type: file
+        parent: internal/audit
+        size: 4235
+        hash: 4b1747cc89379c3e65fc4a8846f274b4c71b4cf76977f17f5da44ab18e1b4dba
+        mtime: "2026-04-14T08:59:16Z"
+        summary: 'Defines planPhaseFindings(all) which walks every PlanEntity and emits ERROR Findings under CatPlanPhase for structurally broken Phases: empty phase ID, duplicate IDs within a plan, self-parent, dangling ParentPhase references, and ParentPhase cycles (DFS with per-walk on-stack set and reportedCycle dedup). Provides defense-in-depth so corrupt phase data surfaces via syde validate even if it bypassed the CLI write path.'
+        updated_at: "2026-04-14T09:00:31Z"
+    internal/audit/relationships.go:
+        type: file
+        parent: internal/audit
+        size: 1648
+        hash: 4478b473afb1a199e39b91947fc8801a80b494e5dfc5977ed6731237ba6c7836
+        mtime: "2026-04-14T06:11:09Z"
+        summary: 'Part of internal/audit: verifies every relationship target resolves to a known entity by ID/slug/base-slug. Flags contract belongs_to targets that aren''t systems as errors. Unknown targets are warnings.'
+        updated_at: "2026-04-14T06:26:01Z"
+    internal/audit/requirements.go:
+        type: file
+        parent: internal/audit
+        size: 2938
+        hash: 972a6f2abe4cb040a0eae07ebfd1e05d8c4ba24ec40fd37d81b7dbff9ca2e51f
+        mtime: "2026-04-15T06:32:39Z"
+        summary: Audits requirement lifecycle consistency, ensuring supersedes and superseded_by references point at requirement entities and remain reciprocal when requirements replace older intent.
+        updated_at: "2026-04-15T06:42:27Z"
+    internal/audit/screens.go:
+        type: file
+        parent: internal/audit
+        size: 2133
+        hash: 6287109fbaf6f1b96fcb88506bc4567279cce9507005fb774302c4b4622906dd
+        mtime: "2026-04-14T11:36:30Z"
+        summary: screenFindings walks every .tsx file under web/src/pages in the summary tree (skipping ignored, .test.tsx, .stories.tsx) and emits a SeverityWarning CatScreenUnclaimed Finding when no ContractEntity with ContractKind=='screen' claims the file in its Files list. Surfaces missing screen contracts without hard-blocking the session gate.
+        updated_at: "2026-04-14T11:38:41Z"
+    internal/cli:
+        type: dir
+        parent: internal
+        children:
+            - internal/cli/add.go
+            - internal/cli/codex_hook.go
+            - internal/cli/constraints.go
+            - internal/cli/context.go
+            - internal/cli/design.go
+            - internal/cli/files.go
+            - internal/cli/get.go
+            - internal/cli/graph.go
+            - internal/cli/helpers.go
+            - internal/cli/init.go
+            - internal/cli/install_skill.go
+            - internal/cli/list.go
+            - internal/cli/memory.go
+            - internal/cli/open.go
+            - internal/cli/output.go
+            - internal/cli/plan.go
+            - internal/cli/query.go
+            - internal/cli/reindex.go
+            - internal/cli/remember.go
+            - internal/cli/remove.go
+            - internal/cli/requirements.go
+            - internal/cli/root.go
+            - internal/cli/scan.go
+            - internal/cli/search.go
+            - internal/cli/status.go
+            - internal/cli/sync_check.go
+            - internal/cli/task.go
+            - internal/cli/tree.go
+            - internal/cli/update.go
+            - internal/cli/validate.go
+            - internal/cli/wireframe.go
+            - internal/cli/writes.go
+        summary: Cobra CLI command layer for syde, including entity CRUD with requirement handling, requirement capture helpers, plan/task lifecycle, Codex hooks, validation, query/status, tree maintenance, skill installation, and write-client helpers.
+        updated_at: "2026-04-15T06:46:29Z"
+    internal/cli/add.go:
+        type: file
+        parent: internal/cli
+        size: 13722
+        hash: d8e2fa4f912e83f2c5ea4fb50b03cb334100cbd42a36227a82c65cef88ec30db
+        mtime: "2026-04-15T06:40:36Z"
+        summary: Implements the syde add command, including kind-specific flags and creation logic for components, contracts, concepts, flows, decisions, systems, and requirements with default root parent handling.
+        updated_at: "2026-04-15T06:46:01Z"
+    internal/cli/codex_hook.go:
+        type: file
+        parent: internal/cli
+        size: 11322
+        hash: 18ab31a0d303a17b74ca7c24549a0a3369386eff19de57fb190124f6ba174c58
+        mtime: "2026-04-15T06:28:49Z"
+        summary: Hidden Codex hook command that emits Codex hook JSON, loads syde context, captures user prompts as requirements, enforces plan/task guardrails, and runs the finish gate.
+        updated_at: "2026-04-15T06:42:52Z"
+    internal/cli/constraints.go:
+        type: file
+        parent: internal/cli
+        size: 3448
+        hash: bbd1f17d0b9fd8e34f408a4f2835255bef0a469e765a2028b3d8f4e9afa7e8e1
+        mtime: "2026-04-14T06:52:45Z"
+        summary: Defines 'syde constraints' (list active decisions + critical learnings) and 'syde constraints check <file>' (map a source file to its owning component via syde.yaml component_paths). Both subcommands call syded's HTTP /constraints and /constraints-check endpoints — no local store access.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/context.go:
+        type: file
+        parent: internal/cli
+        size: 3069
+        hash: 4f5c70c6c107d98190eebd32a31b52262e9d142e068fdf67472bede3078d249d
+        mtime: "2026-04-14T06:50:31Z"
+        summary: Defines 'syde context' — the session-start architecture snapshot. Calls syded's /context endpoint which builds the full payload (entities by kind, active decisions, critical learnings, plan progress, task stats). CLI just decodes and renders; all heavy lifting is server-side.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/design.go:
+        type: file
+        parent: internal/cli
+        size: 6498
+        hash: 667333bb1beec2c689f0af319182c26d3f9a0c4ea792e6cd4dd44dba5ff0a0f5
+        mtime: "2026-04-14T06:56:57Z"
+        summary: Defines 'syde design' subcommands for creating and listing design entities (the 'design' entity kind — flow diagrams, ERDs, UIML views, etc.). Uses the HTTP write-client for create/update operations.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/files.go:
+        type: file
+        parent: internal/cli
+        size: 2533
+        hash: 79061d2d5945330b4a8e760df3a4b3b44b039e5757519cf170643e848d1b7ee9
+        mtime: "2026-04-14T06:53:02Z"
+        summary: Defines the 'syde files' cobra parent command plus 'orphans' and 'coverage' subcommands. Both use the HTTP client to hit syded's /files/orphans and /files/coverage endpoints — no direct audit.Orphans call. Orphans prints one path per line and exits 1 if any; coverage [path] maps file -> owning entities.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/get.go:
+        type: file
+        parent: internal/cli
+        size: 1940
+        hash: 857fc35c6ff2bb412f354a6691876ebba22891549d427d472f6953130693d9e8
+        mtime: "2026-04-14T06:48:39Z"
+        summary: Defines 'syde get <id-or-slug>' — shows full entity details. Uses the HTTP client to fetch JSON via /entity/<slug> (powered by query.FormatJSON server-side) and decodes into a generic map for rich rendering. --format json passes the raw server response through.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/graph.go:
+        type: file
+        parent: internal/cli
+        size: 1392
+        hash: befe8ff93c33c1786e24aee971da12c7f6bc865ce24ac1435ee8ec6204ea64d4
+        mtime: "2026-04-12T09:51:01Z"
+        summary: Defines 'syde graph [entity]' command that renders entity relationship neighborhoods as ASCII or DOT. Without arguments shows a count summary; with a slug it calls graph.Neighbors and renders via the internal/graph package.
+        updated_at: "2026-04-13T04:40:03Z"
+    internal/cli/helpers.go:
+        type: file
+        parent: internal/cli
+        size: 2596
+        hash: e3af1a6cc323d1b759fb62b61c1682625fbdecf921c432104831834e76825787
+        mtime: "2026-04-15T05:48:05Z"
+        summary: Contains shared CLI helpers for locating .syde, opening the legacy direct Store, opening the daemon-backed HTTP client, resolving project config, and walking upward to find the syde directory. The client helper now registers the current project before connecting to syded so read commands can address the correct dashboard project slug.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/cli/init.go:
+        type: file
+        parent: internal/cli
+        size: 3343
+        hash: 581f8684969fe934d7c626a8c6b06be911321f3283a4a644ac25a8154b658943
+        mtime: "2026-04-15T05:59:04Z"
+        summary: Defines syde init, creating the .syde skeleton, syde.yaml, index ignore file, and project registry entry. It can now optionally install Claude support, Codex support, or both during initialization.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/cli/install_skill.go:
+        type: file
+        parent: internal/cli
+        size: 2130
+        hash: 57c829521fad23739955afb4dcb63e95ba7f4850c3e660636ad2eaefe235d03d
+        mtime: "2026-04-15T05:58:55Z"
+        summary: Defines syde install-skill, with flags for installing Claude Code support, Codex support, or both. It reports the generated skill, hook, and agent-instruction files for each target.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/cli/list.go:
+        type: file
+        parent: internal/cli
+        size: 1766
+        hash: 22c54b3d4c8b7b8849e672a57044f7fef8eaa8cf4633518bad73b5af465de27f
+        mtime: "2026-04-14T06:48:23Z"
+        summary: Defines 'syde list [kind]' — calls client.List() which hits syded's /entities endpoint. Supports --tag filter, --format rich|compact|json, and iterates model.AllEntityKinds when no kind is given. Uses Emit() from output.go for format routing.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/memory.go:
+        type: file
+        parent: internal/cli
+        size: 2266
+        hash: 6b5122a2bf4a6867920eab939502da043e855ea16a21a502282800577c6f4834
+        mtime: "2026-04-12T09:51:52Z"
+        summary: Defines 'syde memory' command group (sync/list/clean) for generating Claude Code memory files from high-confidence learnings. Delegates to internal/memory.Manager.
+        updated_at: "2026-04-13T04:40:21Z"
+    internal/cli/open.go:
+        type: file
+        parent: internal/cli
+        size: 4017
+        hash: 9c9262dea679e0b3e1935d7dedd1de22d8601c763942b3af66a5c24781505213
+        mtime: "2026-04-12T15:48:18Z"
+        summary: Defines 'syde open' plus 'syde server start/stop' commands for the dashboard daemon. Handles PID-file based daemon lifecycle, project registration, URL construction, and cross-platform browser launching.
+        updated_at: "2026-04-13T04:40:23Z"
+    internal/cli/output.go:
+        type: file
+        parent: internal/cli
+        size: 1450
+        hash: 4006fb5aa2f05b90345374dbcb5cffb0235728ad2d523c472a0e55ad3f63349d
+        mtime: "2026-04-14T06:19:21Z"
+        summary: Shared --format json formatter for read commands. Emit(kind, format, data, meta, rich) writes an Envelope{Kind, Data, Meta} as pretty JSON when format is 'json', otherwise delegates to the command's rich callback. Consistent schema across list, query, get, status, validate, sync check.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/plan.go:
+        type: file
+        parent: internal/cli
+        size: 22182
+        hash: 48f40a53399e5ecbe663161374c0746309d73675e42bf249919c529be5aa92e3
+        mtime: "2026-04-15T06:41:53Z"
+        summary: Implements plan lifecycle commands for create/list/show/update/approve/phase/sync/execute/estimate, including deduplicated plan-sourced requirement capture on approval.
+        updated_at: "2026-04-15T06:46:07Z"
+    internal/cli/query.go:
+        type: file
+        parent: internal/cli
+        size: 8035
+        hash: 44f9d1388c2f2ed228f7176318e81bf5502ab1f424459b432d68efb524b05759
+        mtime: "2026-04-14T09:32:13Z"
+        summary: Thin HTTP wrapper for 'syde query' — dispatches all modes (entity lookup, --full, --search, --code, --file [--content], --impacts/--related-to/--depends-on/--depended-by, --flow --components, and kind/tag filters) to syded's /api/<project>/query endpoint and prints the rendered response. The Long help frames syde query as the unified architecture+code context surface, with a three-question checklist, drift signals (⚠ DRIFT / ⚠ orphan), and an explicit prohibition on Grep/Read of tracked files. Flags include --code, --content, --any (OR fallback), --no-related, and --format.
+        updated_at: "2026-04-14T09:33:05Z"
+    internal/cli/reindex.go:
+        type: file
+        parent: internal/cli
+        size: 749
+        hash: df1a5c30b978c5b98a82640ac1123418642d58bd9a32c487f1c7787fe278cd32
+        mtime: "2026-04-14T06:57:17Z"
+        summary: Defines 'syde reindex' — thin RPC over POST /reindex with {full:true}. Rebuilds the whole BadgerDB index server-side and returns counts which are rendered client-side.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/remember.go:
+        type: file
+        parent: internal/cli
+        size: 7294
+        hash: 075918f9b3a53052faeea901e70920151b09e14124303bb1020b7fb84ae6cd77
+        mtime: "2026-04-14T06:56:57Z"
+        summary: Defines 'syde remember <text>' and related learning-creation CLI commands. Creates a learning entity via the HTTP write-client. Supports --category, --entity references, promote-to-decision path, and search-across-learnings via the query engine.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/remove.go:
+        type: file
+        parent: internal/cli
+        size: 1354
+        hash: ae3939aebf1e8fff3a576745c408a4fe7a25b27867d365e88859e3e3d6d4648e
+        mtime: "2026-04-15T06:25:11Z"
+        summary: Implements entity deletion with confirmation/force handling and blocks requirement deletion so requirement history remains append-only.
+        updated_at: "2026-04-15T06:42:44Z"
+    internal/cli/requirements.go:
+        type: file
+        parent: internal/cli
+        size: 3461
+        hash: d6971d0d3ae923c043e82a3470ded1f8acd2c077362f92cd3a0fc188de85ed56
+        mtime: "2026-04-15T06:29:24Z"
+        summary: Provides CLI helpers for creating/deduplicating requirement records from prompts and approved plans, assigning root parents, and building stable requirement names/relationships.
+        updated_at: "2026-04-15T06:42:48Z"
+    internal/cli/root.go:
+        type: file
+        parent: internal/cli
+        size: 535
+        hash: 8d05e0d20b7116d9dfbd7c85aa5431bfc4855adf7181ca459f2c1769fdc448a5
+        mtime: "2026-04-13T03:49:22Z"
+        summary: Defines the root cobra command for the syde CLI, the persistent --dir flag (overrides .syde/ auto-detection), and the Execute entry point called from cmd/syde/main.go.
+        updated_at: "2026-04-13T04:40:45Z"
+    internal/cli/scan.go:
+        type: file
+        parent: internal/cli
+        size: 9127
+        hash: 0c2f9efc0d0af1b5df54d9663b0f36a146b8e5c579a21f82d0445b9cda78fc29
+        mtime: "2026-04-15T06:02:37Z"
+        summary: Implements syde scan and completeness-check helpers for bootstrapping or auditing a design model against a codebase. It reports component/contract/concept/flow/decision coverage gaps and now formats the completeness audit header without triggering go vet.
+        updated_at: "2026-04-15T06:03:02Z"
+    internal/cli/search.go:
+        type: file
+        parent: internal/cli
+        size: 1147
+        hash: 87f06c33081d1691d525125917555b7835b26da0776d667a364eee4ce8d13f11
+        mtime: "2026-04-14T06:50:07Z"
+        summary: Defines 'syde search <query>' — calls client.Search which proxies to syded's /search endpoint. Decodes the returned {query, count, results[]} envelope and renders a table of kind / name / file per hit.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/status.go:
+        type: file
+        parent: internal/cli
+        size: 1502
+        hash: 9a5c92b0d429da9cc7e47cfec1ade1432793815367152bef26ca62785e28aad4
+        mtime: "2026-04-14T06:48:11Z"
+        summary: Defines 'syde status' — project-wide entity overview. Calls client.Status() which hits syded's /status endpoint. Supports --format rich|json and iterates kinds in canonical order for stable output.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/sync_check.go:
+        type: file
+        parent: internal/cli
+        size: 1703
+        hash: 2377d1abb5dda4c855721a6db128af59e4f212516ea2d44864674ff014ae93bb
+        mtime: "2026-04-14T06:51:40Z"
+        summary: Defines 'syde sync check [--strict]' — the canonical session-end health gate. Calls syded's /sync-check endpoint which runs audit.Run + tree staleness. CLI renders via printHealthReport and applies the severity-to-exit mapping (0 clean / 1 error / 2 strict+warning).
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/task.go:
+        type: file
+        parent: internal/cli
+        size: 19282
+        hash: b47cb3e1ea830b4b2366a233a724c08a7ec82ab6965e9b2bad075e1aeb818fd0
+        mtime: "2026-04-14T07:29:26Z"
+        summary: Defines 'syde task' parent command plus create/start/done/block/sub/list/show/update subcommands. setTaskStatus is the shared status-flip helper that, on the done path, also merges --affected-entity / --affected-file flags into the task's existing lists, validates the additions via validateTaskReferences, persists via writeClient.Update, and then runs touchAffectedEntities so drift clears for the full set. Create-time affected lists are predictions; done-time lists are reality and win via the dedupeAppend union. Also hosts validateTaskReferences (entity slugs must resolve, file paths must exist in the tree) and touchAffectedEntities (reverse-lookup from files → owning entities, UpdatedAt bump on every match).
+        updated_at: "2026-04-14T07:33:56Z"
+    internal/cli/tree.go:
+        type: file
+        parent: internal/cli
+        size: 11343
+        hash: e1330ecb4f3635006edc7cedde91c582300981ba67aaaa0fb7f8c5184a3ef72d
+        mtime: "2026-04-13T03:27:56Z"
+        summary: 'Defines the ''syde tree'' command group for the file/folder summary tree: scan (walk + diff), changes (list stale), summarize, show, get, context (breadcrumb + inlined content), ignore/unignore, and status (with --strict mode). Backs the summary tree that drives agent-powered file understanding.'
+        updated_at: "2026-04-13T04:41:06Z"
+    internal/cli/update.go:
+        type: file
+        parent: internal/cli
+        size: 17704
+        hash: 49bd69e83bac9626425bed363e13d665aa99bad01862f60eb55e8e829d3abc67
+        mtime: "2026-04-15T06:32:47Z"
+        summary: Implements syde update for shared and kind-specific fields, including requirement source/status, supersedes/superseded_by, obsolete reason, and auto-marking superseded requirements.
+        updated_at: "2026-04-15T06:42:40Z"
+    internal/cli/validate.go:
+        type: file
+        parent: internal/cli
+        size: 2211
+        hash: ac8dd5dcef0fd775e3d380f092beb69eda0b19d3e01a7f7c64b1259ecc178367
+        mtime: "2026-04-14T06:51:26Z"
+        summary: Defines 'syde validate' — deprecated alias for 'syde sync check --errors-only'. Prints deprecation notice on stderr, calls syded's /validate endpoint, filters out warnings/hints, and exits 1 on any error. Also hosts printHealthReport and printFindings helpers shared with sync_check.go.
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/cli/wireframe.go:
+        type: file
+        parent: internal/cli
+        size: 6864
+        hash: 2dde90c505360c3e104a1b95a52ecf70f1c725b3e894272a3b06530ea6178403
+        mtime: "2026-04-15T03:05:59Z"
+        summary: Cobra 'syde wireframe render <contract-slug>' command with --format html|ascii|image, --out, --open flags. Loads contract via openWriteClient, validates contract_kind=='screen' and non-empty wireframe, parses with uiml.Parse then calls RenderWireframeHTML / RenderASCII or headless Chrome (via wfChromeBinary) for image mode. wfOpenInDefault uses open/xdg-open/cmd per OS.
+        updated_at: "2026-04-15T03:12:24Z"
+    internal/cli/writes.go:
+        type: file
+        parent: internal/cli
+        size: 6553
+        hash: 5ffce7da9625cbce950a7ecb35dc83d93ab06ed09c3e4f00af9e2370ed47a950
+        mtime: "2026-04-14T07:13:52Z"
+        summary: writeClient — thin HTTP-backed shim matching the storage.Store method surface used by every CLI write command. Get uses client.GetRaw (lossless markdown round-trip via storage.UnmarshalAuto) so kind-specific fields like task.AffectedEntities / AffectedFiles survive the load-mutate-save cycle intact. Create/Update serialize the typed entity to YAML and POST to syded; syded's server-side cascade then walks belongs_to ancestors automatically. Also provides GetByKind, List, ListAll, Delete.
+        updated_at: "2026-04-14T07:33:56Z"
+    internal/client:
+        type: dir
+        parent: internal
+        children:
+            - internal/client/client.go
+        summary: HTTP client package used by CLI commands to communicate with syded for health, status, list/get, validation, reindex, and entity write/delete API calls.
+        updated_at: "2026-04-15T06:43:56Z"
+    internal/client/client.go:
+        type: file
+        parent: internal/client
+        size: 13297
+        hash: d931c3a596ee392aa3bda9d9781bca970512e2439db6a218c2282361e721f13a
+        mtime: "2026-04-15T06:26:34Z"
+        summary: Thin HTTP client for syde CLI reads/writes through syded, including list/get/status/validate helpers and entity summary fields surfaced from the daemon API.
+        updated_at: "2026-04-15T06:43:07Z"
+    internal/config:
+        type: dir
+        parent: internal
+        children:
+            - internal/config/config.go
+        summary: syde.yaml config loader. Defines Config struct with project name, version, component_paths map (file glob → component slug), tree_ignore patterns, and load/save/default helpers.
+        updated_at: "2026-04-13T04:43:00Z"
+    internal/config/config.go:
+        type: file
+        parent: internal/config
+        size: 1965
+        hash: e30259547538682fd78d84f8d07b11ab215feede9968da04b590550532733cd5
+        mtime: "2026-04-13T03:04:09Z"
+        summary: Loads, saves, and defaults syde.yaml — the per-project Config struct holding project name, version, default status, index path, gitignore toggle, component_paths map, and tree_ignore patterns. Also provides FindSydeDir, which walks up from cwd to locate the nearest .syde/ directory so CLI commands can run from any subfolder.
+        updated_at: "2026-04-13T04:40:22Z"
+    internal/daemon:
+        type: dir
+        parent: internal
+        children:
+            - internal/daemon/daemon.go
+            - internal/daemon/detach_unix.go
+        summary: Helpers for starting and checking the local syded daemon. The package locates the syded binary, detaches it from the CLI process, polls /health, and logs startup output for actionable connection failures.
+        updated_at: "2026-04-15T06:01:44Z"
+    internal/daemon/daemon.go:
+        type: file
+        parent: internal/daemon
+        size: 4616
+        hash: d2a12506902981c0ef4d6704f794c29ad63182fc9ae2f3132945993ccd52a422
+        mtime: "2026-04-15T05:48:30Z"
+        summary: Provides daemon.EnsureRunning, which finds or starts syded on the local dashboard port and polls /health before CLI requests. Auto-start now writes syded stdout/stderr to ~/.syde/syded.log and includes log tail details when readiness fails.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/daemon/detach_unix.go:
+        type: file
+        parent: internal/daemon
+        size: 345
+        hash: 9fca692cfd81599bff82b2fa2e675e958c34dc602bb973c0fecd69d35e5bc84e
+        mtime: "2026-04-14T06:44:51Z"
+        summary: 'Unix build tag: returns a SysProcAttr with Setsid=true so the spawned syded starts in a new session and survives the parent CLI exiting. Ensures auto-launched syded instances keep running past the CLI process that forked them.'
+        updated_at: "2026-04-14T07:02:32Z"
+    internal/dashboard:
+        type: dir
+        parent: internal
+        children:
+            - internal/dashboard/api.go
+            - internal/dashboard/api_readall.go
+            - internal/dashboard/api_write.go
+            - internal/dashboard/html.go
+            - internal/dashboard/registry.go
+            - internal/dashboard/run.go
+            - internal/dashboard/websocket.go
+        summary: syded dashboard/server package serving the embedded React app, REST/write APIs, WebSocket updates, project registry, and browser launch behavior.
+        updated_at: "2026-04-15T06:44:00Z"
+    internal/dashboard/api.go:
+        type: file
+        parent: internal/dashboard
+        size: 9746
+        hash: 018f4497e2f6fd3a0b775c54eb8c48850b9a5cc18f0705bda86a20bd112d8c78
+        mtime: "2026-04-14T08:16:02Z"
+        summary: HTTP request dispatcher for /api/<project>/* on syded. Parses project slug, looks up cached Store (persistent BadgerDB, syded is sole writer), and routes to per-endpoint handlers covering status, entities, entity detail, entity-raw, graph, plans/tasks/learnings/designs, search, constraints/constraints-check, validate, sync-check, context, query, reindex, entity write/delete, files/*, and tree/*. Holds the basic read handlers (status, entities, graph, plans, learnings, tasks, designs, search, constraints, tree) inline; richer read modes live in api_readall.go.
+        updated_at: "2026-04-14T08:26:46Z"
+    internal/dashboard/api_readall.go:
+        type: file
+        parent: internal/dashboard
+        size: 16375
+        hash: 135c213bfbc8272f5cfebce1eea86e032feb6e3f53a4836c30c25a3fb1eed20d
+        mtime: "2026-04-14T09:23:55Z"
+        summary: Read-side HTTP API handlers for syded. handleValidateAPI wraps audit.Run (folding in tree staleness for sync-check), handleContextAPI builds the project snapshot, handleConstraintsCheckAPI maps source files to owning components via syde.yaml, and handleFilesAPI serves /files/orphans and /files/coverage. handleQueryAPI dispatches every query mode — lookup/full/impacts/related-to/depends-on/depended-by/flow-components/filter plus search (with kind/tag/any/limit), by-file (with path/with_related/content), and the new 'code' mode calling Engine.SearchCode with q/limit — using format=rich|json|compact|refs so rendering stays server-side. handleReindexAPI accepts POST {paths,full} for incremental or full rebuilds.
+        updated_at: "2026-04-14T09:33:16Z"
+    internal/dashboard/api_write.go:
+        type: file
+        parent: internal/dashboard
+        size: 4822
+        hash: b82de0c0931fb7f9fa99461e5449acf85eaa6a4b8cf4f9542280428315e5e3ef
+        mtime: "2026-04-15T06:25:17Z"
+        summary: Dashboard write API handlers for entity create/update/delete, serializing typed YAML frontmatter through syded and refusing requirement deletion.
+        updated_at: "2026-04-15T06:43:12Z"
+    internal/dashboard/html.go:
+        type: file
+        parent: internal/dashboard
+        size: 12152
+        hash: 643c9c113b1fe96ec9b6bbd609ab1aaa0947c32b693592d133a4e10e4094dad4
+        mtime: "2026-04-12T10:22:20Z"
+        summary: 'Embedded fallback single-page dashboard UI as a Go string (indexHTML): a Tailwind-based dark-themed SPA with sidebar nav and Overview/Entities/Plans/Learnings/Tasks/Designs pages that fetches from /api/{project-slug}/*. Used when the built frontend (web/dist) is unavailable; kept in Go source so the daemon always has a usable UI.'
+        updated_at: "2026-04-13T04:40:05Z"
+    internal/dashboard/registry.go:
+        type: file
+        parent: internal/dashboard
+        size: 3557
+        hash: d18173eaa8271f1592d9b62ac46f36af3c2e731ac176b9f14606ab8e73118194
+        mtime: "2026-04-14T06:59:33Z"
+        summary: Per-project Store handle cache for syded. GetStore lazily opens storage.NewStore (persistent BadgerDB) on first access and holds the handle for the daemon's lifetime — no in-memory or fsnotify scaffolding (that was removed in the CLI-Syded refactor). Also hosts MakeProjectSlug (name-{4char-hash}) and RegisterProject/FindProjectBySlug which read/write ~/.syde/projects.json.
+        updated_at: "2026-04-14T07:02:33Z"
+    internal/dashboard/run.go:
+        type: file
+        parent: internal/dashboard
+        size: 5586
+        hash: c24f82efd7385a683a0e17dc49ab12cd4b223cb021f744597542410e72c4b283
+        mtime: "2026-04-14T06:43:18Z"
+        summary: 'syded entry point: parses flags (-port, -daemon, -stop, -idle-timeout), wires /health + /api/projects + /api/<project>/* + /ws + SPA static routes, starts the HTTP server with lastRequestMiddleware for idle tracking, runs a 60s ticker that shuts syded down if no /api traffic for idle-timeout (default 30m). Daemonize writes a PID file at ~/.syde/syded.pid; stopDaemon sends SIGTERM and removes it.'
+        updated_at: "2026-04-14T07:02:33Z"
+    internal/dashboard/websocket.go:
+        type: file
+        parent: internal/dashboard
+        size: 2636
+        hash: 5395567b86d87ff8a67244bfec6511999aaeb72674e1c52fd825fce658bf9771
+        mtime: "2026-04-12T16:01:57Z"
+        summary: WebSocket hub and .syde/ file watcher for live-reload in the dashboard. Defines a Hub of gorilla/websocket clients with add/remove/broadcast, handleWebSocket upgrader, and watchSydeDir which uses fsnotify to watch each entity subdirectory and debounces Write/Create/Remove events into a {type:reload,file:...} broadcast. Powers instant UI refresh when markdown files change.
+        updated_at: "2026-04-13T04:40:52Z"
+    internal/graph:
+        type: dir
+        parent: internal
+        children:
+            - internal/graph/query.go
+            - internal/graph/render.go
+        summary: Relationship graph traversal and rendering. query.go does BFS for impact/dependency analysis; render.go outputs ASCII trees or Graphviz DOT.
+        updated_at: "2026-04-13T04:43:00Z"
+    internal/graph/query.go:
+        type: file
+        parent: internal/graph
+        size: 2654
+        hash: 29680bb3a63dd8b13f0a9813e5d4e42cfe7f5723ff8eeb4057a69945929613a1
+        mtime: "2026-04-12T09:50:47Z"
+        summary: 'Defines the graph package''s core types Node, Edge, and SubgraphResult, plus two traversal functions: Neighbors (direct inbound+outbound for one entity) and ImpactAnalysis (BFS over the BadgerDB index up to maxDepth, grouped by hop). Backs ''syde graph'' and impact queries used by the query engine.'
+        updated_at: "2026-04-13T04:40:13Z"
+    internal/graph/render.go:
+        type: file
+        parent: internal/graph
+        size: 1725
+        hash: ac074689e59cf92f135dfa5438a034b9909c4aa2f1cda8b13a77fd2c94d478ce
+        mtime: "2026-04-12T09:50:54Z"
+        summary: 'Rendering helpers for SubgraphResult: RenderASCII produces a human-readable outbound/inbound edge list for terminal output, and RenderDOT emits Graphviz DOT so graphs can be piped to dot/xdot. Powers the ''syde graph'' command''s --format flag.'
+        updated_at: "2026-04-13T04:40:18Z"
+    internal/memory:
+        type: dir
+        parent: internal
+        children:
+            - internal/memory/manager.go
+        summary: Claude Code memory file generator. Writes entity summaries to CLAUDE memory files under .claude/ so the agent sees fresh architecture context on session start.
+        updated_at: "2026-04-13T04:43:00Z"
+    internal/memory/manager.go:
+        type: file
+        parent: internal/memory
+        size: 7546
+        hash: acc52e78e8840435b2e2afaf824b553bcdce91c942daa584113345678e40be88
+        mtime: "2026-04-12T09:51:45Z"
+        summary: Defines Manager, which generates and maintains Claude Code memory files (under ~/.claude/projects/<hash>/memory) from syde learnings and an overview. Provides SyncAll/Clean/ListMemories and manages the MEMORY.md index section between <!-- syde:start/end --> markers so learnings surface automatically inside Claude Code sessions.
+        updated_at: "2026-04-13T04:40:24Z"
+    internal/model:
+        type: dir
+        parent: internal
+        children:
+            - internal/model/design.go
+            - internal/model/entity.go
+            - internal/model/learning.go
+            - internal/model/plan.go
+            - internal/model/relationship.go
+            - internal/model/task.go
+            - internal/model/validation.go
+        summary: Core model package defining entity kinds and structs, relationships, plans/tasks/learnings, requirement lifecycle fields, and validation rules for required entity data.
+        updated_at: "2026-04-15T06:44:04Z"
+    internal/model/design.go:
+        type: file
+        parent: internal/model
+        size: 554
+        hash: 0d51525f7ce710b48dcb5c1eef8e85da747cccaaf63604d4790111b4a62c5039
+        mtime: "2026-04-12T09:42:37Z"
+        summary: Defines DesignEntity (UI mockup/design) with DesignType enum (screen/flow/component) and refs to components, flows, and concepts. Exists so UI designs can be tracked as first-class entities linked to the architecture graph.
+        updated_at: "2026-04-13T04:39:53Z"
+    internal/model/entity.go:
+        type: file
+        parent: internal/model
+        size: 16025
+        hash: 02f6a1036db88e3733a149f29ad98f1d354047d619c110120f832d7f40298389
+        mtime: "2026-04-15T06:21:04Z"
+        summary: Defines the shared entity model, entity kind registry, ID prefixes, relationships, and concrete entity structs including the requirement entity with append-only lifecycle status fields.
+        updated_at: "2026-04-15T06:42:14Z"
+    internal/model/learning.go:
+        type: file
+        parent: internal/model
+        size: 1524
+        hash: f87e8a7b06511459b9e5b2c6b874449ba9f064ca6a93ac0553d990dff6254c1e
+        mtime: "2026-04-12T09:42:43Z"
+        summary: Defines LearningEntity for captured design learnings, plus enums LearningCategory, LearningSource, and Confidence. Exists to let agents record gotchas, constraints, and conventions discovered during sessions with provenance.
+        updated_at: "2026-04-13T04:39:58Z"
+    internal/model/plan.go:
+        type: file
+        parent: internal/model
+        size: 4660
+        hash: 8bdd1a2e98dbaca5baf02608ed3963f6828cd94eb4aa5a4c756ba0a954f87a5b
+        mtime: "2026-04-14T08:56:56Z"
+        summary: Defines PlanEntity with hierarchical PlanPhase list plus PlanStatus/PhaseStatus enums and helpers (Progress, PhaseByID, ChildPhases, CollectTasks, AllTasks). ChildPhases now skips phases with empty IDs and self-parent rows, and CollectTasks threads a visited set through its recursive worker so ParentPhase cycles or self-loops can never cause unbounded recursion — defense-in-depth against malformed on-disk plan data.
+        updated_at: "2026-04-14T09:00:51Z"
+    internal/model/relationship.go:
+        type: file
+        parent: internal/model
+        size: 727
+        hash: d643267c40e50d07e7ad4c9e0dc0552084ff578e1cf2dc526107f59e0550e5d3
+        mtime: "2026-04-12T23:54:09Z"
+        summary: Declares the canonical relationship type constants (belongs_to, depends_on, exposes, consumes, uses, etc.) and ValidRelationshipTypes(). Single source of truth for the relationship vocabulary used across entities and the graph layer.
+        updated_at: "2026-04-13T04:40:02Z"
+    internal/model/task.go:
+        type: file
+        parent: internal/model
+        size: 2053
+        hash: 81e5cb711ad019088ff920898d3a7829ada6af981ca7c92fe2dfbc2f9559b872
+        mtime: "2026-04-13T03:21:28Z"
+        summary: Defines TaskEntity with TaskStatus/Priority enums, affected entities/files, plan linkage, and parent/subtask hierarchy. Models tracked units of implementation work that reference entities they modify; drives the task lifecycle commands.
+        updated_at: "2026-04-13T04:40:04Z"
+    internal/model/validation.go:
+        type: file
+        parent: internal/model
+        size: 7147
+        hash: fc19ef560cea06ffbfa2414785ec7be68d0d71cd089f59330ff25a42b1bb4842
+        mtime: "2026-04-15T06:32:11Z"
+        summary: Validates required and recommended entity fields, including requirement statements, source/status values, superseded/obsolete lifecycle fields, contract shape, concept attributes, and screen wireframes.
+        updated_at: "2026-04-15T06:42:17Z"
+    internal/query:
+        type: dir
+        parent: internal
+        children:
+            - internal/query/diff.go
+            - internal/query/engine.go
+            - internal/query/formatter.go
+            - internal/query/resolver.go
+        summary: Query package resolving entities, relationships, file refs, full-text search, code search, graph traversals, flow decomposition, and rich/JSON/compact output formatting.
+        updated_at: "2026-04-15T06:44:07Z"
+    internal/query/diff.go:
+        type: file
+        parent: internal/query
+        size: 1492
+        hash: b8246467c013859c0cd861dc1f804396559424ad4f686f7b5e036514402d73b0
+        mtime: "2026-04-12T10:11:29Z"
+        summary: Provides EntityDiff which shells out to git log to return recent ChangeEntry records (hash, date, subject) for an entity's markdown file. Enables change-history views in query commands and dashboard by reusing the project's git history as the audit log.
+        updated_at: "2026-04-13T04:39:48Z"
+    internal/query/engine.go:
+        type: file
+        parent: internal/query
+        size: 32244
+        hash: fe6cb0d1e2fd5a2326c242b84a5283295b6a79d91824dfa95d666c6a5210aa7b
+        mtime: "2026-04-15T06:26:37Z"
+        summary: Query engine for filtering, lookup, search, impact, and flow decomposition; list summaries include concept, contract, and requirement-specific fields.
+        updated_at: "2026-04-15T06:43:16Z"
+    internal/query/formatter.go:
+        type: file
+        parent: internal/query
+        size: 15751
+        hash: 1e325a11fc7ed59e16e6a5bb5b582275b9fc5bb27c8912eda8fdc137e473f671
+        mtime: "2026-04-15T06:25:24Z"
+        summary: Formats resolved entities as rich text, JSON, compact lists, and refs, including kind-specific fields and rendered wireframe previews for screen contracts.
+        updated_at: "2026-04-15T06:43:23Z"
+    internal/query/resolver.go:
+        type: file
+        parent: internal/query
+        size: 7561
+        hash: 27a50fe9a7c20071c4989e39bc680c482ec624958a1d19c7b1c21a9293c31c5d
+        mtime: "2026-04-14T03:39:56Z"
+        summary: Implements Resolve(), which hydrates an entity into a ResolvedEntity by joining outbound/inbound relationships (de-duped across ID/slug/base-slug aliases), referenced learnings, tasks, decisions, file-tree summaries, and suggested follow-up queries. Defines ResolvedEntity, ResolvedRelationship, ResolvedFileRef, and Learning/Task/Decision summary DTOs that power syde query --full and dashboard detail views.
+        updated_at: "2026-04-14T06:26:54Z"
+    internal/scan:
+        type: dir
+        parent: internal
+        children:
+            - internal/scan/coverage.go
+            - internal/scan/guide.go
+        summary: Legacy codebase sync helper. guide.go walks the source tree to produce a shallow ScanGuide (file counts, languages, key files); coverage.go maps files to components. Largely superseded by internal/tree.
+        updated_at: "2026-04-13T04:43:00Z"
+    internal/scan/coverage.go:
+        type: file
+        parent: internal/scan
+        size: 3199
+        hash: 5ea15a00f0bff0da78ada494035864e71085353b68fe74807ddfc65f9b132e84
+        mtime: "2026-04-12T14:55:28Z"
+        summary: Compares scan-guide directories against existing Component entities to report which source dirs are mapped to a component and which aren't. Matches via each component's Files globs or a slug-equality fallback on the directory name, flags known infrastructure dirs (migrations, deploy, k8s, etc.) as exempt, and formats a human-readable coverage report.
+        updated_at: "2026-04-13T04:40:16Z"
+    internal/scan/guide.go:
+        type: file
+        parent: internal/scan
+        size: 5502
+        hash: 70a765fbda1f075d1d12ac5624e6607b9714b513fd8c8d2271f1869f99a88a21
+        mtime: "2026-04-12T09:49:38Z"
+        summary: Programmatic codebase analyzer that walks a project root and emits a ScanGuide (file count, language histogram, significant source directories with markers like Dockerfile/go.mod/tests, key files, and a 5-round scan-status tracker). Persisted as .syde/scan-guide.json to drive the multi-round sync workflow and coverage checks.
+        updated_at: "2026-04-13T04:40:19Z"
+    internal/skill:
+        type: dir
+        parent: internal
+        children:
+            - internal/skill/hooks.go
+            - internal/skill/installer.go
+            - internal/skill/templates.go
+        summary: Installer/template package for syde's agent integrations. It embeds and writes Claude and Codex skill files, hook configs, shared references, and project instruction files such as CLAUDE.md and AGENTS.md.
+        updated_at: "2026-04-15T06:01:44Z"
+    internal/skill/hooks.go:
+        type: file
+        parent: internal/skill
+        size: 115
+        hash: 69b6d5101a61061b58ac796a30b8c59e229cca7e829f5f7cb855f66b055b95f4
+        mtime: "2026-04-12T12:14:46Z"
+        summary: Tiny wrapper exposing HooksJSON — the embedded hooks.json file from skill/ — as a Go string. Used by the installer to write .claude/hooks/syde-hooks.json containing the PostToolUse and SessionStart hook definitions that inject syde context into Claude Code sessions.
+        updated_at: "2026-04-13T04:41:28Z"
+    internal/skill/installer.go:
+        type: file
+        parent: internal/skill
+        size: 8651
+        hash: 8ea0cc74351f89c7a9dfcc0c9a8deceb4f33ac66fc682c6a364d9f0c6aedb486
+        mtime: "2026-04-15T05:59:30Z"
+        summary: Installs syde agent integrations from embedded templates. It writes Claude files under .claude, Codex files under .agents and .codex, updates CLAUDE.md or AGENTS.md sections idempotently, and enables the Codex hooks feature in repo-local config.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/skill/templates.go:
+        type: file
+        parent: internal/skill
+        size: 1009
+        hash: d83c7af423e7db0a4f2bd934ffd3e3e2a36170295998f45820b2ec1be73f579a
+        mtime: "2026-04-15T05:58:09Z"
+        summary: Loads embedded syde template assets into package-level strings for installers, including Claude SKILL/hooks content, Codex SKILL/hooks content, and shared reference docs. Missing embedded assets panic at startup through mustRead.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/storage:
+        type: dir
+        parent: internal
+        children:
+            - internal/storage/counters.go
+            - internal/storage/filestore.go
+            - internal/storage/index.go
+            - internal/storage/indexer.go
+            - internal/storage/serializer.go
+            - internal/storage/store.go
+        summary: Persistence layer. FileStore for markdown source of truth. Index is the persistent BadgerDB cache with inverted entity/tag/relationship/word indexes; IndexSchemaVersion=3 gates auto-reindex on open and the v3 tokenizer emits CamelCase/snake_case/dash-case sub-tokens. Store unifies FileStore + Index with create/update/delete cascades that bump ancestors via belongs_to. indexer.go rebuilds the full index, skipping plan/task body tokenization. counters.go persists per-kind ID allocators. serializer.go handles YAML frontmatter + markdown body.
+        updated_at: "2026-04-14T09:35:16Z"
+    internal/storage/counters.go:
+        type: file
+        parent: internal/storage
+        size: 2405
+        hash: b072f65d72f822a54e3cdb563ea4b6ed3c4b1290df92d75f096936c701ee9e79
+        mtime: "2026-04-13T03:47:43Z"
+        summary: Implements per-kind ID counters in BadgerDB (keys 'c:<kind>'), exposing GetCounter/IncrementCounter/SetCounter and NextID which formats IDs as 'PFX-0001'. Sole allocator of new entity IDs, designed to be rebuildable from scanned entity files during reindex.
+        updated_at: "2026-04-13T04:40:09Z"
+    internal/storage/filestore.go:
+        type: file
+        parent: internal/storage
+        size: 3916
+        hash: 3940325945ccab2dd5c90bd4276691897c0ae2851fb29d1579191b0dfa5c76d4
+        mtime: "2026-04-13T03:35:11Z"
+        summary: FileStore reads and writes entity markdown files under .syde/<kind-plural>/<slug>.md, with Save/Load/Delete/ListFiles/LoadAll/Exists helpers. It is the source of truth for entity data — the index is a derived cache built from these files.
+        updated_at: "2026-04-13T04:40:11Z"
+    internal/storage/index.go:
+        type: file
+        parent: internal/storage
+        size: 15243
+        hash: 309649f1a57ec55d1a563630de89521cebab36d6242da722e5d7c00a0645ca34
+        mtime: "2026-04-14T09:28:06Z"
+        summary: 'BadgerDB-backed inverted index (entity + slug + tag + relationship + word keys). Declares IndexSchemaVersion=3 with SchemaVersion/SetSchemaVersion meta keys so Store.NewStore auto-reindexes on stale layouts; version 3 added CamelCase / snake_case / dash-case sub-token emission in tokenize() + splitCamel() so ''ConceptEntity'' indexes as concept + entity too. FileRef points to entity locations; WordRef (full FileRef + field + word) is stored at every w:<token>:<kind>:<id> key so search hits resolve to complete identity in one lookup. Methods: IndexEntity, IndexTags, IndexRelationships, IndexWords, RemoveEntity, LookupByID/BySlug, ListByKind/ByTag, GetOutbound/GetInbound, SearchTokens (per-token WordRef hits — callers AND/OR), Search (back-compat FileRef OR union), DropAll.'
+        updated_at: "2026-04-14T09:33:56Z"
+    internal/storage/indexer.go:
+        type: file
+        parent: internal/storage
+        size: 3583
+        hash: a304828ad14f22a55df57c95534e252ff7f4ce6838ef285d52ab470feac2e206
+        mtime: "2026-04-14T08:14:13Z"
+        summary: Reindex() drops and rebuilds the BadgerDB index by walking every markdown file, indexing entities/tags/relationships/words via the new WordRef schema, and restoring per-kind ID counters from observed 'PFX-NNNN' IDs so deleting counters.yaml is non-destructive. extractWords feeds name/description/purpose/notes for every kind but skips body indexing for plan and task entities (their procedural notes churn and pollute search) — bodies are still indexed for component, contract, concept, decision, flow, learning, and system. Returns IndexStats for the reindex API.
+        updated_at: "2026-04-14T08:27:37Z"
+    internal/storage/serializer.go:
+        type: file
+        parent: internal/storage
+        size: 3850
+        hash: ea0192a110a018447f6eb1e2439cc80b3ce57e34406eedf81b4b329f671fd2e1
+        mtime: "2026-04-12T09:43:37Z"
+        summary: Marshals entities to and from YAML-frontmatter + markdown body files, with Marshal/Unmarshal/UnmarshalAuto (kind auto-detection) and ComputeLineMap for field-level line numbers. Bridges the Go entity types with the on-disk markdown format used by FileStore.
+        updated_at: "2026-04-13T04:40:19Z"
+    internal/storage/store.go:
+        type: file
+        parent: internal/storage
+        size: 13096
+        hash: 3ae532e192a062a702745a28f8ab9a7635f4f7e5546a14260cb37c5a9a64367e
+        mtime: "2026-04-14T08:12:00Z"
+        summary: Unified Store wrapping FileStore (markdown source of truth) and Index (persistent BadgerDB). NewStore opens both and now compares the persisted IndexSchemaVersion against the on-disk meta:schema, auto-running a full Reindex+SetSchemaVersion when older or missing so layout upgrades self-heal. Create/Update stamp BaseEntity.UpdatedAt and reindex; ReindexOne refreshes a single entity without rewriting its file. CreateCascade/UpdateCascade/DeleteCascade propagate UpdatedAt bumps up the belongs_to chain via cascadeFromParent/cascadeFromBase, using a visited-ID map seeded with the originating entity so cycles terminate cleanly. Get supports three slug forms (full, bare-with-ambiguity-error, parent/child path).
+        updated_at: "2026-04-14T08:27:50Z"
+    internal/tree:
+        type: dir
+        parent: internal
+        children:
+            - internal/tree/context.go
+            - internal/tree/ignore.go
+            - internal/tree/model.go
+            - internal/tree/render.go
+            - internal/tree/scan.go
+            - internal/tree/store.go
+            - internal/tree/summarize.go
+            - internal/tree/walk.go
+        summary: Summary-tree package that walks the project, applies ignore rules, stores per-file/per-folder summaries and hashes, tracks stale nodes, renders tree views, and builds context bundles for architecture-aware code understanding.
+        updated_at: "2026-04-15T06:05:37Z"
+    internal/tree/context.go:
+        type: file
+        parent: internal/tree
+        size: 3874
+        hash: 411bccc70771da6c1691ef04b6341c5fcffa235f30759abcdaeeb12839c50ce2
+        mtime: "2026-04-13T03:03:25Z"
+        summary: Builds ContextBundle structs combining a node's breadcrumb (root-to-parent ancestor summaries), its own summary, and for files the inlined content (capped at 64 KiB by default). This is the one-call context loader agents use via 'syde tree context' to reason about a file or folder without separate reads.
+        updated_at: "2026-04-13T04:39:54Z"
+    internal/tree/ignore.go:
+        type: file
+        parent: internal/tree
+        size: 2185
+        hash: ad092957e0ca903180cc1a1963cc4ea18f2b5340794bcc40c3553b33f74d3689
+        mtime: "2026-04-15T06:05:22Z"
+        summary: Defines built-in and configured ignore matching for the syde summary tree. It combines default ignored directories/files, project .gitignore, and syde.yaml tree_ignore entries; default ignores now include generated agent integration paths such as .codex/, .agents/, AGENTS.md, and CLAUDE.md.
+        updated_at: "2026-04-15T06:05:37Z"
+    internal/tree/model.go:
+        type: file
+        parent: internal/tree
+        size: 4610
+        hash: 774d99b71ca7c2cf17694f19ca19359e0ffe9532f773aa3f74ae2ffdb266b228
+        mtime: "2026-04-13T03:21:38Z"
+        summary: 'Core types for the tree package: Node (file or dir with hash, size, summary, stale bit, ignored flag) and Tree (flat path-keyed map plus scan timestamp). Provides primitive operations like Get, Ancestors, MarkAncestorsStale, AddChild/RemoveChild, and Delete that higher-level scan/summarize logic builds on.'
+        updated_at: "2026-04-13T04:40:01Z"
+    internal/tree/render.go:
+        type: file
+        parent: internal/tree
+        size: 1876
+        hash: e620ee75bbddffdd55697fd3140d6cfcb0b9c4cb8f07257112b0247fd4daa17a
+        mtime: "2026-04-13T03:03:40Z"
+        summary: ASCII tree renderer for the summary tree. Render walks a subtree with configurable max depth, optional inline summaries, and a stale-marker prefix, producing the box-drawing output seen in 'syde tree show'.
+        updated_at: "2026-04-13T04:40:03Z"
+    internal/tree/scan.go:
+        type: file
+        parent: internal/tree
+        size: 5553
+        hash: 7e8c199bad855d975162eb2b2ecd5245861da350ccbbceae88425a1d82695a01
+        mtime: "2026-04-13T03:21:55Z"
+        summary: 'Merges a fresh WalkProject result into an existing Tree: adds new files, updates changed ones by hash, deletes missing ones, auto-creates parent dirs, prunes empty ones, and cascades stale bits to ancestors. Binary and large (>1 MiB) files get auto-generated summaries so they don''t clutter the stale list. The core of ''syde tree scan''.'
+        updated_at: "2026-04-13T04:40:06Z"
+    internal/tree/store.go:
+        type: file
+        parent: internal/tree
+        size: 1541
+        hash: 637ad9431973b8e561e68e34ff99fc2788ed378fb4449b0cbfa01cd5cd7cfc32
+        mtime: "2026-04-13T03:01:58Z"
+        summary: Persistence layer for the summary tree — Load and Save read/write .syde/tree.yaml via gopkg.in/yaml.v3, with atomic rename on save and automatic root-node bootstrapping. Load also repopulates each Node's Path field (not serialized) so callers can range over Nodes safely.
+        updated_at: "2026-04-13T04:40:08Z"
+    internal/tree/summarize.go:
+        type: file
+        parent: internal/tree
+        size: 3549
+        hash: f0b242df3a3a09408c7051d2eda8b1103c39bb9f3a56524503e049aaaf00ed91
+        mtime: "2026-04-13T03:22:17Z"
+        summary: 'Mutation helpers for node summaries: SetSummary writes a summary and clears the stale bit (marking parent stale to cascade upward), SetIgnored toggles a node''s ignored flag, and StalePaths returns all stale nodes sorted deepest-first — with an optional leaves-only filter so callers summarize children before parents.'
+        updated_at: "2026-04-13T04:40:11Z"
+    internal/tree/walk.go:
+        type: file
+        parent: internal/tree
+        size: 2442
+        hash: 8003cdd36e515db4668d31282e2b4b38654bb24c6c2dc12b672006f039c9bb47
+        mtime: "2026-04-13T03:02:15Z"
+        summary: Filesystem walker that produces WalkedFile records (path, size, sha256 hash, mtime, binary flag) for every non-ignored file under the project root. Hashes each file once while sniffing the first 512 bytes for binary detection, feeding the Scan function that reconciles results into the tree.
+        updated_at: "2026-04-13T04:40:13Z"
+    internal/uiml:
+        type: dir
+        parent: internal
+        children:
+            - internal/uiml/ast.go
+            - internal/uiml/lexer.go
+            - internal/uiml/parser.go
+            - internal/uiml/render_ascii.go
+            - internal/uiml/render_html.go
+            - internal/uiml/render_wireframe.go
+            - internal/uiml/validate.go
+        summary: UIML language package for screen and wireframe designs. It lexes, parses, validates, and renders UIML as ASCII, HTML, and wireframe-oriented previews for CLI and dashboard use.
+        updated_at: "2026-04-15T06:01:44Z"
+    internal/uiml/ast.go:
+        type: file
+        parent: internal/uiml
+        size: 5459
+        hash: b93d354966a75764658b90786cf0d274a9beebc6ca494b902a31f6c3ba31d6a3
+        mtime: "2026-04-12T10:12:29Z"
+        summary: 'UIML abstract syntax tree definitions: NodeKind constants enumerating every valid UIML tag (structure, content, interactive, data-display, navigation, feedback, meta), the Node struct with Kind/Attrs/Children/Text/Line, Attribute type, SelfClosingTags set, and ValidTags() map from tag name to NodeKind. The shared vocabulary used by the parser, renderers, and validator.'
+        updated_at: "2026-04-13T04:40:57Z"
+    internal/uiml/lexer.go:
+        type: file
+        parent: internal/uiml
+        size: 4784
+        hash: 891e437aeb15231987412b30bd6ffb04e33460577e06ff1c5728da8e48008326
+        mtime: "2026-04-15T02:59:32Z"
+        summary: UIML lexer/tokenizer. Adds an inTag flag set on TokTagOpen and cleared on TokGT/TokSelfClose so Next() reads identifier tokens via readTagName while inside a tag, preventing readTextContent from swallowing attribute structure. Handles tag open/close, attributes, text content, whitespace, and line tracking.
+        updated_at: "2026-04-15T03:12:09Z"
+    internal/uiml/parser.go:
+        type: file
+        parent: internal/uiml
+        size: 3325
+        hash: 88dd88129b6fee7a693d0361dcb1ac69312c23b93b5a79cd54a05bea42864cbd
+        mtime: "2026-04-12T10:13:02Z"
+        summary: 'Recursive-descent UIML parser: Parse(source) returns a ParseResult with AST Nodes and ParseErrors (with line numbers). Validates tag names against ValidTags, parses attributes (including boolean flags), handles self-closing and void elements, and surfaces mismatched-close-tag errors while still recovering. Turns lexer tokens into the tree consumed by renderers and validator.'
+        updated_at: "2026-04-13T04:41:08Z"
+    internal/uiml/render_ascii.go:
+        type: file
+        parent: internal/uiml
+        size: 7302
+        hash: 6bc37763513bec7a7e587ffe75e6c3d57c9125d30965e645ba9ae34e3c7b5cd1
+        mtime: "2026-04-12T10:13:29Z"
+        summary: 'ASCII-art renderer for UIML ASTs: RenderASCII(nodes, width) walks the tree and emits box-drawing output per NodeKind (screens, navbars, sidebars, grids, cards, buttons, inputs, tables, metrics, trends, alerts, progress bars, etc.), with collectText/collectTextChildren helpers. Used by ''syde design'' CLI commands for terminal-friendly previews of UIML mockups.'
+        updated_at: "2026-04-13T04:41:14Z"
+    internal/uiml/render_html.go:
+        type: file
+        parent: internal/uiml
+        size: 9187
+        hash: 8e5ced7a92b7d3dbaa9ff1cd78bf87f2dd99f900659769aa85a4b67bb9d2387b
+        mtime: "2026-04-12T10:14:08Z"
+        summary: 'HTML renderer for UIML ASTs: RenderHTML(nodes) produces a self-contained Tailwind-styled dark-theme HTML document by walking nodes and mapping each NodeKind (screen, navbar, sidebar, grid, card, button variants, inputs, tables, metrics, badges, alerts, progress, etc.) to appropriate markup and classes. Powers browser previews of UIML designs.'
+        updated_at: "2026-04-13T04:41:19Z"
+    internal/uiml/render_wireframe.go:
+        type: file
+        parent: internal/uiml
+        size: 21512
+        hash: f89e43b978530c97209c0a4717029686decf63e984fa24a38757534c6993db25
+        mtime: "2026-04-15T03:49:34Z"
+        summary: Renders UIML screen trees into styled HTML wireframe previews, mapping UIML nodes to semantic HTML elements and layout CSS for dashboard/preview use. It complements the parser and validator by turning stored design markup into inspectable visual output.
+        updated_at: "2026-04-15T06:01:26Z"
+    internal/uiml/validate.go:
+        type: file
+        parent: internal/uiml
+        size: 2106
+        hash: 6ba67d04df678e41cc8833ec78e56baf0097739a2f652b3171242d461aee6267
+        mtime: "2026-04-12T10:14:17Z"
+        summary: 'UIML semantic validator: Validate(source) parses and recursively checks each node, reporting unknown tags, missing <columns> in <table>, and misuse of ''variant''/''direction'' attributes outside their allowed parents, as ValidationError line+message entries. Wraps parser errors for a unified error list used by ''syde design validate''.'
+        updated_at: "2026-04-13T04:41:24Z"
+    internal/utils:
+        type: dir
+        parent: internal
+        children:
+            - internal/utils/id.go
+            - internal/utils/slug.go
+        summary: Shared utility helpers. slug.go provides Slugify, SlugifyWithSuffix (adds 4-char random alnum), BaseSlug (strips suffix), and HasSuffix. id.go is legacy/deprecated (NextID lives in storage/counters.go).
+        updated_at: "2026-04-13T04:43:00Z"
+    internal/utils/id.go:
+        type: file
+        parent: internal/utils
+        size: 1133
+        hash: 23a3f0092017d72a5d284c8ae169fab1f06d5053e8cad688550549e47f7cbf1f
+        mtime: "2026-04-13T03:32:48Z"
+        summary: 'Legacy ID helpers: deprecated GenerateID stub and ParseIDKind which extracts an EntityKind from either new ''PFX-0001'' or legacy ''pfx_xxxxxxxx'' ID formats. Retained so old IDs still resolve while the active allocator lives in storage.NextID.'
+        updated_at: "2026-04-13T04:40:24Z"
+    internal/utils/slug.go:
+        type: file
+        parent: internal/utils
+        size: 1965
+        hash: df3ec8019e8a206feb45e94b5d7804e4b4b51184a9efebec160eff145b303ab3
+        mtime: "2026-04-13T03:34:41Z"
+        summary: 'Slug utilities: Slugify (URL-safe base form), SlugifyWithSuffix (adds 4-char random suffix for unique filenames), BaseSlug (strips suffix), and HasSuffix. Underpin the entity addressing scheme where filenames are ''name-xxxx.md'' and commands accept bare or full slugs.'
+        updated_at: "2026-04-13T04:40:27Z"
+    scripts:
+        type: dir
+        parent: .
+        children:
+            - scripts/wireframe-shot.sh
+        summary: Dev tooling scripts kept outside the Go module. wireframe-shot.sh captures dashboard screenshots via headless Chrome for visual UIML wireframe research. Future entries can wrap repeated dev workflows that don't belong in the syde CLI itself.
+        updated_at: "2026-04-15T02:50:47Z"
+    scripts/wireframe-shot.sh:
+        type: file
+        parent: scripts
+        size: 3062
+        hash: 7cef347dea8565897c16c09d5640b13cd68da964686e5b088d3e1fac19e2f15d
+        mtime: "2026-04-15T02:38:43Z"
+        summary: 'Bash dev helper that screenshots a contract detail page in the syded dashboard via headless Google Chrome. Usage: bash scripts/wireframe-shot.sh <contract-slug> [out.png]. Auto-launches syde open + waits for :5703, resolves the project slug from /api/projects by matching cwd, then drives Chrome with --headless --disable-gpu --window-size=1440,900 --screenshot. Lets agents inspect dashboard renders visually for UIML wireframe iteration.'
+        updated_at: "2026-04-15T02:50:47Z"
+    skill:
+        type: dir
+        parent: .
+        children:
+            - skill/SKILL.md
+            - skill/codex
+            - skill/embed.go
+            - skill/hooks.json
+            - skill/references
+        summary: Embedded syde skill templates and references for Claude and Codex, including requirement-aware command/entity docs, clarification guidance, sync workflow notes, and hook templates.
+        updated_at: "2026-04-15T06:46:49Z"
+    skill/SKILL.md:
+        type: file
+        parent: skill
+        size: 61250
+        hash: 1218c85f664a549548a021973f4c51de4a635e1b207cd8cbc2107698981e8eb1
+        mtime: "2026-04-15T06:40:05Z"
+        summary: Claude-facing syde skill instructions covering syde-first context lookup, clarification, model bootstrapping, requirements, entity/relationship rules, planning, task workflow, validation, and finish gates.
+        updated_at: "2026-04-15T06:46:21Z"
+    skill/codex:
+        type: dir
+        parent: skill
+        children:
+            - skill/codex/SKILL.md
+            - skill/codex/hooks.json
+        summary: Codex skill and hooks template for syde, using the syde command to load context, capture prompts as requirements, enforce guardrails, and run finish validation.
+        updated_at: "2026-04-15T06:44:12Z"
+    skill/codex/SKILL.md:
+        type: file
+        parent: skill/codex
+        size: 3114
+        hash: e8c8144984246b87eeac6564e972693ee2c0bb20883a05cd7ecb608919709cc1
+        mtime: "2026-04-15T06:29:43Z"
+        summary: Codex-facing syde skill instructions covering first moves, plan/task workflow, automatic requirement capture, requirement traceability, and finish-gate validation.
+        updated_at: "2026-04-15T06:43:27Z"
+    skill/codex/hooks.json:
+        type: file
+        parent: skill/codex
+        size: 1397
+        hash: 4ed7ccf12bb8210e4011d0cc1483927c2267818de6d1c64cd585ecb9afd6a04f
+        mtime: "2026-04-15T06:30:10Z"
+        summary: Codex hook template that runs syde codex-hook for session start, prompt capture, pre/post Bash guardrails, and stop-time sync validation.
+        updated_at: "2026-04-15T06:43:34Z"
+    skill/embed.go:
+        type: file
+        parent: skill
+        size: 180
+        hash: 02b674b291039a9a61a54322b9f9a50c8aa87747a2c4e779ba6d815bf3c71179
+        mtime: "2026-04-15T05:58:04Z"
+        summary: Exposes embedded syde skill assets through an embed.FS, bundling Claude templates, shared references, and Codex templates into the compiled syde binary for installation into user projects.
+        updated_at: "2026-04-15T06:01:26Z"
+    skill/hooks.json:
+        type: file
+        parent: skill
+        size: 4356
+        hash: b381c4d8898639af5506a1a68a72733144c93220cba074a3572746dfdfdf3cd6
+        mtime: "2026-04-14T07:15:38Z"
+        summary: 'Claude Code hooks installed by ''syde install-skill''. PreToolUse matcher Write|Edit|MultiEdit|NotebookEdit HARD-BLOCKS (exit 2) when no approved plan OR no active task — excluded paths: .syde/, .claude/, node_modules/, vendor/, web/dist/, web/node_modules/, .git/, /tmp/. PostToolUse Write reminds if a file isn''t mapped to any entity. PostToolUse Bash warns before git commit/push if tasks unfinished or sync check --strict fails. SessionStart injects ''syde context'' into system message. Stop hook blocks session end if sync check --strict fails.'
+        updated_at: "2026-04-14T07:34:24Z"
+    skill/references:
+        type: dir
+        parent: skill
+        children:
+            - skill/references/clarify-guide.md
+            - skill/references/commands.md
+            - skill/references/entity-spec.md
+            - skill/references/sync-workflow.md
+        summary: 'Reference docs embedded with the syde skill: entity specifications, command catalog, clarification guide, and sync workflow notes including requirement lifecycle and traceability rules.'
+        updated_at: "2026-04-15T06:46:34Z"
+    skill/references/clarify-guide.md:
+        type: file
+        parent: skill/references
+        size: 5615
+        hash: 5831dd5f318765066d0d8de4614cea52b081e7e566771c450efbd4b1b0359046
+        mtime: "2026-04-12T12:49:22Z"
+        summary: Reference document bundled with the syde skill that teaches Claude how to be critical during requirements clarification. Contains principles (challenge assumptions, flag missing infra) and per-project-type checklists (web, backend, CLI, full-stack, library, mobile, data pipeline) plus a recommended question-presentation format.
+        updated_at: "2026-04-13T04:40:20Z"
+    skill/references/commands.md:
+        type: file
+        parent: skill/references
+        size: 24084
+        hash: 335f3b80c89db2c920d5a0a72e07adb0ea4d584f0571b403274c99f1b1c39f5a
+        mtime: "2026-04-15T06:39:51Z"
+        summary: Command reference for syde CLI, including entity CRUD flags, requirement creation/update behavior, query modes, plan approval requirement capture, tasks, learnings, constraints, and tree commands.
+        updated_at: "2026-04-15T06:46:15Z"
+    skill/references/entity-spec.md:
+        type: file
+        parent: skill/references
+        size: 14783
+        hash: 127bfa1e4602011696e32397394df6ac7bd9def19156f4fbedb26d5cb1b7adb3
+        mtime: "2026-04-15T06:39:39Z"
+        summary: Reference documentation for syde entity kinds, shared fields, kind-specific YAML/CLI fields, requirement lifecycle rules, relationship types, and validation constraints.
+        updated_at: "2026-04-15T06:46:11Z"
+    skill/references/sync-workflow.md:
+        type: file
+        parent: skill/references
+        size: 8459
+        hash: 16baa800e444c956ad183f6a25229a765b6a8b6c4a48af274b78f623b4904d46
+        mtime: "2026-04-13T03:10:39Z"
+        summary: 'Playbook for ''syde sync'' — how to bootstrap a design model from an existing codebase (5 agent rounds: components, contracts+concepts, flows, decisions, completeness) and how to verify/update an existing model for drift. Emphasizes using ''syde tree context'' instead of naive Read when turning source files into entities.'
+        updated_at: "2026-04-13T04:40:26Z"
+    web:
+        type: dir
+        parent: .
+        children:
+            - web/.gitignore
+            - web/README.md
+            - web/embed.go
+            - web/eslint.config.js
+            - web/index.html
+            - web/package.json
+            - web/public
+            - web/src
+            - web/tsconfig.app.json
+            - web/tsconfig.json
+            - web/tsconfig.node.json
+            - web/vite.config.ts
+        summary: 'React 18 + TypeScript + Vite + Tailwind v4 dashboard SPA embedded in syded. Concepts page has a floating List/ERD toggle that renders a dagre LR layered React Flow canvas. Contracts page filter bar supports contract_kind:+pattern: keys and screen contract detail panels render UIML wireframes via server-rendered HTML. Depends on @xyflow/react, @dagrejs/dagre, d3-force/selection/zoom.'
+        updated_at: "2026-04-14T11:40:06Z"
+    web/.gitignore:
+        type: file
+        parent: web
+        size: 253
+        hash: fe718e7babb14f3cbad2d97f08889b9ce5215ed3fe0e43b2b8cfbfb3b9b844e8
+        mtime: "2026-04-12T15:03:45Z"
+        summary: Standard Node/Vite .gitignore for the web frontend, excluding logs, node_modules, build outputs (dist, dist-ssr), and editor/OS metadata files.
+        updated_at: "2026-04-13T04:40:05Z"
+        ignored: true
+    web/README.md:
+        type: file
+        parent: web
+        size: 2425
+        hash: 8dc9e0ee2281acb3324624fbe6eb7e1377cc626f616ea4dc90e3a90ae094374d
+        mtime: "2026-04-12T15:03:45Z"
+        summary: Default Vite React+TypeScript template README explaining the plugin options and how to expand ESLint with type-aware rules. Not project-specific documentation.
+        updated_at: "2026-04-13T04:40:06Z"
+        ignored: true
+    web/embed.go:
+        type: file
+        parent: web
+        size: 69
+        hash: 4e79feb0ad64675028cd9a8b7f7104ac63210a465f40cee0fc068667968ad2d7
+        mtime: "2026-04-12T15:11:56Z"
+        summary: Go package that embeds the built Vite dist/ directory into the binary via go:embed, exposing DistFS for the syded dashboard daemon to serve the SPA.
+        updated_at: "2026-04-13T04:40:08Z"
+    web/eslint.config.js:
+        type: file
+        parent: web
+        size: 616
+        hash: 4efe97b16d1200fac0eaf07aa00930a8668b1f96a0be1891ace8c1e712ff0ccb
+        mtime: "2026-04-12T15:03:45Z"
+        summary: Flat ESLint config for the web app wiring up JS, TypeScript, React Hooks, and React Refresh (Vite) recommended rules for all .ts/.tsx files.
+        updated_at: "2026-04-13T04:40:10Z"
+    web/index.html:
+        type: file
+        parent: web
+        size: 355
+        hash: 35a1f7492e6123c7528484243faf21e3b64c378d06ac35edf6e083558a308af0
+        mtime: "2026-04-12T15:03:45Z"
+        summary: 'Vite HTML entry point that mounts the React app at #root and loads /src/main.tsx as an ES module.'
+        updated_at: "2026-04-13T04:40:11Z"
+    web/package.json:
+        type: file
+        parent: web
+        size: 1091
+        hash: 07783e124474edcab26ade65ee760e9c0e027c23885334d5e6266c71960498c3
+        mtime: "2026-04-14T10:59:38Z"
+        summary: NPM manifest for the dashboard SPA. Declares React 19 + react-router-dom 7, @xyflow/react for the ERD canvas, @dagrejs/dagre for layered ERD layout, d3-force/selection/zoom for the Graph page, prism-react-renderer for code blocks, Tailwind v4 + Vite + TypeScript in devDeps.
+        updated_at: "2026-04-14T11:01:34Z"
+    web/public:
+        type: dir
+        parent: web
+        children:
+            - web/public/favicon.svg
+            - web/public/icons.svg
+        summary: 'Static assets served verbatim: favicon.svg and icons.svg sprite sheet.'
+        updated_at: "2026-04-13T04:43:19Z"
+    web/public/favicon.svg:
+        type: file
+        parent: web/public
+        size: 9522
+        hash: 61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66
+        mtime: "2026-04-12T15:03:45Z"
+        summary: Purple stylized 'S' lightning-bolt favicon for the syde dashboard, composed of layered gradient ellipses within a masked logomark shape.
+        updated_at: "2026-04-13T04:40:21Z"
+        ignored: true
+    web/public/icons.svg:
+        type: file
+        parent: web/public
+        size: 5031
+        hash: b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a
+        mtime: "2026-04-12T15:03:45Z"
+        summary: SVG sprite sheet defining reusable <symbol> icons (Bluesky, Discord, documentation, GitHub, social, X/Twitter) referenced by the dashboard UI via <use>.
+        updated_at: "2026-04-13T04:40:22Z"
+        ignored: true
+    web/src:
+        type: dir
+        parent: web
+        children:
+            - web/src/App.tsx
+            - web/src/components
+            - web/src/hooks
+            - web/src/index.css
+            - web/src/lib
+            - web/src/main.tsx
+            - web/src/pages
+        summary: Source root of the Web SPA. App.tsx wires navigation and the floating top-right List/ERD toggle on the Concepts page. components/ holds cards, chrome, and the query-DSL filter bar. pages/ERD uses dagre LR layered React Flow. Detail panels render screen contract wireframes server-side via uiml.RenderHTML.
+        updated_at: "2026-04-14T11:40:06Z"
+    web/src/App.tsx:
+        type: file
+        parent: web/src
+        size: 11436
+        hash: 49a2eb0ab605323a05a0c4cb24764e160ed8bb89bf6ea08394d0aad843494d5a
+        mtime: "2026-04-14T10:42:01Z"
+        summary: Top-level dashboard SPA component handling routing (project/kind/slug), sidebar nav, and the main inbox-style list+detail layout per kind. For concepts the dedicated border-b List/ERD toggle row is gone — instead a floating absolute-positioned List/ERD toggle sits at the top-right of the relative concept main-area container in both modes. EntityDetail receives hideClose={activeKind === 'concept'} so the X button is hidden for concepts.
+        updated_at: "2026-04-14T10:50:16Z"
+    web/src/components:
+        type: dir
+        parent: web/src
+        children:
+            - web/src/components/EntityDetail.tsx
+            - web/src/components/EntityEmptyState.tsx
+            - web/src/components/EntityFilterBar.tsx
+            - web/src/components/EntityList.tsx
+            - web/src/components/KindBadge.tsx
+            - web/src/components/RelationshipChip.tsx
+            - web/src/components/SearchPalette.tsx
+            - web/src/components/Sidebar.tsx
+            - web/src/components/icons.tsx
+        summary: React components for the syde SPA. EntityDetail.tsx renders kind-specific fields incl. concept attributes/actions panel and screen contract Wireframe section (dangerouslySetInnerHTML rendering server-side uiml.RenderHTML output) with hideClose for the concept page. EntityFilterBar hosts the query DSL with contract_kind+pattern keys. Sidebar/KindBadge/RelationshipChip/SearchPalette/EntityEmptyState round out the chrome. icons.tsx is hand-rolled flat SVGs.
+        updated_at: "2026-04-14T11:40:06Z"
+    web/src/components/EntityDetail.tsx:
+        type: file
+        parent: web/src/components
+        size: 31436
+        hash: 6cdd251327fa79274109b35e0a747da0d6e5bb8600acab9bec68e1c3a72fa977
+        mtime: "2026-04-14T11:31:57Z"
+        summary: React component rendering the full detail view for a single entity in the dashboard. Kind-specific sections include a Wireframe card for contracts where contract_kind==='screen' && wireframe_html is present, rendered via dangerouslySetInnerHTML since the HTML comes from server-side uiml.RenderHTML. Also renders relationships grouped by type with click-through navigation.
+        updated_at: "2026-04-14T11:38:46Z"
+    web/src/components/EntityEmptyState.tsx:
+        type: file
+        parent: web/src/components
+        size: 5339
+        hash: 67fb34035efa84aacfa1125cb5dd819fc60ade1fd6567a12d91b948010e00f61
+        mtime: "2026-04-14T03:48:17Z"
+        summary: Empty-state placeholder shown in the right pane of the 2-column inbox view when no entity is selected. Renders a stacked-cards SVG illustration with per-kind accent colors (stroke, glow, icon) and overlays the kind icon on the foreground card. Includes a "Pick a <kind> to inspect" prompt.
+        updated_at: "2026-04-14T06:26:40Z"
+    web/src/components/EntityFilterBar.tsx:
+        type: file
+        parent: web/src/components
+        size: 27202
+        hash: f7aa1b55c72d9c6e1de8d9a87d5845a1a8e26d1a1ef2d6a6dcbcef965f26129e
+        mtime: "2026-04-14T11:10:15Z"
+        summary: 'Rich entity filter bar with key:value query DSL + caret-aware suggestion dropdown. Exports parseQuery, applyFilter, and EntityFilterBar component. KNOWN_KEYS and KEY_SUGGESTIONS now include contract_kind: and pattern: keys that prune contract entities by their contract_kind / interaction_pattern fields; suggestionsForToken populates their value dropdowns dynamically from loaded entities so newly-added kinds like ''storage'' surface without hardcoding. matchToken handles both plus relationship-type keys, free text, negation, and quoted multi-word values.'
+        updated_at: "2026-04-14T11:11:52Z"
+    web/src/components/EntityList.tsx:
+        type: file
+        parent: web/src/components
+        size: 3681
+        hash: 8838f9560d996b3621139bf58b501967e78da5eb57d8c537415b6a79f3e3bb4e
+        mtime: "2026-04-14T05:17:31Z"
+        summary: Left-pane list of all entities of a given kind, rendered as clickable cards showing KindBadge, name, description, and relationship/learning counts. Highlights the currently selected slug and shows an EntityFilterBar when there are more than 5 entities. Seeds its filter from the URL ?filter= query param so cross-page navigation (e.g. clicking a parent system child) lands with the list pre-scoped.
+        updated_at: "2026-04-14T06:26:55Z"
+    web/src/components/KindBadge.tsx:
+        type: file
+        parent: web/src/components
+        size: 869
+        hash: 7253d320e1523c7104d33fd24a68308dad14e34ea3240caf646ea5e9c28c6de6
+        mtime: "2026-04-12T15:07:25Z"
+        summary: Tiny presentational component that renders an entity's kind as a colored outlined pill. Maps each kind (system/component/contract/concept/flow/decision/plan/task/learning/design) to its themed border/text color classes so kind identity is visually consistent across the dashboard.
+        updated_at: "2026-04-13T04:40:18Z"
+    web/src/components/RelationshipChip.tsx:
+        type: file
+        parent: web/src/components
+        size: 3334
+        hash: 32e6d956854f928b7703ddfcad23809270ee523458825e5723b2dc54b216246c
+        mtime: "2026-04-14T03:35:46Z"
+        summary: Clickable chip rendering a single Relationship as a pill with the target kind icon, an uppercase relation-type label (e.g. "belongs to"), and the target name. Uses a per-target-kind tinted palette (border + background + hover ring + accent) so the chip visually connects to the kind it points at; used in EntityDetail to navigate between related entities across kinds.
+        updated_at: "2026-04-14T06:27:00Z"
+    web/src/components/SearchPalette.tsx:
+        type: file
+        parent: web/src/components
+        size: 6383
+        hash: 657e7d8659c8b73fe42cc7b778e41016e137e3a0d9fd74007e89bc3716626e34
+        mtime: "2026-04-14T05:46:41Z"
+        summary: Cmd+K modal search palette that fetches all entities once on open and filters them client-side through the EntityFilterBar DSL (large borderless variant as the card chrome). Groups hits by kind in a fixed architectural-first order, supports arrow/Enter keyboard navigation across groups, and calls onSelect(slug, kind) to open the chosen entity; collapses to a single search bar when the input is empty.
+        updated_at: "2026-04-14T06:27:08Z"
+    web/src/components/Sidebar.tsx:
+        type: file
+        parent: web/src/components
+        size: 4284
+        hash: e6156c48da127c0b68242bc74013d84033f6e6314dbd78c45d78b89c644f0e56
+        mtime: "2026-04-14T10:23:35Z"
+        summary: Left-rail navigation listing entity-kind groups (Architecture, Behavior, Delivery, Knowledge) with per-kind counts and a project switcher header. Calls onNavigate(kind) on click and exposes a ⌘K Search trigger at the bottom. The standalone ERD button was removed — ERD is now reached via an in-page toggle on the Concepts page.
+        updated_at: "2026-04-14T10:31:36Z"
+    web/src/components/icons.tsx:
+        type: file
+        parent: web/src/components
+        size: 5710
+        hash: 730299b97e092f30aee004c971ac8b5be2df119c3238719a458d28342ef7d7c7
+        mtime: "2026-04-14T10:23:45Z"
+        summary: Lightweight inline-SVG icon library shared by Sidebar, RelationshipChip, and detail panels (BoxIcon, ComponentIcon, PlugIcon, DiamondIcon, GitBranchIcon, ScaleIcon, ClipboardIcon, CheckSquareIcon, LightbulbIcon, LayersIcon, SearchIcon). Exports KIND_ICON_MAP and iconForKind() to look up a kind's icon. ErdIcon was removed when the sidebar ERD button was retired.
+        updated_at: "2026-04-14T10:31:43Z"
+    web/src/hooks:
+        type: dir
+        parent: web/src
+        children:
+            - web/src/hooks/useApi.ts
+            - web/src/hooks/useWebSocket.ts
+        summary: 'React hooks: useApi (data fetching with cache) and useWebSocket (live updates from syded).'
+        updated_at: "2026-04-13T04:43:19Z"
+    web/src/hooks/useApi.ts:
+        type: file
+        parent: web/src/hooks
+        size: 576
+        hash: b2e51f25ea78735bfb84a5d065444fb1058e6523f19cc4de459550a9350d9298
+        mtime: "2026-04-12T15:05:38Z"
+        summary: Generic data-fetching React hook that wraps a fetcher promise and exposes { data, loading, error, refetch }. Re-runs whenever its dependency array changes; used by every page/component to load data from the dashboard /api endpoints.
+        updated_at: "2026-04-13T04:40:26Z"
+    web/src/hooks/useWebSocket.ts:
+        type: file
+        parent: web/src/hooks
+        size: 877
+        hash: 802c7ad73c3f4567dedb03624160a7f7031ea6d3983780f5c93ad63ea456faf4
+        mtime: "2026-04-12T15:05:48Z"
+        summary: React hook that opens a WebSocket to /ws/<projectSlug> and calls onReload() whenever the daemon pushes a change event. Auto-reconnects with exponential backoff (1s → 30s cap) so the dashboard stays live-synced with file edits.
+        updated_at: "2026-04-13T04:40:28Z"
+    web/src/index.css:
+        type: file
+        parent: web/src
+        size: 1585
+        hash: a34cebfb5f47e4ee576a21b0951c4d9913e61e12216b2a439cae589a1dced857
+        mtime: "2026-04-12T23:46:53Z"
+        summary: 'Global stylesheet loading Tailwind v4 and defining the dashboard''s dark theme via @theme CSS variables: background/foreground/card/border palette, per-kind accent colors (component, contract, concept, flow, decision, plan, task, learning, design), font stacks, and the shared .sidebar-item class.'
+        updated_at: "2026-04-13T04:40:10Z"
+    web/src/lib:
+        type: dir
+        parent: web/src
+        children:
+            - web/src/lib/api.ts
+        summary: Client-side API layer. api.ts defines fetch helpers, EntitySummary (concept attributes with name+description+refs, contract contract_kind and interaction_pattern for filter pruning, relationships with optional cardinality label), EntitiesResponse, EntityDetailResponse, FileRef, Relationship, StatusResponse.
+        updated_at: "2026-04-14T11:13:01Z"
+    web/src/lib/api.ts:
+        type: file
+        parent: web/src/lib
+        size: 4977
+        hash: e228e619cf59abb2e061e2b638a0e5670d9390d9fff3a12896a0d119a99655b7
+        mtime: "2026-04-14T11:09:12Z"
+        summary: Dashboard SPA fetch client + shared TS interfaces. Exports api.* helpers hitting /api/<project>/... (status, entities, entity, graph, plans, tasks, learnings, designs, search, constraints, tree, treeNode) plus setProject/fetchProjects. Defines EntitySummary (with optional contract_kind and interaction_pattern for contract entities), Plan/Phase/Task/Learning/SearchHit/GraphResponse/TreeNode/TreeContextBundle and related DTOs consumed across pages.
+        updated_at: "2026-04-14T11:11:41Z"
+    web/src/main.tsx:
+        type: file
+        parent: web/src
+        size: 322
+        hash: 99842a9c63a67f7f3ffd57badb20d35b0561e0787bba36325f900582f6c30dba
+        mtime: "2026-04-12T16:04:45Z"
+        summary: 'Vite/React entry point that mounts <App /> into #root. Wraps the app in StrictMode and BrowserRouter so client-side routing works, and imports the global index.css stylesheet.'
+        updated_at: "2026-04-13T04:40:08Z"
+    web/src/pages:
+        type: dir
+        parent: web/src
+        children:
+            - web/src/pages/ERD.tsx
+            - web/src/pages/FileTree.tsx
+            - web/src/pages/Graph.tsx
+            - web/src/pages/LearningFeed.tsx
+            - web/src/pages/Overview.tsx
+            - web/src/pages/PlanView.tsx
+            - web/src/pages/TaskBoard.tsx
+        summary: 'Top-level views: Overview, PlanView, TaskBoard, LearningFeed, FileTree, Graph (d3 force), ERD (React Flow canvas mounted inside the Concepts page via the List/ERD toggle; uses dagre LR layered layout for clean non-crossing edges, useNodesState/useEdgesState for drag support, smoothstep edges for right-angle routing, per-attribute FK handles, and aggregate cardinality-labelled relates_to edges).'
+        updated_at: "2026-04-14T11:01:59Z"
+    web/src/pages/ERD.tsx:
+        type: file
+        parent: web/src/pages
+        size: 11491
+        hash: 52b69036eb67fcf6ee4cf9e56625d02c57aac89775e56f02303817169a6ea68b
+        mtime: "2026-04-14T11:00:32Z"
+        summary: 'ERD page. React Flow (@xyflow/react) canvas for concept entities with dagre LR layered layout: getLayoutedElements runs dagre.graphlib.Graph with rankdir=LR/nodesep=60/ranksep=220 to compute clean layered positions, then returns nodes with targetPosition=Left and sourcePosition=Right. ConceptNode renders name+description header, attribute rows (name+description, no type), action chips; left/right handles replace top/bottom. All edges are smoothstep for right-angle ERD routing — aggregate relates_to edges with cardinality labels and per-attribute FK refs edges from attr-<name> handles. useNodesState/useEdgesState + onNodesChange/onEdgesChange wire drag support.'
+        updated_at: "2026-04-14T11:01:34Z"
+    web/src/pages/FileTree.tsx:
+        type: file
+        parent: web/src/pages
+        size: 18362
+        hash: b7451fe6bd76b11ff127a2a2a2f635964cdc2c555f202090eb574c9440e8a024
+        mtime: "2026-04-14T04:13:20Z"
+        summary: File tree explorer page. Left pane renders a recursive collapsible TreeRow with ASCII-style connector lines, dir-first sorting, stale/ignored badges, and root counts (files/dirs/stale/ignored + last scanned_at). Right pane is a ContextView showing breadcrumb, node summary, ancestor tree summaries, folder children listing, and for files a Prism-highlighted CodeViewer with language detected from extension/basename. Deep-links via ?path= query param and auto-expands ancestors; declares all hooks before early returns to satisfy rules-of-hooks.
+        updated_at: "2026-04-14T06:26:55Z"
+    web/src/pages/Graph.tsx:
+        type: file
+        parent: web/src/pages
+        size: 27116
+        hash: 718b43c725e28c5732c709313b8de57a49c5b07707204e497de3074fa6d6081a
+        mtime: "2026-04-14T05:01:32Z"
+        summary: Architecture graph page. Filters API graph data to architectural kinds only (system/component/contract/concept/flow/decision), classifies systems as root vs sub-system, and lays them out with d3-force (link/charge/center/collide + heavy damping for fast convergence). Renders as an SVG with d3-zoom pan/zoom, node dragging (via fx/fy pinning and a window-level pointermove listener), hover/selection highlighting of neighbors, a muted dark palette, and a slide-in NodeInspector panel that fetches entity details and can jump to the full entity view via onSelectEntity. Includes a fixed legend pane listing kinds/edge types with live counts.
+        updated_at: "2026-04-14T06:27:07Z"
+    web/src/pages/LearningFeed.tsx:
+        type: file
+        parent: web/src/pages
+        size: 3740
+        hash: 054f64e10b6277cc89908b7ca3b3e0574c4e6c7bd8bbdd52f0c9137bae4c23d0
+        mtime: "2026-04-12T15:33:09Z"
+        summary: Page listing all captured learnings grouped by category (gotcha, constraint, convention, context, dependency, performance, workaround), with gotcha/constraint pinned to the top. Each card shows category, confidence, description, and clickable entity_refs that open the related entity in the detail drawer.
+        updated_at: "2026-04-13T04:40:36Z"
+    web/src/pages/Overview.tsx:
+        type: file
+        parent: web/src/pages
+        size: 3746
+        hash: 24ef6c053ef941c1784a07a828665a9c513c98c884600b7aa8a653cf47b00a69
+        mtime: "2026-04-12T15:09:02Z"
+        summary: 'Default landing page summarizing the design model: a grid of clickable kind-count cards (component/contract/concept/flow/decision/plan/task/learning) plus side-by-side panels showing plan progress bars and the five most recent learnings.'
+        updated_at: "2026-04-13T04:40:38Z"
+    web/src/pages/PlanView.tsx:
+        type: file
+        parent: web/src/pages
+        size: 4971
+        hash: 01a264c25e473acae30fd537c512aa73d06d9ff58cde0526c309522ed632927f
+        mtime: "2026-04-12T15:32:35Z"
+        summary: Page rendering all plans as cards with status, progress bar, draft-entity chips, and a hierarchical phase tree (PhaseNode recursively renders parent_phase → children with tasks). Phase icons reflect pending/in_progress/completed status; entity chips open their target in the detail drawer.
+        updated_at: "2026-04-13T04:40:41Z"
+    web/src/pages/TaskBoard.tsx:
+        type: file
+        parent: web/src/pages
+        size: 3337
+        hash: 13da90af325d47909d46c8ffd1008325ac6234ba964fdffc80f7f930d8d7ccd1
+        mtime: "2026-04-12T15:32:51Z"
+        summary: Kanban-style page splitting tasks into four columns (pending / in_progress / completed / blocked). Each task card shows name, priority pill (color-coded high/medium/low), and plan_ref, and clicking it opens the task entity in the detail drawer.
+        updated_at: "2026-04-13T04:40:42Z"
+    web/tsconfig.app.json:
+        type: file
+        parent: web
+        size: 633
+        hash: 89b14bf51e5aaaf853feabf0141c20eb041bf3ef4d7f8fb80c2c0f78e0e70a66
+        mtime: "2026-04-12T15:11:13Z"
+        summary: TypeScript config for the application source (src/), targeting ES2023 with DOM libs, bundler module resolution, and react-jsx transform; emits no JS (Vite handles output).
+        updated_at: "2026-04-13T04:40:14Z"
+    web/tsconfig.json:
+        type: file
+        parent: web
+        size: 119
+        hash: 770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808
+        mtime: "2026-04-12T15:03:45Z"
+        summary: Root TypeScript project-references config that delegates to tsconfig.app.json (app code) and tsconfig.node.json (build tooling).
+        updated_at: "2026-04-13T04:40:15Z"
+    web/tsconfig.node.json:
+        type: file
+        parent: web
+        size: 591
+        hash: 90a22c920cbc14624fb4658b58f15c875abf3234224f3933f211849c3ada3242
+        mtime: "2026-04-12T15:03:45Z"
+        summary: TypeScript config covering Node-side tooling files like vite.config.ts, using ES2023 with Node types and strict unused-symbol checks.
+        updated_at: "2026-04-13T04:40:17Z"
+    web/vite.config.ts:
+        type: file
+        parent: web
+        size: 401
+        hash: 58051da464df54e7035b5d22a25e5397423199b25ae170b1695be33ebe28f642
+        mtime: "2026-04-12T15:04:54Z"
+        summary: Vite build config enabling the React and Tailwind plugins, running the dev server on port 5174 with /api and /ws proxied to the syded daemon on localhost:5703, and emitting to dist/.
+        updated_at: "2026-04-13T04:40:19Z"

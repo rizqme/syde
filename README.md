@@ -2,7 +2,7 @@
 
 Text-first software design model for source code repositories. Works as a standalone CLI and as a Claude Code skill that enforces architectural constraints during development.
 
-syde stores your system's architecture as markdown files in `.syde/` — components, contracts, flows, decisions, and more. A BadgerDB index enables fast queries. When integrated with Claude Code, syde auto-loads your architecture at session start, enforces design constraints before code changes, and tracks plans and tasks throughout implementation.
+syde stores your system's architecture as markdown files in `.syde/` — requirements, components, contracts, flows, decisions, and more. A BadgerDB index enables fast queries. When integrated with Claude Code or Codex, syde auto-loads your architecture at session start, enforces design constraints before code changes, and tracks plans and tasks throughout implementation.
 
 ## Install
 
@@ -24,9 +24,22 @@ syde init --install-skill
 
 # Create your design model
 syde add system "My App" --description "What this system does"
-syde add component "API Server" --description "HTTP server" --responsibility "Request routing"
-syde add component "Database" --description "PostgreSQL storage" --responsibility "Data persistence"
-syde add decision "Use PostgreSQL" --statement "All data stored in PostgreSQL" --rationale "Team expertise"
+syde add requirement "Initial architecture" \
+  --statement "Track the app architecture with requirements, entities, and flows." \
+  --source manual \
+  --add-rel my-app:belongs_to
+syde add component "API Server" \
+  --description "HTTP server" \
+  --purpose "Serve product API requests" \
+  --responsibility "Request routing" \
+  --capability "Routes HTTP requests" \
+  --add-rel my-app:belongs_to \
+  --add-rel initial-architecture:references
+syde add decision "Use PostgreSQL" \
+  --statement "All data stored in PostgreSQL" \
+  --rationale "Team expertise" \
+  --add-rel my-app:belongs_to \
+  --add-rel initial-architecture:references
 
 # Check your model
 syde status
@@ -55,7 +68,7 @@ This creates:
 
 **1. Session starts — architecture auto-loads**
 
-The SessionStart hook runs `syde context --json` and injects your full architecture into Claude's context: all components, contracts, flows, decisions, and learnings. Claude starts every session already knowing your system's design.
+The SessionStart hook runs `syde context --json` and injects your full architecture into Claude's context: all requirements, components, contracts, flows, decisions, and learnings. Claude starts every session already knowing your system's design.
 
 **2. Claude asks clarifying questions first**
 
@@ -77,10 +90,13 @@ Claude creates design entities first, then builds a structured plan:
 
 ```bash
 # Claude runs these automatically:
-syde batch batch.yaml           # Creates all design entities at once
 syde plan create "Add User Auth"
-syde plan add-step add-user-auth --description "Create auth middleware" --action create --entity-kind component
-syde plan add-step add-user-auth --description "Add JWT token handling" --action create --entity-kind contract
+syde plan add-entity add-user-auth component "Auth Middleware" \
+  --description "JWT validation" --responsibility "Token verification"
+syde plan add-entity add-user-auth contract "Auth API" \
+  --description "Login/logout endpoints" --contract-kind api
+syde plan add-phase add-user-auth --description "Phase 1: Implement middleware"
+syde plan add-phase add-user-auth --description "Phase 2: Add JWT token handling"
 syde plan estimate add-user-auth  # Checks if plan needs splitting
 syde plan show add-user-auth      # Presents plan to you
 ```
@@ -98,7 +114,7 @@ syde task start create-auth-middleware    # Marks task active
 # ... writes code ...
 syde constraints check src/middleware/auth.go  # Verifies file maps to component
 syde task done create-auth-middleware     # Marks complete, updates plan progress
-syde plan step add-user-auth step_1 --status completed
+syde plan phase add-user-auth phase_1 --status completed
 ```
 
 **5. Claude captures learnings**
@@ -125,11 +141,11 @@ Session start
 Clarify requirements
   │ (questions + recommendations → user confirms)
   ▼
-Create design entities
-  │ (syde batch or syde add)
+Create plan with entity drafts
+  │ (syde plan create + add-entity + add-phase)
   ▼
-Create and present plan
-  │ (syde plan create + add-step + estimate + show)
+Present plan
+  │ (syde plan create + add-phase + estimate + show)
   ▼
 Wait for approval ← USER APPROVES HERE
   │ (syde plan approve)
@@ -143,13 +159,18 @@ Validate and capture learnings
 Done
 ```
 
+Plan approval creates a plan-sourced requirement and links the plan to it.
+Codex hooks additionally capture each user prompt as a user-sourced
+requirement. Requirements are append-only: mark conflicts as superseded or
+obsolete instead of deleting history.
+
 ### Large plans — sub-plan splitting
 
-When `syde plan estimate` detects a plan with >10 steps, it recommends splitting into sub-plans. Each sub-plan fits in one Claude session turn. Claude implements one sub-plan per turn, and you can resume across sessions.
+When `syde plan estimate` detects a plan with >10 phases, it recommends splitting into sub-plans. Each sub-plan fits in one Claude session turn. Claude implements one sub-plan per turn, and you can resume across sessions.
 
 ## Entity Types
 
-syde models your architecture with 10 entity types:
+syde models your architecture with 11 entity types:
 
 | Kind | What it represents | Key fields |
 |------|-------------------|------------|
@@ -159,7 +180,8 @@ syde models your architecture with 10 entity types:
 | **concept** | A domain object or business entity | meaning, lifecycle, invariants |
 | **flow** | An end-to-end workflow or user journey | trigger, goal, narrative (step-by-step) |
 | **decision** | An architectural decision (ADR) | statement, rationale, tradeoffs |
-| **plan** | A tracked implementation plan | steps with action/status |
+| **requirement** | Append-only user/plan/migration intent | statement, source, status |
+| **plan** | A tracked implementation plan | phases with action/status |
 | **task** | A work item linked to plans/entities | priority, status, entity_refs |
 | **design** | A UI mockup in UIML format | design_type, UIML body |
 | **learning** | Captured design knowledge | category, confidence, entity_refs |
@@ -202,9 +224,6 @@ syde update auth-service \
 # Delete
 syde remove auth-service        # With confirmation
 syde remove auth-service --force
-
-# Bulk create
-syde batch entities.yaml        # Create many entities at once
 ```
 
 ### Relationships
@@ -235,16 +254,16 @@ syde query --diff auth-service --since 7d  # Git change history
 
 ```bash
 syde plan create "Add Payment Processing"
-syde plan add-step add-payment-processing \
+syde plan add-phase add-payment-processing \
   --description "Create payment service" \
   --action create \
   --entity-kind component \
   --entity-name "Payment Service"
 syde plan estimate add-payment-processing  # Size check + split recommendation
-syde plan show add-payment-processing      # View steps with progress
+syde plan show add-payment-processing      # View phases with progress
 syde plan approve add-payment-processing   # Approve before implementation
-syde plan step add-payment-processing step_1 --status completed  # Mark step done
-syde plan execute add-payment-processing   # Auto-scaffold entity files for pending steps
+syde plan phase add-payment-processing phase_1 --status completed  # Mark phase done
+syde plan execute add-payment-processing   # Auto-scaffold entity files for pending phases
 ```
 
 ### Tasks
@@ -252,7 +271,7 @@ syde plan execute add-payment-processing   # Auto-scaffold entity files for pend
 ```bash
 syde task create "Build payment webhook" --plan add-payment-processing --priority high
 syde task start build-payment-webhook
-syde task done build-payment-webhook       # Auto-updates linked plan step
+syde task done build-payment-webhook       # Auto-updates linked plan phase
 syde task block build-payment-webhook --reason "Waiting for Stripe API key"
 syde task sub build-payment-webhook "Add signature verification"  # Subtask
 syde task link build-payment-webhook payment-service  # Link to entity
@@ -345,15 +364,15 @@ syde open                               # Start + register project + open browse
 
 Dashboard at `http://localhost:5703/<project-slug>` shows: entity overview, plans with progress, learnings, tasks, and design previews.
 
-### Bootstrap from existing code
+### Sync with existing codebase
 
 ```bash
-syde scan                               # Generate scan guide + print agent instructions
-syde scan --dry-run                     # Preview only
-syde scan --coverage                    # Check which directories map to components
+syde sync                               # Analyze codebase + check model alignment
+syde sync --dry-run                     # Preview only
+syde sync --coverage                    # Check which directories map to components
 ```
 
-The scan generates a `scan-guide.json` with directory structure and language detection. In Claude Code, the syde skill uses this guide to drive 5 rounds of agent-powered extraction: system + components, contracts + concepts, flows, decisions, relationship wiring.
+Sync generates a `scan-guide.json` with directory structure and language detection. For new projects, the syde skill in Claude Code uses this guide to drive 5 rounds of agent-powered extraction. For existing models, it verifies entities against the implementation and detects drift.
 
 ### Memory sync
 
@@ -364,31 +383,6 @@ syde memory clean                       # Remove all syde memories
 ```
 
 Syncs learnings to `.claude/projects/<hash>/memory/` so they persist across Claude Code sessions.
-
-## Batch file format
-
-```yaml
-entities:
-  - kind: component
-    name: API Server
-    description: HTTP server for REST API
-    responsibility: Request routing, validation
-    boundaries: No storage access
-    tags: [backend, go]
-  - kind: contract
-    name: User API
-    description: REST CRUD for users
-    contract_kind: api
-    interaction_pattern: request-response
-    protocol_notes: REST/JSON on port 8080
-  - kind: decision
-    name: Use PostgreSQL
-    description: Primary data store
-    category: data
-    statement: All persistent data in PostgreSQL
-    rationale: Team expertise, ACID compliance
-    tradeoffs: More ops overhead vs reliability
-```
 
 ## `.syde/` directory structure
 

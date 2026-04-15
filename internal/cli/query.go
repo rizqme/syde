@@ -2,211 +2,232 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
+	"strconv"
 
-	"github.com/feedloop/syde/internal/model"
-	"github.com/feedloop/syde/internal/query"
 	"github.com/spf13/cobra"
 )
 
 var (
-	queryKind      string
-	queryTag       string
-	queryStatus    string
-	queryFull      bool
-	queryRelatedTo string
-	queryDependsOn string
+	queryKind       string
+	queryTag        string
+	queryFull       bool
+	queryRelatedTo  string
+	queryDependsOn  string
 	queryDependedBy string
-	queryImpacts   string
-	queryFlow      string
-	queryFlowComps bool
-	querySearch    string
-	queryDiff      string
-	queryDiffSince string
-	queryFormat    string
+	queryImpacts    string
+	queryFlow       string
+	queryFlowComps  bool
+	querySearch     string
+	queryFile       string
+	queryCode       string
+	queryContent    bool
+	queryLimit      int
+	queryAny        bool
+	queryNoRelated  bool
+	queryFormat     string
 )
 
+// queryCmd is a thin wrapper over syded's /api/<project>/query
+// endpoint. The heavy lifting — graph walks, search, formatting — all
+// happens server-side so the CLI never opens BadgerDB. We just pick
+// the right mode + format and print what comes back.
 var queryCmd = &cobra.Command{
 	Use:   "query [slug]",
 	Short: "Rich query system for targeted information",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `The single entry point for understanding any file, symbol, or entity.
+
+syde query is the unified context surface where architecture (the entity
+index) and code (the source files) meet. Every query also reveals whether
+architecture and code are in sync — bypassing syde to grep or read raw
+silently disconnects the two and lets the design model rot.
+
+THE THREE-QUESTION CHECKLIST (run before any Grep / Read):
+
+  1. What entity owns this?      → syde query --file <path>  /  syde query <slug>
+  2. What does syde know about a term? → syde query --search "<term>"
+  3. What code references it?    → syde query --code "<symbol>"
+
+FIVE ACCESS PATHS:
+
+  1. Entity lookup       — syde query <slug> [--full]
+  2. Keyword search      — syde query --search "<terms>" [--kind K] [--tag T] [--limit N] [--any]
+  3. Code search         — syde query --code "<pattern>" [--limit N]
+  4. File → entities     — syde query --file <path> [--content] [--no-related]
+  5. Graph walks         — --impacts, --related-to, --depends-on, --depended-by, --flow --components
+
+Plus filter listings via --kind / --tag with no slug and no search term.
+
+NOTES:
+
+  - Search is AND by default; the engine auto-broadens to OR when AND
+    yields zero and labels the resulting hits "broadened".
+  - The tokenizer splits CamelCase and snake_case identifiers into
+    sub-tokens, so 'ConceptEntity' indexes as concept + entity too.
+  - --code uses ripgrep when available, falls back to a Go walker.
+    Every code hit carries its owning entity (or a ⚠ orphan warning).
+  - --file --content inlines the file body (capped at 100KB) alongside
+    owners + related — replaces 'Read <tracked-file>' entirely.
+
+DRIFT SIGNALS — act on these immediately:
+
+  - --file reports '⚠ DRIFT: no owning entities' → the tracked file is
+    an orphan. Map it (syde update <component> --file ...) or
+    'syde tree ignore <path>' if it is not part of the design model.
+  - --code reports '⚠ orphan' on any hit → same fix.
+
+These are the model telling you architecture has rotted relative to code.
+
+DO NOT use Grep or Read on files tracked by 'syde tree scan'. Use
+'syde query --code' for symbol search and 'syde query --file --content'
+for file reads. Reserve Grep / Read for vendor/, node_modules/, generated
+assets, .git/, build artifacts, and binary blobs only.
+`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		c, err := openClient()
 		if err != nil {
 			return err
 		}
-		defer store.Close()
-		eng := query.NewEngine(store)
+
+		format := queryFormat
+		if format == "" {
+			format = "rich"
+		}
+
+		printBytes := func(b []byte) {
+			if len(b) == 0 {
+				return
+			}
+			fmt.Print(string(b))
+			if b[len(b)-1] != '\n' {
+				fmt.Println()
+			}
+		}
 
 		// Entity lookup
 		if len(args) > 0 {
-			slug := args[0]
+			mode := "lookup"
 			if queryFull {
-				r, err := eng.FullContext(slug)
-				if err != nil {
-					return err
-				}
-				if queryFormat == "json" {
-					fmt.Println(query.FormatJSON(r))
-				} else {
-					fmt.Print(query.FormatRich(r))
-				}
-				return nil
+				mode = "full"
 			}
-			r, err := eng.Lookup(slug)
+			raw, err := c.Query(mode, args[0], format, nil)
 			if err != nil {
 				return err
 			}
-			if queryFormat == "json" {
-				fmt.Println(query.FormatJSON(r))
-			} else {
-				fmt.Print(query.FormatRich(r))
-			}
+			printBytes(raw)
 			return nil
 		}
 
-		// Impact analysis
-		if queryImpacts != "" {
-			r, err := eng.Impacts(queryImpacts, 3)
+		switch {
+		case queryImpacts != "":
+			raw, err := c.Query("impacts", queryImpacts, format, nil)
 			if err != nil {
 				return err
 			}
-			fmt.Print(query.FormatImpact(r))
+			printBytes(raw)
 			return nil
-		}
-
-		// Flow decomposition
-		if queryFlow != "" && queryFlowComps {
-			fd, err := eng.FlowComponents(queryFlow)
+		case queryFlow != "" && queryFlowComps:
+			raw, err := c.Query("flow-components", queryFlow, format, nil)
 			if err != nil {
 				return err
 			}
-			fmt.Print(query.FormatFlowDecomposition(fd))
+			printBytes(raw)
 			return nil
-		}
-
-		// Related to
-		if queryRelatedTo != "" {
-			results, err := eng.RelatedTo(queryRelatedTo)
+		case queryRelatedTo != "":
+			raw, err := c.Query("related-to", queryRelatedTo, format, nil)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("Related to %s:\n\n", queryRelatedTo)
-			printSummaries(results)
+			printBytes(raw)
 			return nil
-		}
-
-		// Depends on
-		if queryDependsOn != "" {
-			results, err := eng.DependsOn(queryDependsOn)
+		case queryDependsOn != "":
+			raw, err := c.Query("depends-on", queryDependsOn, format, nil)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("%s depends on:\n\n", queryDependsOn)
-			printSummaries(results)
+			printBytes(raw)
 			return nil
-		}
-
-		// Depended by
-		if queryDependedBy != "" {
-			results, err := eng.DependedBy(queryDependedBy)
+		case queryDependedBy != "":
+			raw, err := c.Query("depended-by", queryDependedBy, format, nil)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("Depended by %s:\n\n", queryDependedBy)
-			printSummaries(results)
+			printBytes(raw)
 			return nil
-		}
-
-		// Search
-		if querySearch != "" {
-			hits, err := eng.Search(querySearch)
+		case querySearch != "":
+			extra := url.Values{}
+			extra.Set("q", querySearch)
+			if queryKind != "" {
+				extra.Set("kind", queryKind)
+			}
+			if queryTag != "" {
+				extra.Set("tag", queryTag)
+			}
+			if queryAny {
+				extra.Set("any", "true")
+			}
+			if queryLimit > 0 {
+				extra.Set("limit", strconv.Itoa(queryLimit))
+			}
+			raw, err := c.Query("search", "", format, extra)
 			if err != nil {
 				return err
 			}
-			if len(hits) == 0 {
-				fmt.Printf("No results for '%s'\n", querySearch)
-				return nil
-			}
-			fmt.Printf("Search results for '%s':\n\n", querySearch)
-			for _, h := range hits {
-				fmt.Printf("  %-12s %-25s %s\n", h.Kind, h.Name, h.File)
-			}
-			fmt.Printf("\n%d results\n", len(hits))
+			printBytes(raw)
 			return nil
-		}
-
-		// Diff
-		if queryDiff != "" {
-			entries, err := query.EntityDiff(store, queryDiff, queryDiffSince)
+		case queryFile != "":
+			extra := url.Values{}
+			extra.Set("path", queryFile)
+			if queryNoRelated {
+				extra.Set("with_related", "false")
+			}
+			if queryContent {
+				extra.Set("content", "true")
+			}
+			raw, err := c.Query("by-file", "", format, extra)
 			if err != nil {
 				return err
 			}
-			if len(entries) == 0 {
-				fmt.Printf("No changes found for %s", queryDiff)
-				if queryDiffSince != "" {
-					fmt.Printf(" since %s", queryDiffSince)
-				}
-				fmt.Println()
-				return nil
+			printBytes(raw)
+			return nil
+		case queryCode != "":
+			extra := url.Values{}
+			extra.Set("q", queryCode)
+			if queryLimit > 0 {
+				extra.Set("limit", strconv.Itoa(queryLimit))
 			}
-			fmt.Printf("Changes to %s:\n\n", queryDiff)
-			for _, e := range entries {
-				fmt.Printf("  %s %s  %s\n", e.Date, e.Hash, e.Subject)
+			raw, err := c.Query("code", "", format, extra)
+			if err != nil {
+				return err
 			}
+			printBytes(raw)
 			return nil
 		}
 
-		// Filter
-		var kind model.EntityKind
+		// Default: filter by kind/tag
+		extra := url.Values{}
 		if queryKind != "" {
-			k, ok := model.ParseEntityKind(queryKind)
-			if !ok {
-				return fmt.Errorf("unknown kind: %s", queryKind)
-			}
-			kind = k
+			extra.Set("kind", queryKind)
 		}
-		results, err := eng.Filter(kind, queryTag, queryStatus)
+		if queryTag != "" {
+			extra.Set("tag", queryTag)
+		}
+		raw, err := c.Query("filter", "", format, extra)
 		if err != nil {
 			return err
 		}
-		if len(results) == 0 {
-			fmt.Println("No entities found.")
-			return nil
-		}
-
-		switch queryFormat {
-		case "compact":
-			fmt.Print(query.FormatCompact(results))
-		case "refs":
-			fmt.Print(query.FormatRefs(results))
-		default:
-			fmt.Print(query.FormatCompact(results))
-		}
-		fmt.Printf("\n%d entities\n", len(results))
+		printBytes(raw)
 		return nil
 	},
-}
-
-func printSummaries(results []query.EntitySummary) {
-	if len(results) == 0 {
-		fmt.Println("  (none)")
-		return
-	}
-	switch queryFormat {
-	case "compact":
-		fmt.Print(query.FormatCompact(results))
-	case "refs":
-		fmt.Print(query.FormatRefs(results))
-	default:
-		fmt.Print(query.FormatCompact(results))
-	}
-	fmt.Printf("\n%d entities\n", len(results))
 }
 
 func init() {
 	queryCmd.Flags().StringVar(&queryKind, "kind", "", "filter by entity kind")
 	queryCmd.Flags().StringVar(&queryTag, "tag", "", "filter by tag")
-	queryCmd.Flags().StringVar(&queryStatus, "status", "", "filter by status")
 	queryCmd.Flags().BoolVar(&queryFull, "full", false, "full context dump")
 	queryCmd.Flags().StringVar(&queryRelatedTo, "related-to", "", "all entities related to slug")
 	queryCmd.Flags().StringVar(&queryDependsOn, "depends-on", "", "what slug depends on")
@@ -214,9 +235,13 @@ func init() {
 	queryCmd.Flags().StringVar(&queryImpacts, "impacts", "", "transitive impact analysis")
 	queryCmd.Flags().StringVar(&queryFlow, "flow", "", "flow slug for decomposition")
 	queryCmd.Flags().BoolVar(&queryFlowComps, "components", false, "show flow components")
-	queryCmd.Flags().StringVar(&querySearch, "search", "", "full-text search")
-	queryCmd.Flags().StringVar(&queryDiff, "diff", "", "entity slug for git change history")
-	queryCmd.Flags().StringVar(&queryDiffSince, "since", "", "git diff since (e.g. 7d, 2026-04-01)")
+	queryCmd.Flags().StringVar(&querySearch, "search", "", "full-text search (honors --kind/--tag/--limit/--any)")
+	queryCmd.Flags().StringVar(&queryFile, "file", "", "find entities owning a source file path (exact match, or directory prefix); includes one-hop related entities unless --no-related")
+	queryCmd.Flags().StringVar(&queryCode, "code", "", "literal-string search across every tracked source file (uses ripgrep when available, Go fallback otherwise); each hit is annotated with its owning entity")
+	queryCmd.Flags().BoolVar(&queryContent, "content", false, "--file: also inline the file content (capped at 100KB)")
+	queryCmd.Flags().IntVar(&queryLimit, "limit", 0, "max results for search/code (0 = unbounded for search, 50 for code)")
+	queryCmd.Flags().BoolVar(&queryAny, "any", false, "search: OR-merge tokens instead of the default AND")
+	queryCmd.Flags().BoolVar(&queryNoRelated, "no-related", false, "--file: omit one-hop related entities")
 	queryCmd.Flags().StringVar(&queryFormat, "format", "rich", "output format (rich, json, compact, refs)")
 	rootCmd.AddCommand(queryCmd)
 }

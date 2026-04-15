@@ -8,8 +8,40 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/feedloop/syde/internal/storage"
 )
+
+// Per-project Store handle cache. syded is now the sole owner of the
+// on-disk BadgerDB index — the CLI talks to syded over HTTP instead of
+// opening its own handle, so there's no more lock contention and the
+// in-memory / fsnotify scaffolding from the previous phase is gone.
+// Writes come in through the /api/<project>/entity endpoints, which
+// call Store.Create/Update/Delete directly under syded's single
+// writer.
+var (
+	storeCacheMu sync.Mutex
+	storeCache   = make(map[string]*storage.Store)
+)
+
+// GetStore returns a cached Store for the given .syde/ directory,
+// opening the persistent BadgerDB index on first access. Callers MUST
+// NOT Close() the returned store — the cache owns its lifetime.
+func GetStore(sydeDir string) (*storage.Store, error) {
+	storeCacheMu.Lock()
+	defer storeCacheMu.Unlock()
+	if s, ok := storeCache[sydeDir]; ok {
+		return s, nil
+	}
+	s, err := storage.NewStore(sydeDir)
+	if err != nil {
+		return nil, err
+	}
+	storeCache[sydeDir] = s
+	return s, nil
+}
 
 // ProjectEntry is a registered project in the dashboard.
 type ProjectEntry struct {

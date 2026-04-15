@@ -1,0 +1,5 @@
+project: syde
+version: 0.1.0
+default_status: draft
+index_path: index
+gitignore_index: true

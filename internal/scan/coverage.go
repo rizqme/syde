@@ -26,11 +26,22 @@ func CheckCoverage(guide *ScanGuide, store *storage.Store) ([]CoverageEntry, err
 		return nil, err
 	}
 
-	// Build slug → name map
+	// Build slug → name map and dir → component map from files field
 	compMap := make(map[string]string)
+	dirToComp := make(map[string]string) // directory path → component name
 	for _, ewb := range components {
 		b := ewb.Entity.GetBase()
-		compMap[utils.Slugify(b.Name)] = b.Name
+		slug := utils.Slugify(b.Name)
+		compMap[slug] = b.Name
+		// Map file globs to directories
+		for _, f := range b.Files {
+			// Extract directory from glob (e.g., "internal/storage/*.go" → "internal/storage")
+			dir := f
+			if idx := strings.LastIndex(f, "/"); idx >= 0 {
+				dir = f[:idx]
+			}
+			dirToComp[dir] = b.Name
+		}
 	}
 
 	var entries []CoverageEntry
@@ -54,21 +65,19 @@ func CheckCoverage(guide *ScanGuide, store *storage.Store) ([]CoverageEntry, err
 			continue
 		}
 
-		// Try to match directory to a component slug
-		slug := utils.Slugify(lastPart)
-		if name, ok := compMap[slug]; ok {
+		// Try to match directory to a component
+		// 1. Check files field mapping (e.g., "internal/storage/*.go" covers "internal/storage")
+		if name, ok := dirToComp[dir.Path]; ok {
 			entry.Covered = true
-			entry.ComponentSlug = slug
 			entry.ComponentName = name
+			entry.ComponentSlug = utils.Slugify(name)
 		} else {
-			// Try matching with parent dir prefix
-			if len(parts) >= 2 {
-				slug = utils.Slugify(parts[len(parts)-1])
-				if name, ok := compMap[slug]; ok {
-					entry.Covered = true
-					entry.ComponentSlug = slug
-					entry.ComponentName = name
-				}
+			// 2. Try slug match on directory name
+			slug := utils.Slugify(lastPart)
+			if name, ok := compMap[slug]; ok {
+				entry.Covered = true
+				entry.ComponentSlug = slug
+				entry.ComponentName = name
 			}
 		}
 

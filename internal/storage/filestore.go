@@ -20,7 +20,9 @@ func NewFileStore(root string) *FileStore {
 	return &FileStore{Root: root}
 }
 
-// Save writes an entity to a markdown file.
+// Save writes an entity to a markdown file. Uses b.Slug (the full slug
+// with random suffix) as the filename; falls back to Slugify(name) for
+// legacy entities created before the slug field existed.
 func (fs *FileStore) Save(e model.Entity, body string) (string, error) {
 	b := e.GetBase()
 	dir := filepath.Join(fs.Root, b.Kind.KindPlural())
@@ -28,7 +30,10 @@ func (fs *FileStore) Save(e model.Entity, body string) (string, error) {
 		return "", fmt.Errorf("create dir: %w", err)
 	}
 
-	slug := utils.Slugify(b.Name)
+	slug := b.Slug
+	if slug == "" {
+		slug = utils.Slugify(b.Name)
+	}
 	filePath := filepath.Join(dir, slug+".md")
 
 	data, err := Marshal(e, body)

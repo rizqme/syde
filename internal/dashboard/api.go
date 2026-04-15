@@ -8,6 +8,7 @@ import (
 	"github.com/feedloop/syde/internal/model"
 	"github.com/feedloop/syde/internal/query"
 	"github.com/feedloop/syde/internal/storage"
+	"github.com/feedloop/syde/internal/tree"
 	"github.com/feedloop/syde/internal/utils"
 )
 
@@ -37,14 +38,16 @@ func handleProjectAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Open store for this project
+	// Reuse a cached Store per project. BadgerDB holds an exclusive
+	// directory lock, so opening a fresh handle per request 500s under
+	// concurrency. GetStore opens lazily and keeps the handle alive for
+	// the daemon's lifetime — do NOT Close() it here.
 	sydeDir := project.Path + "/.syde"
-	store, err := storage.NewStore(sydeDir)
+	store, err := GetStore(sydeDir)
 	if err != nil {
 		jsonError(w, "cannot open .syde/: "+err.Error(), 500)
 		return
 	}
-	defer store.Close()
 
 	switch {
 	case endpoint == "" || endpoint == "status":
@@ -67,9 +70,69 @@ func handleProjectAPI(w http.ResponseWriter, r *http.Request) {
 		handleSearchAPI(w, r, store)
 	case endpoint == "constraints":
 		handleConstraintsAPI(w, store)
+	case endpoint == "constraints-check":
+		handleConstraintsCheckAPI(w, r, store)
+	case endpoint == "validate" || endpoint == "sync-check":
+		handleValidateAPI(w, r, store)
+	case endpoint == "context":
+		handleContextAPI(w, store)
+	case endpoint == "query":
+		handleQueryAPI(w, r, store)
+	case endpoint == "reindex":
+		handleReindexAPI(w, r, store)
+	case endpoint == "entity" && (r.Method == http.MethodPost || r.Method == http.MethodPut):
+		handleEntityWrite(w, r, store)
+	case strings.HasPrefix(endpoint, "entity-raw/"):
+		handleEntityRaw(w, strings.TrimPrefix(endpoint, "entity-raw/"), store)
+	case strings.HasPrefix(endpoint, "entity/") && r.Method == http.MethodDelete:
+		// /entity/<kind>/<slug>
+		rest := strings.TrimPrefix(endpoint, "entity/")
+		parts := strings.SplitN(rest, "/", 2)
+		if len(parts) != 2 {
+			jsonError(w, "delete path must be entity/<kind>/<slug>", 400)
+			return
+		}
+		handleEntityDelete(w, parts[0], parts[1], store)
+	case strings.HasPrefix(endpoint, "files/"):
+		handleFilesAPI(w, r, strings.TrimPrefix(endpoint, "files/"), store)
+	case endpoint == "tree":
+		handleTree(w, store)
+	case strings.HasPrefix(endpoint, "tree/"):
+		handleTreeNode(w, strings.TrimPrefix(endpoint, "tree/"), store)
 	default:
 		jsonError(w, "unknown endpoint: "+endpoint, 404)
 	}
+}
+
+func handleTree(w http.ResponseWriter, store *storage.Store) {
+	t, err := tree.Load(store.FS.Root)
+	if err != nil {
+		jsonError(w, "cannot load tree: "+err.Error(), 500)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"scanned_at": t.ScannedAt,
+		"root":       t.Root,
+		"nodes":      t.Nodes,
+	})
+}
+
+func handleTreeNode(w http.ResponseWriter, path string, store *storage.Store) {
+	t, err := tree.Load(store.FS.Root)
+	if err != nil {
+		jsonError(w, "cannot load tree: "+err.Error(), 500)
+		return
+	}
+	projectRoot := store.FS.Root + "/.."
+	bundle, err := tree.BuildContext(t, path, tree.ContextOptions{
+		IncludeContent: true,
+		ProjectRoot:    projectRoot,
+	})
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+	json.NewEncoder(w).Encode(bundle)
 }
 
 func handleStatus(w http.ResponseWriter, store *storage.Store) {
@@ -91,7 +154,6 @@ func handleStatus(w http.ResponseWriter, store *storage.Store) {
 func handleEntities(w http.ResponseWriter, r *http.Request, store *storage.Store) {
 	kindFilter := r.URL.Query().Get("kind")
 	tagFilter := r.URL.Query().Get("tag")
-	statusFilter := r.URL.Query().Get("status")
 
 	eng := query.NewEngine(store)
 	var kind model.EntityKind
@@ -103,19 +165,18 @@ func handleEntities(w http.ResponseWriter, r *http.Request, store *storage.Store
 		}
 		kind = k
 	}
-	results, _ := eng.Filter(kind, tagFilter, statusFilter)
+	results, _ := eng.Filter(kind, tagFilter)
 	json.NewEncoder(w).Encode(map[string]interface{}{"entities": results, "count": len(results)})
 }
 
 func handleEntityDetail(w http.ResponseWriter, endpoint string, store *storage.Store) {
-	// endpoint format: entity/{kind}/{slug}
+	// Supports: entity/{slug} or entity/{kind}/{slug}
 	rest := strings.TrimPrefix(endpoint, "entity/")
 	parts := strings.SplitN(rest, "/", 2)
-	if len(parts) < 2 {
-		jsonError(w, "expected entity/{kind}/{slug}", 400)
-		return
+	slug := parts[0]
+	if len(parts) == 2 {
+		slug = parts[1]
 	}
-	slug := parts[1]
 	eng := query.NewEngine(store)
 	resolved, err := eng.Lookup(slug)
 	if err != nil {
@@ -170,9 +231,9 @@ func handlePlans(w http.ResponseWriter, store *storage.Store) {
 		p := ewb.Entity.(*model.PlanEntity)
 		result = append(result, map[string]interface{}{
 			"name":     p.Name,
-			"status":   p.Status,
+			"status":   p.PlanStatus,
 			"progress": p.Progress(),
-			"steps":    p.Steps,
+			"phases":   p.Phases,
 			"created":  p.CreatedAt,
 		})
 	}
@@ -203,7 +264,7 @@ func handleTasks(w http.ResponseWriter, store *storage.Store) {
 		t := ewb.Entity.(*model.TaskEntity)
 		result = append(result, map[string]interface{}{
 			"name":     t.Name,
-			"status":   t.Status,
+			"status":   t.TaskStatus,
 			"priority": t.Priority,
 			"plan_ref": t.PlanRef,
 		})
@@ -219,7 +280,6 @@ func handleDesigns(w http.ResponseWriter, store *storage.Store) {
 		result = append(result, map[string]interface{}{
 			"name":        d.Name,
 			"design_type": d.DesignType,
-			"status":      d.Status,
 		})
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{"designs": result})
@@ -232,7 +292,7 @@ func handleSearchAPI(w http.ResponseWriter, r *http.Request, store *storage.Stor
 		return
 	}
 	eng := query.NewEngine(store)
-	hits, _ := eng.Search(q)
+	hits, _ := eng.Search(query.SearchOptions{Query: q})
 	json.NewEncoder(w).Encode(map[string]interface{}{"query": q, "results": hits, "count": len(hits)})
 }
 
@@ -241,11 +301,9 @@ func handleConstraintsAPI(w http.ResponseWriter, store *storage.Store) {
 	var activeDecisions []map[string]string
 	for _, ewb := range decisions {
 		d := ewb.Entity.(*model.DecisionEntity)
-		if d.Status == model.StatusActive || d.Status == "" || d.Status == model.StatusDraft {
-			activeDecisions = append(activeDecisions, map[string]string{
-				"name": d.Name, "statement": d.Statement, "category": d.Category,
-			})
-		}
+		activeDecisions = append(activeDecisions, map[string]string{
+			"name": d.Name, "statement": d.Statement, "category": d.Category,
+		})
 	}
 
 	learnings, _ := store.List(model.KindLearning)

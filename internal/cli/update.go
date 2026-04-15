@@ -11,36 +11,46 @@ import (
 
 var (
 	// Base
-	updateName        string
-	updateDescription string
-	updatePurpose     string
-	updateStatus      string
-	updateAddTags     []string
-	updateRemoveTags  []string
-	updateBody        string
-	updateAddRel      string
-	updateRemoveRel   string
+	updateName             string
+	updateDescription      string
+	updatePurpose          string
+	updateDeprecated       bool
+	updateDeprecatedReason string
+	updateReplacedBy       string
+	updateAddTags          []string
+	updateFiles            []string
+	updateAddNotes         []string
+	updateRemoveTags       []string
+	updateBody             string
+	updateAddRel           []string
+	updateRemoveRel        []string
 	// Component
 	updCompResponsibility  string
+	updCompCapabilities    []string
 	updCompBoundaries      string
 	updCompBehaviorSummary string
 	updCompInteractionSum  string
 	updCompDataHandling    string
 	updCompScalingNotes    string
 	// Contract
-	updContKind       string
-	updContPattern    string
-	updContProtocol   string
-	updContInputDesc  string
-	updContOutputDesc string
-	updContConstraints string
-	updContVersioning string
+	updContKind         string
+	updContPattern      string
+	updContProtocol     string
+	updContInput        string
+	updContInputParams  []string
+	updContOutput       string
+	updContOutputParams []string
+	updContConstraints  string
+	updContVersioning   string
+	updContWireframe    string
 	// Concept
-	updConcMeaning       string
-	updConcStructure     string
-	updConcLifecycle     string
-	updConcInvariants    string
-	updConcSensitivity   string
+	updConcMeaning     string
+	updConcStructure   string
+	updConcLifecycle   string
+	updConcInvariants  string
+	updConcSensitivity string
+	updConcAttributes  []string
+	updConcActions     []string
 	// Flow
 	updFlowTrigger     string
 	updFlowGoal        string
@@ -56,11 +66,20 @@ var (
 	updDecAlternatives string
 	updDecTradeoffs    string
 	updDecConsequences string
+	updDecSupersedes   string
+	// Requirement
+	updReqSource         string
+	updReqSourceRef      string
+	updReqStatus         string
+	updReqAcceptance     string
+	updReqSupersededBy   string
+	updReqObsoleteReason string
+	updReqApprovedAt     string
 	// System
-	updSysContext    string
-	updSysScope     string
-	updSysPrinciples string
-	updSysQuality   string
+	updSysContext     string
+	updSysScope       string
+	updSysPrinciples  string
+	updSysQuality     string
 	updSysAssumptions string
 )
 
@@ -71,7 +90,7 @@ var updateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slug := args[0]
 
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -86,33 +105,81 @@ var updateCmd = &cobra.Command{
 		changed := false
 
 		// Base fields
-		if cmd.Flags().Changed("name") { b.Name = updateName; changed = true }
-		if cmd.Flags().Changed("description") { b.Description = updateDescription; changed = true }
-		if cmd.Flags().Changed("purpose") { b.Purpose = updatePurpose; changed = true }
-		if cmd.Flags().Changed("status") { b.Status = model.Status(updateStatus); changed = true }
-		if cmd.Flags().Changed("body") { body = updateBody; changed = true }
+		if cmd.Flags().Changed("name") {
+			b.Name = updateName
+			changed = true
+		}
+		if cmd.Flags().Changed("description") {
+			b.Description = updateDescription
+			changed = true
+		}
+		if cmd.Flags().Changed("purpose") {
+			b.Purpose = updatePurpose
+			changed = true
+		}
+		if cmd.Flags().Changed("file") {
+			b.Files = updateFiles
+			changed = true
+		}
+		if cmd.Flags().Changed("deprecated") {
+			b.Deprecated = updateDeprecated
+			changed = true
+		}
+		if cmd.Flags().Changed("deprecated-reason") {
+			b.DeprecatedReason = updateDeprecatedReason
+			changed = true
+		}
+		if cmd.Flags().Changed("replaced-by") {
+			b.ReplacedBy = updateReplacedBy
+			changed = true
+		}
+		if cmd.Flags().Changed("body") {
+			body = updateBody
+			changed = true
+		}
+		if cmd.Flags().Changed("note") {
+			b.Notes = append(b.Notes, updateAddNotes...)
+			changed = true
+		}
 
 		for _, tag := range updateAddTags {
-			if !hasTagSlice(b.Tags, tag) { b.Tags = append(b.Tags, tag); changed = true }
-		}
-		for _, tag := range updateRemoveTags {
-			b.Tags = removeTagSlice(b.Tags, tag); changed = true
-		}
-
-		// Relationship management
-		if cmd.Flags().Changed("add-rel") && updateAddRel != "" {
-			parts := strings.SplitN(updateAddRel, ":", 2)
-			if len(parts) == 2 {
-				b.Relationships = append(b.Relationships, model.Relationship{Target: parts[0], Type: parts[1]})
+			if !hasTagSlice(b.Tags, tag) {
+				b.Tags = append(b.Tags, tag)
 				changed = true
 			}
 		}
-		if cmd.Flags().Changed("remove-rel") && updateRemoveRel != "" {
+		for _, tag := range updateRemoveTags {
+			b.Tags = removeTagSlice(b.Tags, tag)
+			changed = true
+		}
+
+		// Relationship management
+		if cmd.Flags().Changed("add-rel") {
+			for _, spec := range updateAddRel {
+				if spec == "" {
+					continue
+				}
+				rel, err := parseRelSpec(spec)
+				if err != nil {
+					return err
+				}
+				b.Relationships = append(b.Relationships, rel)
+				changed = true
+			}
+		}
+		if cmd.Flags().Changed("remove-rel") && len(updateRemoveRel) > 0 {
+			removeSet := make(map[string]bool, len(updateRemoveRel))
+			for _, t := range updateRemoveRel {
+				if t != "" {
+					removeSet[t] = true
+				}
+			}
 			var kept []model.Relationship
 			for _, r := range b.Relationships {
-				if r.Target != updateRemoveRel {
-					kept = append(kept, r)
+				if removeSet[r.Target] {
+					continue
 				}
+				kept = append(kept, r)
 			}
 			b.Relationships = kept
 			changed = true
@@ -121,47 +188,258 @@ var updateCmd = &cobra.Command{
 		// Kind-specific fields
 		switch v := entity.(type) {
 		case *model.ComponentEntity:
-			if cmd.Flags().Changed("responsibility") { v.Responsibility = updCompResponsibility; changed = true }
-			if cmd.Flags().Changed("boundaries") { v.Boundaries = updCompBoundaries; changed = true }
-			if cmd.Flags().Changed("behavior-summary") { v.BehaviorSummary = updCompBehaviorSummary; changed = true }
-			if cmd.Flags().Changed("interaction-summary") { v.InteractionSummary = updCompInteractionSum; changed = true }
-			if cmd.Flags().Changed("data-handling") { v.DataHandling = updCompDataHandling; changed = true }
-			if cmd.Flags().Changed("scaling-notes") { v.ScalingNotes = updCompScalingNotes; changed = true }
+			if cmd.Flags().Changed("responsibility") {
+				v.Responsibility = updCompResponsibility
+				changed = true
+			}
+			if cmd.Flags().Changed("capability") {
+				v.Capabilities = updCompCapabilities
+				changed = true
+			}
+			if cmd.Flags().Changed("boundaries") {
+				v.Boundaries = updCompBoundaries
+				changed = true
+			}
+			if cmd.Flags().Changed("behavior-summary") {
+				v.BehaviorSummary = updCompBehaviorSummary
+				changed = true
+			}
+			if cmd.Flags().Changed("interaction-summary") {
+				v.InteractionSummary = updCompInteractionSum
+				changed = true
+			}
+			if cmd.Flags().Changed("data-handling") {
+				v.DataHandling = updCompDataHandling
+				changed = true
+			}
+			if cmd.Flags().Changed("scaling-notes") {
+				v.ScalingNotes = updCompScalingNotes
+				changed = true
+			}
 		case *model.ContractEntity:
-			if cmd.Flags().Changed("contract-kind") { v.ContractKind = updContKind; changed = true }
-			if cmd.Flags().Changed("interaction-pattern") { v.InteractionPattern = updContPattern; changed = true }
-			if cmd.Flags().Changed("protocol-notes") { v.ProtocolNotes = updContProtocol; changed = true }
-			if cmd.Flags().Changed("input-desc") { v.InputDescription = updContInputDesc; changed = true }
-			if cmd.Flags().Changed("output-desc") { v.OutputDescription = updContOutputDesc; changed = true }
-			if cmd.Flags().Changed("constraints-text") { v.Constraints = updContConstraints; changed = true }
-			if cmd.Flags().Changed("versioning-notes") { v.VersioningNotes = updContVersioning; changed = true }
+			if cmd.Flags().Changed("contract-kind") {
+				v.ContractKind = updContKind
+				changed = true
+			}
+			if cmd.Flags().Changed("interaction-pattern") {
+				v.InteractionPattern = updContPattern
+				changed = true
+			}
+			if cmd.Flags().Changed("protocol-notes") {
+				v.ProtocolNotes = updContProtocol
+				changed = true
+			}
+			if cmd.Flags().Changed("input") {
+				v.Input = updContInput
+				changed = true
+			}
+			if cmd.Flags().Changed("input-parameter") {
+				v.InputParameters = parseContractParams(updContInputParams)
+				changed = true
+			}
+			if cmd.Flags().Changed("output") {
+				v.Output = updContOutput
+				changed = true
+			}
+			if cmd.Flags().Changed("output-parameter") {
+				v.OutputParameters = parseContractParams(updContOutputParams)
+				changed = true
+			}
+			if cmd.Flags().Changed("constraints-text") {
+				v.Constraints = updContConstraints
+				changed = true
+			}
+			if cmd.Flags().Changed("versioning-notes") {
+				v.VersioningNotes = updContVersioning
+				changed = true
+			}
+			if cmd.Flags().Changed("wireframe") {
+				v.Wireframe = updContWireframe
+				changed = true
+			}
 		case *model.ConceptEntity:
-			if cmd.Flags().Changed("meaning") { v.Meaning = updConcMeaning; changed = true }
-			if cmd.Flags().Changed("structure-notes") { v.StructureNotes = updConcStructure; changed = true }
-			if cmd.Flags().Changed("lifecycle") { v.Lifecycle = updConcLifecycle; changed = true }
-			if cmd.Flags().Changed("invariants") { v.Invariants = updConcInvariants; changed = true }
-			if cmd.Flags().Changed("data-sensitivity") { v.DataSensitivity = updConcSensitivity; changed = true }
+			if cmd.Flags().Changed("meaning") {
+				v.Meaning = updConcMeaning
+				changed = true
+			}
+			if cmd.Flags().Changed("structure-notes") {
+				v.StructureNotes = updConcStructure
+				changed = true
+			}
+			if cmd.Flags().Changed("lifecycle") {
+				v.Lifecycle = updConcLifecycle
+				changed = true
+			}
+			if cmd.Flags().Changed("invariants") {
+				v.Invariants = updConcInvariants
+				changed = true
+			}
+			if cmd.Flags().Changed("data-sensitivity") {
+				v.DataSensitivity = updConcSensitivity
+				changed = true
+			}
+			if cmd.Flags().Changed("attribute") {
+				v.Attributes = parseConceptAttributes(updConcAttributes)
+				changed = true
+			}
+			if cmd.Flags().Changed("action") {
+				v.Actions = parseConceptActions(updConcActions)
+				changed = true
+			}
 		case *model.FlowEntity:
-			if cmd.Flags().Changed("trigger") { v.Trigger = updFlowTrigger; changed = true }
-			if cmd.Flags().Changed("goal") { v.Goal = updFlowGoal; changed = true }
-			if cmd.Flags().Changed("narrative") { v.Narrative = updFlowNarrative; changed = true }
-			if cmd.Flags().Changed("happy-path") { v.HappyPath = updFlowHappyPath; changed = true }
-			if cmd.Flags().Changed("edge-cases") { v.EdgeCases = updFlowEdgeCases; changed = true }
-			if cmd.Flags().Changed("failure-modes") { v.FlowFailureModes = updFlowFailures; changed = true }
-			if cmd.Flags().Changed("performance-notes") { v.PerformanceNotes = updFlowPerformance; changed = true }
+			if cmd.Flags().Changed("trigger") {
+				v.Trigger = updFlowTrigger
+				changed = true
+			}
+			if cmd.Flags().Changed("goal") {
+				v.Goal = updFlowGoal
+				changed = true
+			}
+			if cmd.Flags().Changed("narrative") {
+				v.Narrative = updFlowNarrative
+				changed = true
+			}
+			if cmd.Flags().Changed("happy-path") {
+				v.HappyPath = updFlowHappyPath
+				changed = true
+			}
+			if cmd.Flags().Changed("edge-cases") {
+				v.EdgeCases = updFlowEdgeCases
+				changed = true
+			}
+			if cmd.Flags().Changed("failure-modes") {
+				v.FlowFailureModes = updFlowFailures
+				changed = true
+			}
+			if cmd.Flags().Changed("performance-notes") {
+				v.PerformanceNotes = updFlowPerformance
+				changed = true
+			}
 		case *model.DecisionEntity:
-			if cmd.Flags().Changed("category") { v.Category = updDecCategory; changed = true }
-			if cmd.Flags().Changed("statement") { v.Statement = updDecStatement; changed = true }
-			if cmd.Flags().Changed("rationale") { v.Rationale = updDecRationale; changed = true }
-			if cmd.Flags().Changed("alternatives") { v.AlternativesConsidered = updDecAlternatives; changed = true }
-			if cmd.Flags().Changed("tradeoffs") { v.Tradeoffs = updDecTradeoffs; changed = true }
-			if cmd.Flags().Changed("consequences") { v.Consequences = updDecConsequences; changed = true }
+			if cmd.Flags().Changed("category") {
+				v.Category = updDecCategory
+				changed = true
+			}
+			if cmd.Flags().Changed("statement") {
+				v.Statement = updDecStatement
+				changed = true
+			}
+			if cmd.Flags().Changed("rationale") {
+				v.Rationale = updDecRationale
+				changed = true
+			}
+			if cmd.Flags().Changed("alternatives") {
+				v.AlternativesConsidered = updDecAlternatives
+				changed = true
+			}
+			if cmd.Flags().Changed("tradeoffs") {
+				v.Tradeoffs = updDecTradeoffs
+				changed = true
+			}
+			if cmd.Flags().Changed("consequences") {
+				v.Consequences = updDecConsequences
+				changed = true
+			}
+			if cmd.Flags().Changed("supersedes") {
+				v.Supersedes = updDecSupersedes
+				// Auto-deprecate the superseded decision
+				if oldDec, _, err := store.Get(updDecSupersedes); err == nil {
+					old := oldDec.GetBase()
+					old.Deprecated = true
+					old.DeprecatedReason = "Superseded by " + b.Name
+					old.ReplacedBy = b.CanonicalSlug()
+					store.Update(oldDec, "")
+					fmt.Printf("  Auto-deprecated: %s (superseded by %s)\n", old.Name, b.Name)
+				}
+				changed = true
+			}
+		case *model.RequirementEntity:
+			if cmd.Flags().Changed("statement") {
+				v.Statement = updDecStatement
+				changed = true
+			}
+			if cmd.Flags().Changed("source") {
+				v.Source = updReqSource
+				changed = true
+			}
+			if cmd.Flags().Changed("source-ref") {
+				v.SourceRef = updReqSourceRef
+				changed = true
+			}
+			if cmd.Flags().Changed("requirement-status") {
+				status, err := parseRequirementStatus(updReqStatus)
+				if err != nil {
+					return err
+				}
+				v.RequirementStatus = status
+				changed = true
+			}
+			if cmd.Flags().Changed("rationale") {
+				v.Rationale = updDecRationale
+				changed = true
+			}
+			if cmd.Flags().Changed("acceptance") {
+				v.AcceptanceCriteria = updReqAcceptance
+				changed = true
+			}
+			if cmd.Flags().Changed("supersedes") {
+				v.Supersedes = parseRefList(updDecSupersedes)
+				for _, oldRef := range v.Supersedes {
+					oldEntity, oldBody, err := store.Get(oldRef)
+					if err != nil {
+						continue
+					}
+					oldReq, ok := oldEntity.(*model.RequirementEntity)
+					if !ok {
+						continue
+					}
+					oldReq.RequirementStatus = model.RequirementSuperseded
+					oldReq.SupersededBy = appendRefOnce(oldReq.SupersededBy, b.CanonicalSlug())
+					if _, err := store.Update(oldEntity, oldBody); err == nil {
+						fmt.Printf("  Marked requirement superseded: %s\n", oldReq.Name)
+					}
+				}
+				changed = true
+			}
+			if cmd.Flags().Changed("superseded-by") {
+				v.SupersededBy = parseRefList(updReqSupersededBy)
+				if len(v.SupersededBy) > 0 {
+					v.RequirementStatus = model.RequirementSuperseded
+				}
+				changed = true
+			}
+			if cmd.Flags().Changed("obsolete-reason") {
+				v.ObsoleteReason = updReqObsoleteReason
+				if v.RequirementStatus == "" || v.RequirementStatus == model.RequirementActive {
+					v.RequirementStatus = model.RequirementObsolete
+				}
+				changed = true
+			}
+			if cmd.Flags().Changed("approved-at") {
+				v.ApprovedAt = updReqApprovedAt
+				changed = true
+			}
 		case *model.SystemEntity:
-			if cmd.Flags().Changed("context-text") { v.Context = updSysContext; changed = true }
-			if cmd.Flags().Changed("scope") { v.Scope = updSysScope; changed = true }
-			if cmd.Flags().Changed("design-principles") { v.DesignPrinciples = updSysPrinciples; changed = true }
-			if cmd.Flags().Changed("quality-goals") { v.QualityGoals = updSysQuality; changed = true }
-			if cmd.Flags().Changed("assumptions") { v.Assumptions = updSysAssumptions; changed = true }
+			if cmd.Flags().Changed("context-text") {
+				v.Context = updSysContext
+				changed = true
+			}
+			if cmd.Flags().Changed("scope") {
+				v.Scope = updSysScope
+				changed = true
+			}
+			if cmd.Flags().Changed("design-principles") {
+				v.DesignPrinciples = updSysPrinciples
+				changed = true
+			}
+			if cmd.Flags().Changed("quality-goals") {
+				v.QualityGoals = updSysQuality
+				changed = true
+			}
+			if cmd.Flags().Changed("assumptions") {
+				v.Assumptions = updSysAssumptions
+				changed = true
+			}
 		}
 
 		if !changed {
@@ -180,13 +458,21 @@ var updateCmd = &cobra.Command{
 }
 
 func hasTagSlice(tags []string, tag string) bool {
-	for _, t := range tags { if strings.EqualFold(t, tag) { return true } }
+	for _, t := range tags {
+		if strings.EqualFold(t, tag) {
+			return true
+		}
+	}
 	return false
 }
 
 func removeTagSlice(tags []string, tag string) []string {
 	var r []string
-	for _, t := range tags { if !strings.EqualFold(t, tag) { r = append(r, t) } }
+	for _, t := range tags {
+		if !strings.EqualFold(t, tag) {
+			r = append(r, t)
+		}
+	}
 	return r
 }
 
@@ -197,14 +483,23 @@ func init() {
 	f.StringVar(&updateName, "name", "", "new name")
 	f.StringVar(&updateDescription, "description", "", "new description")
 	f.StringVar(&updatePurpose, "purpose", "", "new purpose")
-	f.StringVar(&updateStatus, "status", "", "new status")
 	f.StringSliceVar(&updateAddTags, "add-tag", nil, "add tag")
+	// Use StringArrayVar (literal-valued, repeatable) for any flag whose
+	// values may legitimately contain commas — files, notes, relationships,
+	// capabilities. StringSliceVar splits on commas and silently corrupts
+	// the data.
+	f.StringArrayVar(&updateAddNotes, "note", nil, "append informal note (repeatable)")
+	f.StringArrayVar(&updateFiles, "file", nil, "concrete source file path (repeatable)")
+	f.BoolVar(&updateDeprecated, "deprecated", false, "mark entity as deprecated")
+	f.StringVar(&updateDeprecatedReason, "deprecated-reason", "", "reason for deprecation")
+	f.StringVar(&updateReplacedBy, "replaced-by", "", "slug of replacement entity")
 	f.StringSliceVar(&updateRemoveTags, "remove-tag", nil, "remove tag")
 	f.StringVar(&updateBody, "body", "", "set markdown body")
-	f.StringVar(&updateAddRel, "add-rel", "", "add relationship (target:type)")
-	f.StringVar(&updateRemoveRel, "remove-rel", "", "remove relationship by target")
+	f.StringArrayVar(&updateAddRel, "add-rel", nil, "add relationship (target:type) — repeatable")
+	f.StringArrayVar(&updateRemoveRel, "remove-rel", nil, "remove relationship by target — repeatable")
 	// Component
 	f.StringVar(&updCompResponsibility, "responsibility", "", "component responsibility")
+	f.StringArrayVar(&updCompCapabilities, "capability", nil, "component capability (repeatable)")
 	f.StringVar(&updCompBoundaries, "boundaries", "", "component boundaries")
 	f.StringVar(&updCompBehaviorSummary, "behavior-summary", "", "component behavior summary")
 	f.StringVar(&updCompInteractionSum, "interaction-summary", "", "component interaction summary")
@@ -214,16 +509,21 @@ func init() {
 	f.StringVar(&updContKind, "contract-kind", "", "contract kind (api/event/command/query)")
 	f.StringVar(&updContPattern, "interaction-pattern", "", "interaction pattern")
 	f.StringVar(&updContProtocol, "protocol-notes", "", "protocol notes")
-	f.StringVar(&updContInputDesc, "input-desc", "", "input description")
-	f.StringVar(&updContOutputDesc, "output-desc", "", "output description")
+	f.StringVar(&updContInput, "input", "", "contract invocation signature (e.g. 'GET /api/projects')")
+	f.StringArrayVar(&updContInputParams, "input-parameter", nil, "input parameter 'path|type|description' (repeatable, replaces existing)")
+	f.StringVar(&updContOutput, "output", "", "contract output signature / response shape")
+	f.StringArrayVar(&updContOutputParams, "output-parameter", nil, "output parameter 'path|type|description' (repeatable, replaces existing)")
 	f.StringVar(&updContConstraints, "constraints-text", "", "constraints")
 	f.StringVar(&updContVersioning, "versioning-notes", "", "versioning notes")
+	f.StringVar(&updContWireframe, "wireframe", "", "screen contract UIML wireframe source — required when --contract-kind=screen")
 	// Concept
 	f.StringVar(&updConcMeaning, "meaning", "", "concept meaning")
 	f.StringVar(&updConcStructure, "structure-notes", "", "structure notes")
 	f.StringVar(&updConcLifecycle, "lifecycle", "", "lifecycle")
 	f.StringVar(&updConcInvariants, "invariants", "", "invariants")
 	f.StringVar(&updConcSensitivity, "data-sensitivity", "", "data sensitivity")
+	f.StringArrayVar(&updConcAttributes, "attribute", nil, "concept attribute 'name|type|description' (repeatable, replaces existing)")
+	f.StringArrayVar(&updConcActions, "action", nil, "concept action 'name|description' (repeatable, replaces existing)")
 	// Flow
 	f.StringVar(&updFlowTrigger, "trigger", "", "flow trigger")
 	f.StringVar(&updFlowGoal, "goal", "", "flow goal")
@@ -239,6 +539,15 @@ func init() {
 	f.StringVar(&updDecAlternatives, "alternatives", "", "alternatives considered")
 	f.StringVar(&updDecTradeoffs, "tradeoffs", "", "tradeoffs")
 	f.StringVar(&updDecConsequences, "consequences", "", "consequences")
+	f.StringVar(&updDecSupersedes, "supersedes", "", "slug/ref superseded by this decision or requirement")
+	// Requirement
+	f.StringVar(&updReqSource, "source", "", "requirement source (user/plan/migration/manual)")
+	f.StringVar(&updReqSourceRef, "source-ref", "", "requirement source reference")
+	f.StringVar(&updReqStatus, "requirement-status", "", "requirement status (active/superseded/obsolete)")
+	f.StringVar(&updReqAcceptance, "acceptance", "", "requirement acceptance criteria")
+	f.StringVar(&updReqSupersededBy, "superseded-by", "", "requirement refs that supersede this one, comma-separated")
+	f.StringVar(&updReqObsoleteReason, "obsolete-reason", "", "why the requirement is obsolete")
+	f.StringVar(&updReqApprovedAt, "approved-at", "", "requirement approval timestamp")
 	// System
 	f.StringVar(&updSysContext, "context-text", "", "system context")
 	f.StringVar(&updSysScope, "scope", "", "system scope")

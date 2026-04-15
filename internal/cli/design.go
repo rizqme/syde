@@ -28,7 +28,7 @@ var designCreateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -36,9 +36,8 @@ var designCreateCmd = &cobra.Command{
 
 		design := &model.DesignEntity{
 			BaseEntity: model.BaseEntity{
-				Kind:   model.KindDesign,
-				Name:   name,
-				Status: model.StatusDraft,
+				Kind: model.KindDesign,
+				Name: name,
 			},
 			DesignType: model.DesignType(designType),
 		}
@@ -65,7 +64,7 @@ var designListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List designs",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -81,7 +80,7 @@ var designListCmd = &cobra.Command{
 		}
 		for _, ewb := range designs {
 			d := ewb.Entity.(*model.DesignEntity)
-			fmt.Printf("  %-12s %-30s %s\n", d.DesignType, d.Name, d.Status)
+			fmt.Printf("  %-12s %s\n", d.DesignType, d.Name)
 		}
 		return nil
 	},
@@ -92,7 +91,7 @@ var designShowCmd = &cobra.Command{
 	Short: "Render design as ASCII art",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -121,7 +120,7 @@ var designPreviewCmd = &cobra.Command{
 	Short: "Open design as HTML in browser",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -165,7 +164,7 @@ var designExportCmd = &cobra.Command{
 	Short: "Export design to a format",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -195,7 +194,7 @@ var designValidateCmd = &cobra.Command{
 	Short: "Validate UIML syntax",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -224,7 +223,7 @@ var designLinkCmd = &cobra.Command{
 	Short: "Link design to component/flow/concept",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}

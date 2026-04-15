@@ -9,12 +9,16 @@ import (
 
 // Config represents syde.yaml project configuration.
 type Config struct {
-	Project        string            `yaml:"project"`
-	Version        string            `yaml:"version"`
-	DefaultStatus  string            `yaml:"default_status,omitempty"`
-	IndexPath      string            `yaml:"index_path,omitempty"`
-	GitignoreIndex bool              `yaml:"gitignore_index,omitempty"`
+	Project        string              `yaml:"project"`
+	Version        string              `yaml:"version"`
+	DefaultStatus  string              `yaml:"default_status,omitempty"`
+	IndexPath      string              `yaml:"index_path,omitempty"`
+	GitignoreIndex bool                `yaml:"gitignore_index,omitempty"`
 	ComponentPaths map[string][]string `yaml:"component_paths,omitempty"`
+	// TreeIgnore lists extra glob patterns (gitignore syntax) excluded
+	// from `syde tree scan`, on top of the built-in defaults and the
+	// project's .gitignore.
+	TreeIgnore []string `yaml:"tree_ignore,omitempty"`
 }
 
 // DefaultConfig returns the default configuration.

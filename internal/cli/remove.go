@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/feedloop/syde/internal/utils"
+	"github.com/feedloop/syde/internal/model"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var removeCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slug := args[0]
 
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -32,6 +32,9 @@ var removeCmd = &cobra.Command{
 		}
 
 		b := entity.GetBase()
+		if b.Kind == model.KindRequirement {
+			return fmt.Errorf("requirements are append-only; mark the requirement superseded or obsolete instead")
+		}
 
 		if !removeForce {
 			fmt.Printf("Remove %s '%s' (%s)? [y/N] ", b.Kind, b.Name, b.ID)
@@ -43,8 +46,7 @@ var removeCmd = &cobra.Command{
 			}
 		}
 
-		entitySlug := utils.Slugify(b.Name)
-		if err := store.Delete(b.Kind, entitySlug); err != nil {
+		if err := store.Delete(b.Kind, b.CanonicalSlug()); err != nil {
 			return fmt.Errorf("delete: %w", err)
 		}
 

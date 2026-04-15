@@ -1,0 +1,67 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "syde codex-hook",
+            "statusMessage": "Loading syde architecture context",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "syde codex-hook",
+            "statusMessage": "Capturing syde requirement",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "syde codex-hook",
+            "statusMessage": "Checking syde plan/task guardrails",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "syde codex-hook",
+            "statusMessage": "Checking syde file mapping",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "syde codex-hook",
+            "statusMessage": "Running syde finish gate",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -25,7 +25,7 @@ var rememberCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := args[0]
 
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -36,7 +36,6 @@ var rememberCmd = &cobra.Command{
 				Kind:        model.KindLearning,
 				Name:        text,
 				Description: text,
-				Status:      model.StatusActive,
 				Tags:        rememberTags,
 			},
 			Category:     model.LearningCategory(rememberCategory),
@@ -73,7 +72,7 @@ var learnListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List learnings",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -111,7 +110,7 @@ var learnAboutCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entitySlug := args[0]
 
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -158,7 +157,7 @@ var learnSearchCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := strings.ToLower(args[0])
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -194,7 +193,7 @@ var learnPromoteCmd = &cobra.Command{
 	Short: "Promote learning to formal entity",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}
@@ -228,7 +227,6 @@ var learnPromoteCmd = &cobra.Command{
 		}
 
 		l.PromotedTo = nb.ID
-		l.Status = model.Status("promoted")
 		store.Update(l, body)
 
 		fmt.Printf("Promoted '%s' → %s\n", l.Name, kind)
@@ -242,7 +240,7 @@ var learnStaleCmd = &cobra.Command{
 	Use:   "stale",
 	Short: "Show learnings whose entities have changed",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		store, err := openWriteClient()
 		if err != nil {
 			return err
 		}

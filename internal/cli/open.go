@@ -46,6 +46,11 @@ var serverStopCmd = &cobra.Command{
 	},
 }
 
+var (
+	openPlan  string
+	openGraph bool
+)
+
 var openCmd = &cobra.Command{
 	Use:   "open",
 	Short: "Open this project in the dashboard (starts server if needed)",
@@ -82,6 +87,11 @@ var openCmd = &cobra.Command{
 		}
 
 		url := fmt.Sprintf("http://localhost:5703/%s", slug)
+		if openPlan != "" {
+			url += "/plans/" + openPlan
+		} else if openGraph {
+			url += "/graph"
+		}
 		fmt.Printf("Dashboard: %s\n", url)
 		openBrowser(url)
 
@@ -164,5 +174,7 @@ func init() {
 	serverCmd.AddCommand(serverStartCmd)
 	serverCmd.AddCommand(serverStopCmd)
 	rootCmd.AddCommand(serverCmd)
+	openCmd.Flags().StringVar(&openPlan, "plan", "", "open directly to a plan view")
+	openCmd.Flags().BoolVar(&openGraph, "graph", false, "open directly to graph view")
 	rootCmd.AddCommand(openCmd)
 }

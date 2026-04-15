@@ -1,73 +1,81 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
+
+var getFormat string
 
 var getCmd = &cobra.Command{
 	Use:   "get <id-or-slug>",
 	Short: "Show entity details",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		slug := args[0]
-
-		store, err := openStore()
+		c, err := openClient()
 		if err != nil {
 			return err
 		}
-		defer store.Close()
-
-		entity, body, err := store.Get(slug)
+		raw, err := c.Get(args[0])
 		if err != nil {
-			return fmt.Errorf("entity not found: %s", slug)
+			return err
 		}
 
-		b := entity.GetBase()
-		kindStr := string(b.Kind)
-		if len(kindStr) > 0 {
-			kindStr = strings.ToUpper(kindStr[:1]) + kindStr[1:]
-		}
-		fmt.Printf("═══ %s: %s ═══\n", kindStr, b.Name)
-		fmt.Printf("ID: %s | Status: %s", b.ID, b.Status)
-		if len(b.Tags) > 0 {
-			fmt.Printf(" | Tags: %s", strings.Join(b.Tags, ", "))
-		}
-		fmt.Println()
-
-		if b.Description != "" {
-			fmt.Printf("\n  %s\n", b.Description)
-		}
-		if b.Purpose != "" {
-			fmt.Printf("  Purpose: %s\n", b.Purpose)
+		if getFormat == FormatJSON {
+			fmt.Println(string(raw))
+			return nil
 		}
 
-		// Print kind-specific fields
-		fmBytes, _ := yaml.Marshal(entity)
-		fmt.Printf("\n%s", string(fmBytes))
+		// Rich mode: decode the server-side JSON (produced by
+		// query.FormatJSON on the ResolvedEntity) and pretty-print the
+		// salient fields.
+		var payload map[string]interface{}
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			return fmt.Errorf("decode: %w", err)
+		}
+		entity, _ := payload["entity"].(map[string]interface{})
+		if entity == nil {
+			fmt.Println(string(raw))
+			return nil
+		}
+		kindStr, _ := entity["kind"].(string)
+		name, _ := entity["name"].(string)
+		id, _ := entity["id"].(string)
+		desc, _ := entity["description"].(string)
 
-		if body != "" {
-			fmt.Printf("\n%s\n", body)
+		title := kindStr
+		if len(title) > 0 {
+			title = strings.ToUpper(title[:1]) + title[1:]
+		}
+		fmt.Printf("═══ %s: %s ═══\n", title, name)
+		fmt.Printf("ID: %s\n", id)
+		if desc != "" {
+			fmt.Printf("\n  %s\n", desc)
 		}
 
-		if len(b.Relationships) > 0 {
+		// Relationships section if present.
+		if rels, ok := payload["relationships"].([]interface{}); ok && len(rels) > 0 {
 			fmt.Println("\n── Relationships ──")
-			for _, rel := range b.Relationships {
-				label := ""
-				if rel.Label != "" {
-					label = " — " + rel.Label
+			for _, r := range rels {
+				rm, _ := r.(map[string]interface{})
+				typ, _ := rm["type"].(string)
+				target, _ := rm["target"].(string)
+				label, _ := rm["label"].(string)
+				if label != "" {
+					fmt.Printf("  → %s: %s — %s\n", typ, target, label)
+				} else {
+					fmt.Printf("  → %s: %s\n", typ, target)
 				}
-				fmt.Printf("  → %s: %s%s\n", rel.Type, rel.Target, label)
 			}
 		}
-
 		return nil
 	},
 }
 
 func init() {
+	getCmd.Flags().StringVar(&getFormat, "format", FormatRich, "output format (rich, json)")
 	rootCmd.AddCommand(getCmd)
 }

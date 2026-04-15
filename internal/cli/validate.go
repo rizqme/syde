@@ -2,69 +2,78 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/feedloop/syde/internal/model"
+	"github.com/feedloop/syde/internal/client"
 	"github.com/spf13/cobra"
 )
 
+var validateFormat string
+
+// syde validate is now a thin deprecated alias over the syded HTTP
+// API — it calls /validate and filters out everything but errors
+// to preserve its legacy errors-only semantics. The canonical health
+// gate is `syde sync check`.
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Check model integrity",
+	Short: "Check model integrity (deprecated — use 'syde sync check')",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store, err := openStore()
+		fmt.Fprintln(os.Stderr, "DEPRECATED: 'syde validate' is now an alias for 'syde sync check --errors-only'. Switch to 'syde sync check' for the full health report.")
+
+		c, err := openClient()
 		if err != nil {
 			return err
 		}
-		defer store.Close()
-
-		all, err := store.ListAll()
+		rep, err := c.Validate()
 		if err != nil {
 			return err
 		}
 
-		totalErrors := 0
-		totalWarnings := 0
+		// Errors-only filter.
+		rep.Warnings = nil
+		rep.Hints = nil
 
-		for _, ewb := range all {
-			errs := model.ValidateEntity(ewb.Entity)
-			b := ewb.Entity.GetBase()
-
-			for _, e := range errs {
-				if e.Message == "required" {
-					fmt.Printf("  ERROR  %s/%s: %s is %s\n", b.Kind, b.Name, e.Field, e.Message)
-					totalErrors++
-				} else {
-					fmt.Printf("  WARN   %s/%s: %s is %s\n", b.Kind, b.Name, e.Field, e.Message)
-					totalWarnings++
-				}
-			}
-
-			// Check relationship targets exist
-			for _, rel := range b.Relationships {
-				found := false
-				for _, other := range all {
-					if other.Entity.GetBase().ID == rel.Target {
-						found = true
-						break
-					}
-				}
-				if !found {
-					fmt.Printf("  WARN   %s/%s: relationship target %s not found\n", b.Kind, b.Name, rel.Target)
-					totalWarnings++
-				}
-			}
+		rich := func() { printHealthReport(rep) }
+		if err := Emit("health", validateFormat, rep, &Meta{Count: rep.Entities}, rich); err != nil {
+			return err
 		}
 
-		if totalErrors == 0 && totalWarnings == 0 {
-			fmt.Printf("Validation passed. %d entities checked.\n", len(all))
-		} else {
-			fmt.Printf("\n%d errors, %d warnings across %d entities\n", totalErrors, totalWarnings, len(all))
+		if len(rep.Errors) > 0 {
+			os.Exit(1)
 		}
-
 		return nil
 	},
 }
 
+// printHealthReport renders a client.HealthReport the same way the old
+// server-side printReport did. Used by both `syde validate` and
+// `syde sync check`.
+func printHealthReport(rep *client.HealthReport) {
+	printFindings("ERROR", rep.Errors)
+	printFindings("WARN ", rep.Warnings)
+	printFindings("HINT ", rep.Hints)
+
+	total := len(rep.Errors) + len(rep.Warnings) + len(rep.Hints)
+	if total == 0 {
+		fmt.Printf("Validation passed. %d entities checked.\n", rep.Entities)
+		return
+	}
+	fmt.Printf("\n%d errors, %d warnings across %d entities\n", len(rep.Errors), len(rep.Warnings), rep.Entities)
+}
+
+func printFindings(prefix string, findings []client.Finding) {
+	for _, f := range findings {
+		scope := ""
+		if f.EntityKind != "" {
+			scope = fmt.Sprintf(" %s/%s:", f.EntityKind, f.EntityName)
+		} else if f.Path != "" {
+			scope = fmt.Sprintf(" tree/%s:", f.Path)
+		}
+		fmt.Printf("  %s%s %s\n", prefix, scope, f.Message)
+	}
+}
+
 func init() {
+	validateCmd.Flags().StringVar(&validateFormat, "format", FormatRich, "output format (rich, json)")
 	rootCmd.AddCommand(validateCmd)
 }

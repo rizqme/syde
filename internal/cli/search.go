@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -13,28 +14,37 @@ var searchCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := args[0]
 
-		store, err := openStore()
+		c, err := openClient()
 		if err != nil {
 			return err
 		}
-		defer store.Close()
-
-		results, err := store.Idx.Search(query)
+		raw, err := c.Search(query)
 		if err != nil {
 			return fmt.Errorf("search: %w", err)
 		}
 
-		if len(results) == 0 {
+		// Server returns {query, results, count} — decode and render.
+		var body struct {
+			Query   string `json:"query"`
+			Count   int    `json:"count"`
+			Results []struct {
+				Kind string `json:"kind"`
+				Name string `json:"name"`
+				File string `json:"file"`
+			} `json:"results"`
+		}
+		if err := json.Unmarshal(raw, &body); err != nil {
+			return err
+		}
+		if body.Count == 0 {
 			fmt.Printf("No results for '%s'\n", query)
 			return nil
 		}
-
 		fmt.Printf("Search results for '%s':\n\n", query)
-		for _, ref := range results {
-			fmt.Printf("  %-12s %-25s %s\n", ref.Kind, ref.Name, ref.File)
+		for _, hit := range body.Results {
+			fmt.Printf("  %-12s %-25s %s\n", hit.Kind, hit.Name, hit.File)
 		}
-		fmt.Printf("\n%d results\n", len(results))
-
+		fmt.Printf("\n%d results\n", body.Count)
 		return nil
 	},
 }

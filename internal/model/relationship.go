@@ -14,8 +14,11 @@ const (
 	RelModifies    = "modifies"
 	RelVisualizes  = "visualizes"
 	RelImplements  = "implements"
-	RelRefines     = "refines"      // requirement → requirement (more specific) or requirement → component/contract/concept/system (the entity the requirement refines)
-	RelDerivesFrom = "derives_from" // requirement → requirement (parent the child was derived from)
+	RelRefines     = "refines"       // requirement → requirement (more specific) or requirement → component/contract/concept/system (the entity the requirement refines)
+	RelDerivesFrom = "derives_from"  // requirement → requirement (parent the child was derived from)
+	RelImplementedBy = "implemented_by" // concept → component (the component that implements this domain concept)
+	RelExposedVia    = "exposed_via"    // concept → contract (the contract that exposes this concept externally)
+	RelUsedIn        = "used_in"        // concept → flow (the flow that operates on this concept)
 )
 
 // ValidRelationshipTypes returns all valid relationship type strings.
@@ -25,5 +28,6 @@ func ValidRelationshipTypes() []string {
 		RelUses, RelInvolves, RelReferences, RelRelatesTo,
 		RelAppliesTo, RelModifies, RelVisualizes, RelImplements,
 		RelRefines, RelDerivesFrom,
+		RelImplementedBy, RelExposedVia, RelUsedIn,
 	}
 }

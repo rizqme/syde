@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:58Z"
+updated_at: "2026-04-17T10:46:07Z"
 statement: If adding a belongs_to relationship between systems would create a cycle, then the syde CLI shall reject the save with a cycle error.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: concept:relationship-hjgt
 requirement_status: active
 rationale: Cyclic system nesting breaks ownership trees used by belongs_to queries.
+audited_overlaps:
+    - slug: component-depends-on-dag-43z6
+      distinction: Systems form an acyclic belongs_to hierarchy; components form an acyclic depends_on graph, different entity kinds and relationship types.
 ---

@@ -100,7 +100,7 @@ func codexSessionStart(input codexHookInput) error {
 }
 
 func codexUserPromptSubmit(input codexHookInput) error {
-	msg := "syde is active in this repository. Before code changes: refresh the summary tree, use `syde query` for context, create/approve a syde plan, start a syde task, and finish with `syde sync check --strict`."
+	msg := "syde is active in this repository. Before code changes: refresh the summary tree, use `syde query` for context, create/approve a syde plan, start a syde task, and finish with `syde sync check` (every finding blocks)."
 	if _, err := runSyde("tree", "status", "--strict"); err != nil {
 		msg += " Current tree status is stale, so Phase 0 should run first."
 	}
@@ -218,11 +218,11 @@ func codexPostToolUse(input codexHookInput) error {
 
 func codexStop(input codexHookInput) error {
 	_, _ = runSyde("tree", "scan")
-	out, err := runSyde("sync", "check", "--strict")
+	out, err := runSyde("sync", "check")
 	if err == nil {
 		return nil
 	}
-	reason := "syde FINISH GATE: `syde sync check --strict` failed. Fix every error and warning before ending the session. Highlights: " + firstInterestingLines(string(out), 5)
+	reason := "syde FINISH GATE: `syde sync check` failed. Every finding blocks — fix them all before ending the session. Highlights: " + firstInterestingLines(string(out), 5)
 	if input.StopHookActive {
 		cont := false
 		return writeCodexJSON(codexHookOutput{

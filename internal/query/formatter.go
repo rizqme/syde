@@ -150,16 +150,12 @@ func FormatJSON(r *ResolvedEntity) string {
 		}
 	case *model.ConceptEntity:
 		entityMap["meaning"] = e.Meaning
-		entityMap["structure_notes"] = e.StructureNotes
 		entityMap["lifecycle"] = e.Lifecycle
 		entityMap["invariants"] = e.Invariants
-		entityMap["data_sensitivity"] = e.DataSensitivity
-		entityMap["concept_relationships"] = e.ConceptRelationships
-		entityMap["attributes"] = e.Attributes
-		entityMap["actions"] = e.Actions
 	case *model.FlowEntity:
 		entityMap["trigger"] = e.Trigger
 		entityMap["goal"] = e.Goal
+		entityMap["steps"] = e.Steps
 		entityMap["narrative"] = e.Narrative
 		entityMap["happy_path"] = e.HappyPath
 		entityMap["edge_cases"] = e.EdgeCases
@@ -189,6 +185,8 @@ func FormatJSON(r *ResolvedEntity) string {
 		entityMap["background"] = e.Background
 		entityMap["objective"] = e.Objective
 		entityMap["scope"] = e.PlanScope
+		entityMap["design"] = e.Design
+		entityMap["changes"] = e.Changes
 		entityMap["phases"] = e.Phases
 		entityMap["progress"] = e.Progress()
 		entityMap["created_at"] = e.CreatedAt

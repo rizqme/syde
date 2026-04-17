@@ -44,13 +44,9 @@ var (
 	updContVersioning   string
 	updContWireframe    string
 	// Concept
-	updConcMeaning     string
-	updConcStructure   string
-	updConcLifecycle   string
-	updConcInvariants  string
-	updConcSensitivity string
-	updConcAttributes  []string
-	updConcActions     []string
+	updConcMeaning    string
+	updConcLifecycle  string
+	updConcInvariants string
 	// Flow
 	updFlowTrigger     string
 	updFlowGoal        string
@@ -59,6 +55,7 @@ var (
 	updFlowEdgeCases   string
 	updFlowFailures    string
 	updFlowPerformance string
+	updFlowSteps       []string
 	// Requirement (statement/rationale/supersedes)
 	updDecStatement  string
 	updDecRationale  string
@@ -73,6 +70,7 @@ var (
 	updReqSupersededBy   string
 	updReqObsoleteReason string
 	updReqApprovedAt     string
+	updReqAuditedOverlaps []string
 	// System
 	updSysContext     string
 	updSysScope       string
@@ -260,28 +258,12 @@ var updateCmd = &cobra.Command{
 				v.Meaning = updConcMeaning
 				changed = true
 			}
-			if cmd.Flags().Changed("structure-notes") {
-				v.StructureNotes = updConcStructure
-				changed = true
-			}
 			if cmd.Flags().Changed("lifecycle") {
 				v.Lifecycle = updConcLifecycle
 				changed = true
 			}
 			if cmd.Flags().Changed("invariants") {
 				v.Invariants = updConcInvariants
-				changed = true
-			}
-			if cmd.Flags().Changed("data-sensitivity") {
-				v.DataSensitivity = updConcSensitivity
-				changed = true
-			}
-			if cmd.Flags().Changed("attribute") {
-				v.Attributes = parseConceptAttributes(updConcAttributes)
-				changed = true
-			}
-			if cmd.Flags().Changed("action") {
-				v.Actions = parseConceptActions(updConcActions)
 				changed = true
 			}
 		case *model.FlowEntity:
@@ -311,6 +293,10 @@ var updateCmd = &cobra.Command{
 			}
 			if cmd.Flags().Changed("performance-notes") {
 				v.PerformanceNotes = updFlowPerformance
+				changed = true
+			}
+			if cmd.Flags().Changed("step") {
+				v.Steps = parseFlowSteps(updFlowSteps)
 				changed = true
 			}
 		case *model.RequirementEntity:
@@ -385,6 +371,26 @@ var updateCmd = &cobra.Command{
 			}
 			if cmd.Flags().Changed("approved-at") {
 				v.ApprovedAt = updReqApprovedAt
+				changed = true
+			}
+			if cmd.Flags().Changed("audited") {
+				// Append to existing list, deduplicated by slug. Later
+				// entries replace earlier ones so an author can refresh
+				// the distinction text with a re-invocation.
+				index := map[string]int{}
+				for i, ao := range v.AuditedOverlaps {
+					index[ao.Slug] = i
+				}
+				for _, incoming := range parseAuditedOverlaps(updReqAuditedOverlaps) {
+					if existing, ok := index[incoming.Slug]; ok {
+						if incoming.Distinction != "" {
+							v.AuditedOverlaps[existing].Distinction = incoming.Distinction
+						}
+						continue
+					}
+					index[incoming.Slug] = len(v.AuditedOverlaps)
+					v.AuditedOverlaps = append(v.AuditedOverlaps, incoming)
+				}
 				changed = true
 			}
 		case *model.SystemEntity:
@@ -493,13 +499,9 @@ func init() {
 	f.StringVar(&updContVersioning, "versioning-notes", "", "versioning notes")
 	f.StringVar(&updContWireframe, "wireframe", "", "screen contract UIML wireframe source — required when --contract-kind=screen")
 	// Concept
-	f.StringVar(&updConcMeaning, "meaning", "", "concept meaning")
-	f.StringVar(&updConcStructure, "structure-notes", "", "structure notes")
-	f.StringVar(&updConcLifecycle, "lifecycle", "", "lifecycle")
-	f.StringVar(&updConcInvariants, "invariants", "", "invariants")
-	f.StringVar(&updConcSensitivity, "data-sensitivity", "", "data sensitivity")
-	f.StringArrayVar(&updConcAttributes, "attribute", nil, "concept attribute 'name|type|description' (repeatable, replaces existing)")
-	f.StringArrayVar(&updConcActions, "action", nil, "concept action 'name|description' (repeatable, replaces existing)")
+	f.StringVar(&updConcMeaning, "meaning", "", "concept meaning (one-liner explaining what this domain term is)")
+	f.StringVar(&updConcLifecycle, "lifecycle", "", "lifecycle prose for the concept")
+	f.StringVar(&updConcInvariants, "invariants", "", "invariants — rules that must always hold")
 	// Flow
 	f.StringVar(&updFlowTrigger, "trigger", "", "flow trigger")
 	f.StringVar(&updFlowGoal, "goal", "", "flow goal")
@@ -507,6 +509,7 @@ func init() {
 	f.StringVar(&updFlowHappyPath, "happy-path", "", "happy path")
 	f.StringVar(&updFlowEdgeCases, "edge-cases", "", "edge cases")
 	f.StringVar(&updFlowFailures, "failure-modes", "", "failure modes")
+	f.StringArrayVar(&updFlowSteps, "step", nil, "flow step 'id|action|contract|description|on_success|on_failure' (repeatable, replaces existing)")
 	f.StringVar(&updFlowPerformance, "performance-notes", "", "performance notes")
 	// Requirement
 	f.StringVar(&updDecStatement, "statement", "", "requirement statement (EARS shall-form)")
@@ -521,6 +524,7 @@ func init() {
 	f.StringVar(&updReqSupersededBy, "superseded-by", "", "requirement refs that supersede this one, comma-separated")
 	f.StringVar(&updReqObsoleteReason, "obsolete-reason", "", "why the requirement is obsolete")
 	f.StringVar(&updReqApprovedAt, "approved-at", "", "requirement approval timestamp")
+	f.StringArrayVar(&updReqAuditedOverlaps, "audited", nil, "acknowledged overlapping requirement as slug[:distinction rationale] (repeatable, appends to existing; re-passing same slug replaces distinction)")
 	// System
 	f.StringVar(&updSysContext, "context-text", "", "system context")
 	f.StringVar(&updSysScope, "scope", "", "system scope")

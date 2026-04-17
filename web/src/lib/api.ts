@@ -27,6 +27,7 @@ export const api = {
   entity: (slug: string) => fetchJSON<EntityDetailResponse>(`entity/${slug}`),
   graph: () => fetchJSON<GraphResponse>('graph'),
   plans: () => fetchJSON<PlansResponse>('plans'),
+  planDetail: (slug: string) => fetchJSON<PlanDetail>(`plan/${encodeURIComponent(slug)}`),
   tasks: () => fetchJSON<TasksResponse>('tasks'),
   designs: () => fetchJSON<DesignsResponse>('designs'),
   search: (q: string) => fetchJSON<SearchResponse>(`search?q=${encodeURIComponent(q)}`),
@@ -97,6 +98,8 @@ export interface EntitySummary {
   meaning?: string;
   contract_kind?: string;
   interaction_pattern?: string;
+  plan_status?: string;
+  updated_at?: string;
 }
 
 export interface EntitiesResponse {
@@ -171,6 +174,95 @@ export interface Plan {
 
 export interface PlansResponse {
   plans: Plan[];
+}
+
+// --------------------------------------------------------------------------
+// Plan detail (GET /api/<proj>/plan/<slug>) — mirrors internal/model/plan.go.
+// --------------------------------------------------------------------------
+
+export interface DeletedChange {
+  id: string;
+  slug: string;
+  why: string;
+  tasks?: string[];
+}
+
+export interface ExtendedChange {
+  id: string;
+  slug: string;
+  what: string;
+  why: string;
+  tasks?: string[];
+  field_changes?: Record<string, string>;
+  current_values?: Record<string, any>;
+  proposed_values_html?: Record<string, string>;
+}
+
+export interface NewChange {
+  id: string;
+  name: string;
+  what: string;
+  why: string;
+  tasks?: string[];
+  draft?: Record<string, any>;
+}
+
+export interface ChangeLane {
+  deleted?: DeletedChange[] | null;
+  extended?: ExtendedChange[] | null;
+  new?: NewChange[] | null;
+}
+
+export interface PlanChanges {
+  requirements?: ChangeLane;
+  systems?: ChangeLane;
+  concepts?: ChangeLane;
+  components?: ChangeLane;
+  contracts?: ChangeLane;
+  flows?: ChangeLane;
+}
+
+// Phase shape on the plan detail endpoint — fields use PascalCase because
+// the Go JSON encoder emits PlanPhase fields without json tags.
+export interface PlanDetailPhase {
+  ID: string;
+  Name?: string;
+  ParentPhase?: string;
+  Status: string;
+  Description?: string;
+  Objective?: string;
+  Changes?: string;
+  Details?: string;
+  Notes?: string;
+  Tasks?: string[];
+}
+
+export interface TaskSummary {
+  slug: string;
+  name: string;
+  status: string;
+  priority: string;
+  objective: string;
+}
+
+export interface PlanDetail {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  progress: number;
+  description?: string;
+  background?: string;
+  objective?: string;
+  scope?: string;
+  design?: string;
+  created_at?: string;
+  approved_at?: string;
+  completed_at?: string;
+  phases: PlanDetailPhase[];
+  task_index: Record<string, TaskSummary>;
+  changes: PlanChanges;
+  body?: string;
 }
 
 export interface Task {

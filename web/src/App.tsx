@@ -3,19 +3,17 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { EntityList } from './components/EntityList';
 import { EntityDetail } from './components/EntityDetail';
+import { PlanDetailPanel } from './components/PlanDetailPanel';
 import { SearchPalette } from './components/SearchPalette';
 import { Overview } from './pages/Overview';
-import { PlanView } from './pages/PlanView';
-import { TaskBoard } from './pages/TaskBoard';
 import { FileTree } from './pages/FileTree';
 import { Graph } from './pages/Graph';
-import { ERD } from './pages/ERD';
 import { EntityEmptyState } from './components/EntityEmptyState';
 import { useApi } from './hooks/useApi';
 import { useWebSocket } from './hooks/useWebSocket';
 import { api, fetchProjects, setProject, getProject, StatusResponse, EntitiesResponse } from './lib/api';
 
-const SPECIAL_VIEWS = ['plan', 'task', '__tree__', '__graph__'];
+const SPECIAL_VIEWS = ['task', '__tree__', '__graph__'];
 
 export default function App() {
   const [projectName, setProjectName] = useState('Loading...');
@@ -24,11 +22,6 @@ export default function App() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  // Concept page has two view modes — the default 2-column inbox and
-  // an ERD canvas. Toggle lives on App so it survives entity-select
-  // state changes; reset to 'list' whenever we navigate away from the
-  // concept kind so returning to it starts fresh.
-  const [conceptView, setConceptView] = useState<'list' | 'erd'>('list');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,19 +39,25 @@ export default function App() {
     }
   }, [urlEntitySlug]);
 
-  // Reset the concept view-mode toggle whenever the active kind leaves
-  // 'concept' — otherwise returning to concepts would still be in ERD
-  // mode from a previous session, which breaks the default-to-list UX.
+  // The standalone Tasks page was removed — tasks now live inside the
+  // plan detail page. If someone lands on a legacy /<proj>/task URL
+  // (bookmark, external link) redirect them to the Plans inbox.
   useEffect(() => {
-    if (activeKind !== 'concept') {
-      setConceptView('list');
+    if (activeKind === 'task' && !urlEntitySlug && projectSlug) {
+      navigate(`/${projectSlug}/plan`, { replace: true });
     }
-  }, [activeKind]);
+  }, [activeKind, urlEntitySlug, projectSlug, navigate]);
 
-  // WebSocket live reload
+  const handleSocketNavigate = useCallback((path: string) => {
+    const current = `${location.pathname}${location.search}`;
+    if (path === current) return;
+    navigate(path);
+  }, [location.pathname, location.search, navigate]);
+
+  // WebSocket live reload and dashboard-driven navigation
   useWebSocket(ready ? getProject() : null, useCallback(() => {
     setReloadKey((k) => k + 1);
-  }, []));
+  }, []), handleSocketNavigate);
 
   // Init: find project
   useEffect(() => {
@@ -167,16 +166,6 @@ export default function App() {
             <Overview onNavigate={handleNavigate} />
           </div>
         )}
-        {activeKind === 'plan' && (
-          <div className="flex-1 overflow-y-auto px-8 py-8 max-w-4xl">
-            <PlanView onSelectEntity={handleSelectEntity} />
-          </div>
-        )}
-        {activeKind === 'task' && (
-          <div className="flex-1 overflow-y-auto px-8 py-8 max-w-4xl">
-            <TaskBoard onSelectEntity={handleSelectEntity} />
-          </div>
-        )}
         {activeKind === '__tree__' && ready && (
           <div className="flex-1 min-w-0 min-h-0">
             <FileTree key={reloadKey} />
@@ -189,76 +178,49 @@ export default function App() {
         )}
         {activeKind && !SPECIAL_VIEWS.includes(activeKind) && entitiesData && (
           <div className="flex-1 flex min-w-0 min-h-0 relative">
-            {/* Concept page renders a floating List/ERD toggle at
-                the top-right of the main area, replacing the X close
-                button in the detail panel. Other kinds render nothing
-                here. */}
-            {activeKind === 'concept' && (
-              <div className="absolute top-3 right-4 z-10">
-                <div className="inline-flex rounded-md border border-border bg-card overflow-hidden text-xs shadow-sm">
-                  <button
-                    onClick={() => setConceptView('list')}
-                    className={`px-3 py-1 ${conceptView === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    List
-                  </button>
-                  <button
-                    onClick={() => setConceptView('erd')}
-                    className={`px-3 py-1 border-l border-border ${conceptView === 'erd' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    ERD
-                  </button>
-                </div>
-              </div>
-            )}
-            {activeKind === 'concept' && conceptView === 'erd' ? (
-              <div className="flex-1 min-w-0 min-h-0">
-                <ERD
-                  onSelectEntity={(slug, kind) => {
-                    // Clicking a concept node returns to list mode so
-                    // the user immediately sees the detail panel for
-                    // the selected entity.
-                    setConceptView('list');
-                    handleNavigateEntity(slug, kind);
-                  }}
-                />
-              </div>
-            ) : (
-              <>
-                {/* Inbox-style 2-column: list on the left, detail on the right. */}
-                <div className="w-[420px] shrink-0 border-r border-border overflow-y-auto px-6 py-6">
-                  <EntityList
-                    key={activeKind}
-                    entities={entitiesData.entities || []}
-                    kind={activeKind}
-                    onSelect={handleSelectEntity}
-                    selectedSlug={selectedSlug || undefined}
+            {/* Inbox-style 2-column: list on the left, detail on the right. */}
+            <div className="w-[420px] shrink-0 border-r border-border overflow-y-auto px-6 py-6">
+              <EntityList
+                key={activeKind}
+                entities={entitiesData.entities || []}
+                kind={activeKind}
+                onSelect={handleSelectEntity}
+                selectedSlug={selectedSlug || undefined}
+              />
+            </div>
+            <div className="flex-1 min-w-0 overflow-y-auto">
+              {selectedSlug ? (
+                activeKind === 'plan' ? (
+                  <PlanDetailPanel
+                    slug={selectedSlug}
+                    onNavigate={handleNavigateEntity}
+                    onOpenFile={handleOpenFile}
+                    onClose={() => {
+                      setSelectedSlug(null);
+                      if (projectSlug) navigate(`/${projectSlug}/plan`);
+                    }}
                   />
-                </div>
-                <div className="flex-1 min-w-0 overflow-y-auto">
-                  {selectedSlug ? (
-                    <EntityDetail
-                      slug={selectedSlug}
-                      onNavigate={handleNavigateEntity}
-                      onOpenFile={handleOpenFile}
-                      onClose={() => {
-                        setSelectedSlug(null);
-                        if (projectSlug && activeKind) navigate(`/${projectSlug}/${activeKind}`);
-                      }}
-                      inline
-                      hideClose={activeKind === 'concept'}
-                    />
-                  ) : (
-                    <EntityEmptyState kind={activeKind} />
-                  )}
-                </div>
-              </>
-            )}
+                ) : (
+                  <EntityDetail
+                    slug={selectedSlug}
+                    onNavigate={handleNavigateEntity}
+                    onOpenFile={handleOpenFile}
+                    onClose={() => {
+                      setSelectedSlug(null);
+                      if (projectSlug && activeKind) navigate(`/${projectSlug}/${activeKind}`);
+                    }}
+                    inline
+                  />
+                )
+              ) : (
+                <EntityEmptyState kind={activeKind} />
+              )}
+            </div>
           </div>
         )}
       </main>
 
-      {/* Floating detail panel only used by special views (plan / task) */}
+      {/* Floating detail panel only used by special views such as task detail. */}
       {selectedSlug && activeKind && SPECIAL_VIEWS.includes(activeKind) && (
         <EntityDetail
           slug={selectedSlug}

@@ -1,28 +1,25 @@
 ---
-contract_kind: cli
-description: Import a plan from a .claude/plans/*.md file.
 id: CON-0034
-input: syde plan sync [--file <path>]
-input_parameters:
-    - description: optional path to a .claude/plans/*.md file; defaults to most recent
-      path: --file
-      type: string
-interaction_pattern: request-response
 kind: contract
 name: Sync Plan From Claude
-output: Imports plan into syde and prints slug
-output_parameters:
-    - description: new plan slug
-      path: slug
-      type: string
+slug: sync-plan-from-claude-rgaw
+description: Import a plan from a .claude/plans/*.md file.
 relationships:
     - target: syde-cli
       type: belongs_to
     - target: cli-commands
       type: references
-    - label: flow
-      target: design-model-operations-coverage-wsrh
-      type: involves
-slug: sync-plan-from-claude-rgaw
-updated_at: "2026-04-14T03:27:04Z"
+updated_at: "2026-04-16T10:51:16Z"
+contract_kind: cli
+interaction_pattern: request-response
+input: syde plan sync [--file <path>]
+input_parameters:
+    - path: --file
+      type: string
+      description: optional path to a .claude/plans/*.md file; defaults to most recent
+output: Imports plan into syde and prints slug
+output_parameters:
+    - path: slug
+      type: string
+      description: new plan slug
 ---

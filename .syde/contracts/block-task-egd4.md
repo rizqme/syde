@@ -1,31 +1,28 @@
 ---
-contract_kind: cli
-description: Mark a task as blocked with an optional reason.
 id: CON-0039
-input: syde task block <slug> [--reason ...]
-input_parameters:
-    - description: positional, required
-      path: slug
-      type: string
-    - description: optional block reason stored in task notes
-      path: --reason
-      type: string
-interaction_pattern: request-response
 kind: contract
 name: Block Task
-output: exit 0; transitions task_status to blocked
-output_parameters:
-    - description: blocked
-      path: new_status
-      type: string
+slug: block-task-egd4
+description: Mark a task as blocked with an optional reason.
 relationships:
     - target: syde-cli
       type: belongs_to
     - target: cli-commands
       type: references
-    - label: flow
-      target: design-model-operations-coverage-wsrh
-      type: involves
-slug: block-task-egd4
-updated_at: "2026-04-14T03:27:04Z"
+updated_at: "2026-04-16T10:51:15Z"
+contract_kind: cli
+interaction_pattern: request-response
+input: syde task block <slug> [--reason ...]
+input_parameters:
+    - path: slug
+      type: string
+      description: positional, required
+    - path: --reason
+      type: string
+      description: optional block reason stored in task notes
+output: exit 0; transitions task_status to blocked
+output_parameters:
+    - path: new_status
+      type: string
+      description: blocked
 ---

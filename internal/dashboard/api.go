@@ -3,12 +3,15 @@ package dashboard
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/feedloop/syde/internal/model"
 	"github.com/feedloop/syde/internal/query"
 	"github.com/feedloop/syde/internal/storage"
 	"github.com/feedloop/syde/internal/tree"
+	"github.com/feedloop/syde/internal/uiml"
+	"github.com/feedloop/syde/internal/utils"
 )
 
 // handleProjectAPI handles all /api/{project-slug}/... requests.
@@ -59,6 +62,10 @@ func handleProjectAPI(w http.ResponseWriter, r *http.Request) {
 		handleGraph(w, r, store)
 	case endpoint == "plans":
 		handlePlans(w, store)
+	case strings.HasPrefix(endpoint, "plan/"):
+		handlePlanDetail(w, strings.TrimPrefix(endpoint, "plan/"), store)
+	case endpoint == "navigate":
+		handleNavigate(w, r, projectSlug)
 	case endpoint == "tasks":
 		handleTasks(w, store)
 	case endpoint == "search":
@@ -233,6 +240,257 @@ func handlePlans(w http.ResponseWriter, store *storage.Store) {
 		})
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{"plans": result})
+}
+
+// handlePlanDetail returns the full plan including design, phases,
+// resolved tasks (with status/priority/objective inline), and the
+// structured Changes block. Extended changes with FieldChanges get
+// pre-resolved current_values so the dashboard can render a
+// side-by-side diff in one round-trip.
+func handlePlanDetail(w http.ResponseWriter, slug string, store *storage.Store) {
+	entity, body, err := store.Get(slug)
+	if err != nil {
+		jsonError(w, "plan not found: "+err.Error(), 404)
+		return
+	}
+	plan, ok := entity.(*model.PlanEntity)
+	if !ok {
+		jsonError(w, slug+" is not a plan", 400)
+		return
+	}
+
+	// Resolve every task referenced by every phase so the Tasks tab
+	// can render status/priority/objective without N round-trips.
+	// Phases store bare slugs (utils.Slugify(name)) but task entities
+	// have suffixed slugs (utils.SlugifyWithSuffix). Try exact match
+	// first, then fall back to BaseSlug matching scoped to the plan.
+	taskBySlug := map[string]map[string]interface{}{}
+
+	// Pre-load all tasks belonging to this plan for BaseSlug fallback.
+	allTasks, _ := store.List(model.KindTask)
+	planSlug := plan.GetBase().CanonicalSlug()
+	planBase := utils.BaseSlug(planSlug)
+	tasksByBase := map[string]*model.TaskEntity{}
+	for _, ewb := range allTasks {
+		te, ok := ewb.Entity.(*model.TaskEntity)
+		if !ok {
+			continue
+		}
+		// Match task to plan by either full or bare slug.
+		taskPlanRef := te.PlanRef
+		if taskPlanRef != planSlug && taskPlanRef != planBase && utils.BaseSlug(taskPlanRef) != planBase {
+			continue
+		}
+		baseSlug := utils.BaseSlug(te.GetBase().CanonicalSlug())
+		tasksByBase[baseSlug] = te
+	}
+
+	for _, ph := range plan.Phases {
+		for _, taskSlug := range ph.Tasks {
+			if _, ok := taskBySlug[taskSlug]; ok {
+				continue
+			}
+			// Try exact slug first.
+			var te *model.TaskEntity
+			if t, _, err := store.Get(taskSlug); err == nil {
+				te, _ = t.(*model.TaskEntity)
+			}
+			// Fallback: match by BaseSlug within the same plan.
+			if te == nil {
+				te = tasksByBase[taskSlug]
+			}
+			if te == nil {
+				continue
+			}
+			taskBySlug[taskSlug] = map[string]interface{}{
+				"slug":      te.GetBase().CanonicalSlug(),
+				"name":      te.Name,
+				"status":    te.TaskStatus,
+				"priority":  te.Priority,
+				"objective": te.Objective,
+			}
+		}
+	}
+
+	// Walk every ExtendedChange that declared FieldChanges and snapshot
+	// the target entity's current values for those keys.
+	resolveExtended := func(lane model.ChangeLane, kind model.EntityKind) []map[string]interface{} {
+		var out []map[string]interface{}
+		for _, e := range lane.Extended {
+			currentValues := map[string]interface{}{}
+			proposedValuesHTML := map[string]interface{}{}
+			if target, _, err := store.GetByKind(kind, e.Slug); err == nil {
+				if len(e.FieldChanges) > 0 {
+					for field := range e.FieldChanges {
+						if v, ok := readEntityFieldYAML(target, field); ok {
+							currentValues[field] = v
+						}
+					}
+				}
+				if kind == model.KindContract {
+					if contract, ok := target.(*model.ContractEntity); ok && contract.ContractKind == "screen" {
+						if strings.TrimSpace(contract.Wireframe) != "" {
+							currentValues["wireframe_html"] = renderWireframeHTML(contract.Wireframe)
+						}
+						if proposed, ok := e.FieldChanges["wireframe"]; ok && strings.TrimSpace(proposed) != "" && proposed != "DELETE" {
+							proposedValuesHTML["wireframe"] = renderWireframeHTML(proposed)
+						}
+					}
+				}
+			}
+			out = append(out, map[string]interface{}{
+				"id":                   e.ID,
+				"slug":                 e.Slug,
+				"what":                 e.What,
+				"why":                  e.Why,
+				"field_changes":        e.FieldChanges,
+				"current_values":       currentValues,
+				"proposed_values_html": proposedValuesHTML,
+				"tasks":                e.Tasks,
+			})
+		}
+		return out
+	}
+
+	resolveNew := func(lane model.ChangeLane, kind model.EntityKind) []map[string]interface{} {
+		var out []map[string]interface{}
+		for _, n := range lane.New {
+			draft := map[string]interface{}{}
+			for k, v := range n.Draft {
+				draft[k] = v
+			}
+			if kind == model.KindContract {
+				contractKind, _ := draft["contract_kind"].(string)
+				wireframe, _ := draft["wireframe"].(string)
+				if contractKind == "screen" && strings.TrimSpace(wireframe) != "" {
+					draft["wireframe_html"] = renderWireframeHTML(wireframe)
+				}
+			}
+			out = append(out, map[string]interface{}{
+				"id":    n.ID,
+				"name":  n.Name,
+				"what":  n.What,
+				"why":   n.Why,
+				"draft": draft,
+				"tasks": n.Tasks,
+			})
+		}
+		return out
+	}
+
+	resolvedChanges := map[string]interface{}{
+		"requirements": map[string]interface{}{
+			"deleted":  plan.Changes.Requirements.Deleted,
+			"extended": resolveExtended(plan.Changes.Requirements, model.KindRequirement),
+			"new":      resolveNew(plan.Changes.Requirements, model.KindRequirement),
+		},
+		"systems": map[string]interface{}{
+			"deleted":  plan.Changes.Systems.Deleted,
+			"extended": resolveExtended(plan.Changes.Systems, model.KindSystem),
+			"new":      resolveNew(plan.Changes.Systems, model.KindSystem),
+		},
+		"concepts": map[string]interface{}{
+			"deleted":  plan.Changes.Concepts.Deleted,
+			"extended": resolveExtended(plan.Changes.Concepts, model.KindConcept),
+			"new":      resolveNew(plan.Changes.Concepts, model.KindConcept),
+		},
+		"components": map[string]interface{}{
+			"deleted":  plan.Changes.Components.Deleted,
+			"extended": resolveExtended(plan.Changes.Components, model.KindComponent),
+			"new":      resolveNew(plan.Changes.Components, model.KindComponent),
+		},
+		"contracts": map[string]interface{}{
+			"deleted":  plan.Changes.Contracts.Deleted,
+			"extended": resolveExtended(plan.Changes.Contracts, model.KindContract),
+			"new":      resolveNew(plan.Changes.Contracts, model.KindContract),
+		},
+		"flows": map[string]interface{}{
+			"deleted":  plan.Changes.Flows.Deleted,
+			"extended": resolveExtended(plan.Changes.Flows, model.KindFlow),
+			"new":      resolveNew(plan.Changes.Flows, model.KindFlow),
+		},
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"slug":         plan.GetBase().CanonicalSlug(),
+		"id":           plan.ID,
+		"name":         plan.Name,
+		"description":  plan.Description,
+		"status":       plan.PlanStatus,
+		"progress":     plan.Progress(),
+		"background":   plan.Background,
+		"objective":    plan.Objective,
+		"scope":        plan.PlanScope,
+		"design":       plan.Design,
+		"created_at":   plan.CreatedAt,
+		"approved_at":  plan.ApprovedAt,
+		"completed_at": plan.CompletedAt,
+		"phases":       plan.Phases,
+		"task_index":   taskBySlug,
+		"changes":      resolvedChanges,
+		"body":         body,
+	})
+}
+
+func renderWireframeHTML(source string) string {
+	res := uiml.Parse(source)
+	return uiml.RenderWireframeHTML(res.Nodes)
+}
+
+func handleNavigate(w http.ResponseWriter, r *http.Request, projectSlug string) {
+	if r.Method != http.MethodPost {
+		jsonError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var payload struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		jsonError(w, "decode navigate payload: "+err.Error(), 400)
+		return
+	}
+	if strings.TrimSpace(payload.Path) == "" {
+		jsonError(w, "path is required", 400)
+		return
+	}
+	clients := NavigateAll(projectSlug, payload.Path)
+	json.NewEncoder(w).Encode(map[string]interface{}{"clients": clients})
+}
+
+// readEntityFieldYAML resolves a frontmatter field on a typed entity
+// by its YAML tag. Mirrors the audit package's reflection helper but
+// kept local so the dashboard package doesn't depend on internal/audit.
+func readEntityFieldYAML(entity model.Entity, yamlTag string) (interface{}, bool) {
+	v := reflect.ValueOf(entity)
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, false
+	}
+	return readFieldByYAMLTag(v, yamlTag)
+}
+
+func readFieldByYAMLTag(v reflect.Value, tag string) (interface{}, bool) {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Anonymous {
+			if inner, ok := readFieldByYAMLTag(v.Field(i), tag); ok {
+				return inner, true
+			}
+			continue
+		}
+		yt := f.Tag.Get("yaml")
+		name := strings.SplitN(yt, ",", 2)[0]
+		if name == "" {
+			name = strings.ToLower(f.Name)
+		}
+		if name == tag {
+			return v.Field(i).Interface(), true
+		}
+	}
+	return nil, false
 }
 
 func handleTasks(w http.ResponseWriter, store *storage.Store) {

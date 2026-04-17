@@ -10,15 +10,15 @@ import (
 
 var validateFormat string
 
-// syde validate is now a thin deprecated alias over the syded HTTP
-// API — it calls /validate and filters out everything but errors
-// to preserve its legacy errors-only semantics. The canonical health
-// gate is `syde sync check`.
+// syde validate is a deprecated alias over the syded HTTP API that
+// calls /validate. The canonical health gate is `syde sync check`.
+// Both share the same single-severity Finding model; any finding
+// blocks.
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Check model integrity (deprecated — use 'syde sync check')",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Fprintln(os.Stderr, "DEPRECATED: 'syde validate' is now an alias for 'syde sync check --errors-only'. Switch to 'syde sync check' for the full health report.")
+		fmt.Fprintln(os.Stderr, "DEPRECATED: 'syde validate' is an alias for 'syde sync check'. Switch to 'syde sync check' for the full health report.")
 
 		c, err := openClient()
 		if err != nil {
@@ -29,36 +29,33 @@ var validateCmd = &cobra.Command{
 			return err
 		}
 
-		// Errors-only filter.
-		rep.Warnings = nil
-		rep.Hints = nil
-
 		rich := func() { printHealthReport(rep) }
 		if err := Emit("health", validateFormat, rep, &Meta{Count: rep.Entities}, rich); err != nil {
 			return err
 		}
 
-		if len(rep.Errors) > 0 {
+		if len(rep.Errors) > 0 || len(rep.Warnings) > 0 || len(rep.Hints) > 0 {
 			os.Exit(1)
 		}
 		return nil
 	},
 }
 
-// printHealthReport renders a client.HealthReport the same way the old
-// server-side printReport did. Used by both `syde validate` and
-// `syde sync check`.
+// printHealthReport renders a client.HealthReport. The audit engine
+// now emits a single severity level; the Warnings/Hints slots are
+// always empty but the renderer still iterates them for backward
+// compatibility with older server payloads.
 func printHealthReport(rep *client.HealthReport) {
-	printFindings("ERROR", rep.Errors)
-	printFindings("WARN ", rep.Warnings)
-	printFindings("HINT ", rep.Hints)
+	printFindings("FINDING", rep.Errors)
+	printFindings("FINDING", rep.Warnings)
+	printFindings("FINDING", rep.Hints)
 
 	total := len(rep.Errors) + len(rep.Warnings) + len(rep.Hints)
 	if total == 0 {
 		fmt.Printf("Validation passed. %d entities checked.\n", rep.Entities)
 		return
 	}
-	fmt.Printf("\n%d errors, %d warnings across %d entities\n", len(rep.Errors), len(rep.Warnings), rep.Entities)
+	fmt.Printf("\n%d finding(s) across %d entities — every finding blocks\n", total, rep.Entities)
 }
 
 func printFindings(prefix string, findings []client.Finding) {

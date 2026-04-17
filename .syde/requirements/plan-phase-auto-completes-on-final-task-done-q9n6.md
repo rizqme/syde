@@ -8,8 +8,8 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:31Z"
-statement: While a plan phase is in_progress and all of its tasks have status completed, the syde CLI shall transition the phase to completed.
+updated_at: "2026-04-16T07:56:36Z"
+statement: While a plan phase is in_progress and all of its tasks within the same plan have status completed, the syde CLI shall transition the phase to completed.
 req_type: functional
 priority: must
 verification: integration test marking the last task done and asserting phase status

@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:44Z"
+updated_at: "2026-04-17T10:46:01Z"
 statement: If any child phase of a parent phase is not completed, then the syde CLI shall not allow the parent phase to transition to completed.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: concept:plan-sk33
 requirement_status: active
 rationale: Preserves bottom-up completion semantics in the phase tree.
+audited_overlaps:
+    - slug: plan-phase-completion-gate-1jat
+      distinction: Blocks parent phase completion based on child phase status; target blocks phase completion based on task status.
 ---

@@ -7,33 +7,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	syncCheckStrict bool
-	syncCheckFormat string
-)
+var syncCheckFormat string
 
-// syde sync check is the canonical session-end health gate — it now
-// calls syded's /sync-check endpoint and applies the severity-to-exit
-// mapping client-side. Server returns the full health report; we
-// render it via the shared printHealthReport helper.
+// syde sync check is the canonical session-end health gate. The audit
+// engine emits a single severity level — every finding blocks. Exit
+// codes:
 //
-// Exit codes:
-//
-//	0  clean (no errors, no warnings)
-//	1  any error
-//	2  --strict and any warning or hint
+//	0  clean (no findings)
+//	1  any finding
 var syncCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Canonical health gate: audit + tree status + completeness",
-	Long: `Runs every syde health check via syded and prints findings grouped
-by severity. Suitable as the session-end gate — exit 1 on any error,
-exit 2 under --strict on any warning or hint.`,
+	Long: `Runs every syde health check via syded and prints findings. The
+audit engine uses a single strict severity level; the gate exits
+non-zero on any finding. Suitable for session-end hooks and CI.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := openClient()
 		if err != nil {
 			return err
 		}
-		rep, err := c.SyncCheck(syncCheckStrict)
+		// Server still accepts the legacy strict parameter but it now
+		// has no effect — always true is the only mode.
+		rep, err := c.SyncCheck(true)
 		if err != nil {
 			return err
 		}
@@ -43,21 +38,16 @@ exit 2 under --strict on any warning or hint.`,
 			return err
 		}
 
-		if len(rep.Errors) > 0 {
+		if len(rep.Errors) > 0 || len(rep.Warnings) > 0 || len(rep.Hints) > 0 {
 			os.Exit(1)
-		}
-		if syncCheckStrict && (len(rep.Warnings) > 0 || len(rep.Hints) > 0) {
-			os.Exit(2)
 		}
 		return nil
 	},
 }
 
 func init() {
-	syncCheckCmd.Flags().BoolVar(&syncCheckStrict, "strict", false, "non-zero exit on any warning or hint (for session-end hooks and CI)")
 	syncCheckCmd.Flags().StringVar(&syncCheckFormat, "format", FormatRich, "output format (rich, json)")
 	syncCmd.AddCommand(syncCheckCmd)
 
-	// Suppress the "unused" import lint if fmt gets eliminated by later edits
 	_ = fmt.Sprintf
 }

@@ -86,24 +86,17 @@ func itoa(n int) string {
 	return string(buf[pos:])
 }
 
-// buildHealthPayload splits findings by severity for the JSON response.
-// Mirrors reportPayload() in internal/cli/validate.go.
+// buildHealthPayload returns every finding under a single key. The
+// audit engine emits one severity level only; the legacy "warnings"
+// and "hints" keys remain in the payload as empty arrays so older
+// dashboard clients do not NPE on them.
 func buildHealthPayload(rep *audit.Report) map[string]interface{} {
-	var errs, warns, hints []audit.Finding
-	for _, f := range rep.Findings {
-		switch f.Severity {
-		case audit.SeverityError:
-			errs = append(errs, f)
-		case audit.SeverityWarning:
-			warns = append(warns, f)
-		case audit.SeverityHint:
-			hints = append(hints, f)
-		}
-	}
+	findings := append([]audit.Finding(nil), rep.Findings...)
 	return map[string]interface{}{
-		"errors":   errs,
-		"warnings": warns,
-		"hints":    hints,
+		"findings": findings,
+		"errors":   findings,
+		"warnings": []audit.Finding{},
+		"hints":    []audit.Finding{},
 		"entities": rep.Entities,
 	}
 }

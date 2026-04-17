@@ -8,8 +8,8 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:55:20Z"
-statement: When syde scan is invoked, the scan helpers shall produce a ScanGuide containing file count, language histogram, significant source directories, and key files.
+updated_at: "2026-04-17T10:38:00Z"
+statement: When syde sync is invoked, the scan helpers shall produce a ScanGuide containing file count, language histogram, significant source directories, and key files.
 req_type: functional
 priority: must
 verification: inspection of ScanGuide emission in internal/scan/guide.go

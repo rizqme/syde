@@ -246,101 +246,44 @@ type ContractEntity struct {
 	Wireframe string `yaml:"wireframe,omitempty"`
 }
 
-// ConceptAttribute is a single high-level ERD attribute on a concept
-// entity. Concepts live at the design level — concrete Go / SQL /
-// TypeScript types belong in code, not in the model — so the
-// attribute carries only a name, a prose description, and an
-// optional list of concept slugs this attribute references.
-// Name is required (the field / column / property name), Description
-// is free-form prose for invariants / defaults / units / notes, and
-// Refs is used by the ERD view to draw attribute-level FK-style
-// edges from the attribute row to the referenced concept's card.
-type ConceptAttribute struct {
-	Name        string   `yaml:"name" json:"name"`
-	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
-	Refs        []string `yaml:"refs,omitempty" json:"refs,omitempty"`
-}
-
-// ConceptAction is a design-level verb on a concept — a domain
-// operation like Order.cancel() or User.verifyEmail(). Intentionally
-// simpler than a Contract (no input/output parameter schemas):
-// actions describe behaviour at the aggregate level, and the full
-// interaction surface is modelled separately via contract entities
-// when needed.
-type ConceptAction struct {
-	Name        string `yaml:"name" json:"name"`
-	Description string `yaml:"description,omitempty" json:"description,omitempty"`
-}
-
-// ParseConceptAttribute parses a pipe-separated attribute spec:
-//
-//	name[|description[|ref1,ref2,...]]
-//
-// Name is required; description and refs are optional. Refs is a
-// comma-separated list of concept slugs this attribute points at
-// (FK-style). Concepts are a design-level lens so there is no type
-// hint — concrete types live in the code.
-func ParseConceptAttribute(spec string) (ConceptAttribute, bool) {
-	parts := strings.SplitN(spec, "|", 3)
-	if strings.TrimSpace(parts[0]) == "" {
-		return ConceptAttribute{}, false
-	}
-	a := ConceptAttribute{Name: strings.TrimSpace(parts[0])}
-	if len(parts) > 1 {
-		a.Description = strings.TrimSpace(parts[1])
-	}
-	if len(parts) > 2 {
-		for _, r := range strings.Split(parts[2], ",") {
-			r = strings.TrimSpace(r)
-			if r != "" {
-				a.Refs = append(a.Refs, r)
-			}
-		}
-	}
-	return a, true
-}
-
-// ParseConceptAction parses a "name|description" spec.
-func ParseConceptAction(spec string) (ConceptAction, bool) {
-	parts := strings.SplitN(spec, "|", 2)
-	if strings.TrimSpace(parts[0]) == "" {
-		return ConceptAction{}, false
-	}
-	a := ConceptAction{Name: strings.TrimSpace(parts[0])}
-	if len(parts) > 1 {
-		a.Description = strings.TrimSpace(parts[1])
-	}
-	return a, true
-}
-
-// ConceptEntity represents a domain/information concept. Now ERD-
-// shaped: Attributes list the typed fields, Actions list the domain
-// verbs, and relates_to relationships carry a cardinality label
-// (one-to-one / one-to-many / many-to-one / many-to-many) via the
-// shared Relationship.Label field.
+// ConceptEntity represents a domain/information concept as a
+// glossary entry. Concepts are a design-level lens — they explain
+// domain terms with meaning, invariants, and lifecycle, and link to
+// the components / contracts / flows that realize them via
+// role-based relationships. There are no typed attributes or actions;
+// concrete schemas live in code, not in the model.
 type ConceptEntity struct {
-	BaseEntity           `yaml:",inline"`
-	Meaning              string             `yaml:"meaning,omitempty"`
-	StructureNotes       string             `yaml:"structure_notes,omitempty"`
-	Lifecycle            string             `yaml:"lifecycle,omitempty"`
-	Invariants           string             `yaml:"invariants,omitempty"`
-	ConceptRelationships string             `yaml:"concept_relationships,omitempty"`
-	DataSensitivity      string             `yaml:"data_sensitivity,omitempty"`
-	Attributes           []ConceptAttribute `yaml:"attributes,omitempty" json:"attributes,omitempty"`
-	Actions              []ConceptAction    `yaml:"actions,omitempty" json:"actions,omitempty"`
+	BaseEntity `yaml:",inline"`
+	Meaning    string `yaml:"meaning,omitempty"`
+	Lifecycle  string `yaml:"lifecycle,omitempty"`
+	Invariants string `yaml:"invariants,omitempty"`
+}
+
+// FlowStep is a single node in a flow's step graph. Each step
+// describes what the user or system does and optionally references a
+// contract boundary it exercises. Steps link to each other via
+// on_success/on_failure forming a directed graph for flowchart rendering.
+type FlowStep struct {
+	ID          string `yaml:"id" json:"id"`
+	Action      string `yaml:"action" json:"action"`
+	Contract    string `yaml:"contract,omitempty" json:"contract,omitempty"`
+	Description string `yaml:"description,omitempty" json:"description,omitempty"`
+	OnSuccess   string `yaml:"on_success,omitempty" json:"on_success,omitempty"`
+	OnFailure   string `yaml:"on_failure,omitempty" json:"on_failure,omitempty"`
 }
 
 // FlowEntity represents meaningful behavior over time.
 type FlowEntity struct {
 	BaseEntity         `yaml:",inline"`
-	Trigger            string `yaml:"trigger,omitempty"`
-	Goal               string `yaml:"goal,omitempty"`
-	Narrative          string `yaml:"narrative,omitempty"`
-	HappyPath          string `yaml:"happy_path,omitempty"`
-	EdgeCases          string `yaml:"edge_cases,omitempty"`
-	FlowFailureModes   string `yaml:"failure_modes,omitempty"`
-	ObservabilityNotes string `yaml:"observability_notes,omitempty"`
-	PerformanceNotes   string `yaml:"performance_notes,omitempty"`
+	Trigger            string     `yaml:"trigger,omitempty"`
+	Goal               string     `yaml:"goal,omitempty"`
+	Steps              []FlowStep `yaml:"steps,omitempty" json:"steps,omitempty"`
+	Narrative          string     `yaml:"narrative,omitempty"`
+	HappyPath          string     `yaml:"happy_path,omitempty"`
+	EdgeCases          string     `yaml:"edge_cases,omitempty"`
+	FlowFailureModes   string     `yaml:"failure_modes,omitempty"`
+	ObservabilityNotes string     `yaml:"observability_notes,omitempty"`
+	PerformanceNotes   string     `yaml:"performance_notes,omitempty"`
 }
 
 // RequirementStatus describes whether a requirement is currently
@@ -410,6 +353,39 @@ type RequirementEntity struct {
 	SupersededBy      []string            `yaml:"superseded_by,omitempty"`
 	ObsoleteReason    string              `yaml:"obsolete_reason,omitempty"`
 	ApprovedAt        string              `yaml:"approved_at,omitempty"`
+	AuditedOverlaps   []AuditedOverlap    `yaml:"audited_overlaps,omitempty" json:"audited_overlaps,omitempty"`
+}
+
+// AuditedOverlap is an acknowledgement that a requirement overlaps with
+// another active requirement above the TF-IDF similarity threshold. The
+// distinction field captures why the two are nonetheless semantically
+// distinct — a blank distinction is a rubber stamp and is rejected by
+// the audit engine.
+type AuditedOverlap struct {
+	Slug        string `yaml:"slug" json:"slug"`
+	Distinction string `yaml:"distinction,omitempty" json:"distinction,omitempty"`
+}
+
+// UnmarshalYAML accepts either a legacy slug-only string form or the
+// full {slug, distinction} map form. Legacy entries come in with an
+// empty distinction and are flagged by the audit rule so the author is
+// forced to author a rationale on the next edit.
+func (a *AuditedOverlap) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var slug string
+	if err := unmarshal(&slug); err == nil {
+		a.Slug = slug
+		return nil
+	}
+	var m struct {
+		Slug        string `yaml:"slug"`
+		Distinction string `yaml:"distinction"`
+	}
+	if err := unmarshal(&m); err != nil {
+		return err
+	}
+	a.Slug = m.Slug
+	a.Distinction = m.Distinction
+	return nil
 }
 
 // NewEntityForKind creates a zero-value entity of the given kind.

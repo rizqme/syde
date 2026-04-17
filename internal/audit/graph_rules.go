@@ -372,32 +372,106 @@ func hierarchyFindings(all []model.EntityWithBody) []Finding {
 }
 
 func contractFlowFindings(all []model.EntityWithBody) []Finding {
-	_, rels := auditGraph(all)
-	inFlow := map[string]bool{}
-	for _, rel := range rels {
-		if rel.Source.Kind == model.KindContract && rel.Target.Kind == model.KindFlow {
-			inFlow[rel.Source.CanonicalSlug()] = true
+	lookup, _ := auditGraph(all)
+
+	// Collect all contract slugs referenced by any flow step.
+	inStep := map[string]bool{}
+	var out []Finding
+
+	for _, ewb := range all {
+		flow, ok := ewb.Entity.(*model.FlowEntity)
+		if !ok || len(flow.Steps) == 0 {
+			continue
 		}
-		if rel.Source.Kind == model.KindFlow && rel.Target.Kind == model.KindContract {
-			inFlow[rel.Target.CanonicalSlug()] = true
+		fb := flow.GetBase()
+
+		// Build step ID set for this flow to validate branching refs.
+		stepIDs := map[string]bool{}
+		for _, s := range flow.Steps {
+			if s.ID != "" {
+				if stepIDs[s.ID] {
+					out = append(out, Finding{
+						Severity:   SeverityError,
+						Category:   CatContractFlow,
+						Message:    fmt.Sprintf("duplicate step ID %q in flow", s.ID),
+						EntityKind: model.KindFlow,
+						EntitySlug: fb.CanonicalSlug(),
+						EntityName: fb.Name,
+						Field:      "steps",
+					})
+				}
+				stepIDs[s.ID] = true
+			}
+		}
+
+		for _, s := range flow.Steps {
+			// Internal steps with empty contract are legitimate —
+			// they describe human action or system-internal work
+			// without an external boundary. The audit only fires on
+			// unresolvable contract refs, not on intentionally empty
+			// ones.
+			if s.Contract == "" {
+				continue
+			}
+			// ERROR on unresolvable contract ref.
+			if _, ok := lookup[s.Contract]; !ok {
+				out = append(out, Finding{
+					Severity:   SeverityError,
+					Category:   CatContractFlow,
+					Message:    fmt.Sprintf("step %q references contract %q which does not exist", s.ID, s.Contract),
+					EntityKind: model.KindFlow,
+					EntitySlug: fb.CanonicalSlug(),
+					EntityName: fb.Name,
+					Field:      "steps",
+				})
+			} else {
+				inStep[s.Contract] = true
+				// Also mark the canonical slug so the coverage check
+				// works regardless of bare vs full slug.
+				if target, ok := lookup[s.Contract]; ok {
+					inStep[target.Base.CanonicalSlug()] = true
+				}
+			}
+
+			// ERROR on unresolvable on_success/on_failure refs.
+			for _, ref := range []struct{ field, val string }{
+				{"on_success", s.OnSuccess},
+				{"on_failure", s.OnFailure},
+			} {
+				if ref.val == "" || ref.val == "done" || ref.val == "abort" {
+					continue
+				}
+				if !stepIDs[ref.val] {
+					out = append(out, Finding{
+						Severity:   SeverityError,
+						Category:   CatContractFlow,
+						Message:    fmt.Sprintf("step %q %s references step %q which does not exist in this flow", s.ID, ref.field, ref.val),
+						EntityKind: model.KindFlow,
+						EntitySlug: fb.CanonicalSlug(),
+						EntityName: fb.Name,
+						Field:      "steps",
+					})
+				}
+			}
 		}
 	}
 
-	var out []Finding
+	// ERROR on contracts not referenced by any flow step.
 	for _, ewb := range all {
 		b := ewb.Entity.GetBase()
 		if b.Kind != model.KindContract {
 			continue
 		}
-		if !inFlow[b.CanonicalSlug()] {
+		slug := b.CanonicalSlug()
+		if !inStep[slug] && !inStep[utils.BaseSlug(slug)] {
 			out = append(out, Finding{
 				Severity:   SeverityError,
 				Category:   CatContractFlow,
-				Message:    "contract must participate in at least one flow",
+				Message:    fmt.Sprintf("contract %q is not referenced by any flow step — add a new flow for this boundary or extend an existing flow with a step whose contract field matches", b.Name),
 				EntityKind: b.Kind,
-				EntitySlug: b.CanonicalSlug(),
+				EntitySlug: slug,
 				EntityName: b.Name,
-				Field:      "relationships",
+				Field:      "steps",
 			})
 		}
 	}

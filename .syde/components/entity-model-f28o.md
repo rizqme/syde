@@ -11,13 +11,14 @@ files:
     - internal/model/entity.go
     - internal/model/relationship.go
     - internal/model/plan.go
+    - internal/model/plan_test.go
     - internal/model/task.go
     - internal/model/validation.go
 relationships:
     - target: syde-cli
       type: belongs_to
-updated_at: "2026-04-15T10:58:06Z"
-responsibility: BaseEntity + per-kind structs + validation rules + plan/task/relationship types
+updated_at: "2026-04-17T10:52:48Z"
+responsibility: BaseEntity + per-kind structs + validation rules + plan/task/relationship types + AuditedOverlap with distinction rationale
 capabilities:
     - Type-switched entity constructors (NewEntityForKind)
     - YAML (un)marshal with frontmatter-compatible tags

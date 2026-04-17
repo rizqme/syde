@@ -11,7 +11,6 @@ import {
   ScaleIcon,
   RequirementIcon,
   ClipboardIcon,
-  CheckSquareIcon,
   LayersIcon,
   SearchIcon,
 } from './icons';
@@ -30,7 +29,6 @@ const KIND_GROUPS = [
     label: 'Behavior',
     items: [
       { kind: 'flow', label: 'Flows', Icon: GitBranchIcon },
-      { kind: 'decision', label: 'Decisions', Icon: ScaleIcon },
       { kind: 'requirement', label: 'Requirements', Icon: RequirementIcon },
     ],
   },
@@ -38,7 +36,6 @@ const KIND_GROUPS = [
     label: 'Work',
     items: [
       { kind: 'plan', label: 'Plans', Icon: ClipboardIcon },
-      { kind: 'task', label: 'Tasks', Icon: CheckSquareIcon },
     ],
   },
 ];

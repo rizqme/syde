@@ -86,52 +86,39 @@ Contracts SHOULD reference concepts used in input/output: `--add-rel "<concept-s
 **Concept flags:**
 ```
 --meaning           what it means in the domain (REQUIRED — ERROR if missing)
---attribute         ERD attribute 'name|description|refs', repeatable
-                    (REQUIRED — at least one per concept; ERROR if zero)
-                    Name required; description optional prose; refs is
-                    an optional comma-separated list of concept slugs
-                    this attribute references — renders as FK arrows in
-                    the ERD view.
-                    NO type field: concepts are a design-level lens.
---action            domain action 'name|description', repeatable
---invariants        rules that must always hold (recommended)
---lifecycle         lifecycle description (state machine, etc.)
---structure-notes   free-form structure notes (prefer --attribute for fields)
---data-sensitivity  data sensitivity (e.g., PII, public)
+--invariants        rules that must always hold (recommended — Finding if empty)
+--lifecycle         lifecycle description (state machine, etc.) — optional
 ```
+
+Concepts are **glossary entries**, not ERD tables. They carry no
+attributes, actions, data sensitivity, or structure notes — schema
+detail belongs on the implementing component or on a contract schema.
+
 Concepts MUST belong_to a system: `--add-rel "<system-slug>:belongs_to"`
-Concepts SHOULD reference the component that owns them: `--add-rel "<component-slug>:references"`
-Concepts SHOULD relate_to other concepts with a **cardinality label**:
-`--add-rel "<concept-slug>:relates_to:<cardinality>"` where cardinality
-is one of `one-to-one`, `one-to-many`, `many-to-one`, `many-to-many`.
-Empty cardinality (`target:relates_to`) stays valid but renders an
-unlabeled edge in the ERD view.
 
-Attribute spec: `name|description|refs`. Name required; description
-is optional prose; refs is an optional comma-separated list of
-concept slugs this attribute points at (FK-style). The dashboard
-ERD renders attribute rows as name + description, with dashed
-arrows from refs-bearing rows to the target concept cards.
+Concepts SHOULD carry **role-based** relationships describing how the
+term is realised elsewhere in the model:
 
-Action spec: `name|description`. Names appear as compact chips in
-the ERD node footer. Actions are design-level verbs — full API
-surfaces live in contract entities.
+| Relationship    | Target kind | Meaning |
+|-----------------|-------------|---------|
+| `implemented_by`| component   | Component that implements the concept in code |
+| `exposed_via`   | contract    | Contract that exposes the concept externally |
+| `used_in`       | flow        | Flow that operates on or produces the concept |
+| `relates_to`    | concept     | Another concept this one relates to (no cardinality label) |
 
 Example:
 ```
 syde add concept "Order" \
   --description "A customer purchase request" \
-  --meaning "Groups line items into a billable transaction" \
-  --invariants "total > 0; must have ≥1 line item" \
-  --attribute "id|primary key" \
-  --attribute "status|lifecycle state: draft, placed, paid, shipped" \
-  --attribute "total|sum of line items, must be > 0" \
-  --attribute "customer_id|foreign key|customer" \
-  --action "place|transitions from draft to placed" \
-  --action "cancel|reverts to draft if not yet shipped" \
+  --meaning "Groups line items into a billable transaction with a single delivery and payment." \
+  --lifecycle "draft → placed → paid → shipped → delivered" \
+  --invariants "Total > 0; must have ≥1 line item; forward-only state transitions." \
   --add-rel "ecommerce:belongs_to" \
-  --add-rel "customer:relates_to:many-to-one" \
-  --add-rel "line-item:relates_to:one-to-many"
+  --add-rel "order-service:implemented_by" \
+  --add-rel "place-order:exposed_via" \
+  --add-rel "place-order-flow:used_in" \
+  --add-rel "customer:relates_to" \
+  --add-rel "line-item:relates_to"
 ```
 
 **Flow flags:**

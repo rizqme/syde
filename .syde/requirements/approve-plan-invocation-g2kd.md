@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-cli-2478
       type: belongs_to
-updated_at: "2026-04-15T11:00:19Z"
+updated_at: "2026-04-17T10:45:22Z"
 statement: When the user runs syde plan approve <slug>, the syde CLI shall transition the plan's plan_status field to approved.
 req_type: interface
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: contract:approve-plan-pdgb
 requirement_status: active
 rationale: Approval gates plan execution and downstream task work.
+audited_overlaps:
+    - slug: execute-plan-invocation-f8md
+      distinction: Different CLI subcommand (approve vs execute) driving different plan_status transitions (approved vs in-progress) at distinct workflow stages.
 ---

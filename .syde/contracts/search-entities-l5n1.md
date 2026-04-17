@@ -1,28 +1,25 @@
 ---
-contract_kind: cli
-description: Full-text search across all entities.
 id: CON-0013
-input: syde search <query>
-input_parameters:
-    - description: positional, required. Full-text query string
-      path: query
-      type: string
-interaction_pattern: request-response
 kind: contract
 name: Search Entities
-output: ranked list on stdout
-output_parameters:
-    - description: matching entity slugs with score and snippet
-      path: hits
-      type: '[]string'
+slug: search-entities-l5n1
+description: Full-text search across all entities.
 relationships:
     - target: syde-cli
       type: belongs_to
     - target: cli-commands
       type: references
-    - label: flow
-      target: design-model-operations-coverage-wsrh
-      type: involves
-slug: search-entities-l5n1
-updated_at: "2026-04-14T03:27:04Z"
+updated_at: "2026-04-16T10:51:16Z"
+contract_kind: cli
+interaction_pattern: request-response
+input: syde search <query>
+input_parameters:
+    - path: query
+      type: string
+      description: positional, required. Full-text query string
+output: ranked list on stdout
+output_parameters:
+    - path: hits
+      type: '[]string'
+      description: matching entity slugs with score and snippet
 ---

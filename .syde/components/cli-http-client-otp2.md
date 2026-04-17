@@ -16,7 +16,7 @@ relationships:
       type: depends_on
     - target: http-api
       type: depends_on
-updated_at: "2026-04-15T09:27:08Z"
+updated_at: "2026-04-15T15:12:36Z"
 responsibility: Wrap every syded read + write endpoint as a typed Go method and transparently auto-launch syded via daemon.EnsureRunning on first call
 capabilities:
     - Derive the project slug from a .syde/ dir so CLI + syded agree on the project key

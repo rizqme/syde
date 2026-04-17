@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:55:14Z"
+updated_at: "2026-04-17T10:46:07Z"
 statement: The query engine shall not mutate entities in the store during read operations.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: component:query-engine-9k84
 requirement_status: active
 rationale: Read operations must be side-effect free.
+audited_overlaps:
+    - slug: audit-engine-does-not-mutate-store-ka7w
+      distinction: Query engine immutability governs read path; audit engine immutability governs the separate audit run subsystem.
 ---

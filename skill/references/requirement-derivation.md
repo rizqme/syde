@@ -176,17 +176,16 @@ For a concept entity:
    - `priority`: `must`
    - `statement` template: `"While <concept> is in <state>, the <system> shall <allow/disallow action>."`
 
-3. **`data_sensitivity`** — if non-trivial, one **security**
-   requirement.
-   - `req_type`: `security`
+3. **Role-based links** — for every `implemented_by`, `exposed_via`,
+   or `used_in` relationship, one **functional** requirement expressing
+   that the target fulfils its role.
+   - `req_type`: `functional`
    - `priority`: `must`
+   - `statement` template: `"The <target> shall implement / expose / operate on <concept>."`
 
-4. **Required attributes** — from `attributes[]` filter to those
-   marked required or implied required. One **constraint** requirement
-   per attribute.
-   - `statement` template: `"The <system> shall require <attribute name> on every <concept> instance."`
-
-Target: 3–8 requirements per concept.
+Target: 2–6 requirements per concept. Concepts are glossary entries,
+so most requirements live on the implementing component, exposing
+contract, or owning flow — not on the concept itself.
 
 ## Quality checks
 

@@ -137,3 +137,29 @@ func requirementName(prefix, text string) string {
 	}
 	return prefix + ": " + oneLine
 }
+
+// parseAuditedOverlaps turns repeatable --audited flag values of the form
+// "slug" or "slug:distinction" into AuditedOverlap structs. The distinction
+// rationale is required by the audit engine; the CLI allows legacy slug-only
+// input but the downstream audit rule flags it.
+func parseAuditedOverlaps(values []string) []model.AuditedOverlap {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]model.AuditedOverlap, 0, len(values))
+	for _, v := range values {
+		if v == "" {
+			continue
+		}
+		slug, distinction, _ := strings.Cut(v, ":")
+		slug = strings.TrimSpace(slug)
+		if slug == "" {
+			continue
+		}
+		out = append(out, model.AuditedOverlap{
+			Slug:        slug,
+			Distinction: strings.TrimSpace(distinction),
+		})
+	}
+	return out
+}

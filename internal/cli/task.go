@@ -574,7 +574,8 @@ func setTaskStatus(slug string, status model.TaskStatus, addAffectedEntities, ad
 				for _, tSlug := range phase.Tasks {
 					for _, tewb := range taskEntities {
 						te := tewb.Entity.(*model.TaskEntity)
-						if utils.Slugify(te.Name) == tSlug && te.TaskStatus != model.TaskCompleted && te.TaskStatus != model.TaskCancelled {
+						teSlug := utils.BaseSlug(te.GetBase().Slug)
+						if teSlug == tSlug && te.PlanRef == t.PlanRef && te.TaskStatus != model.TaskCompleted && te.TaskStatus != model.TaskCancelled {
 							allTasksDone = false
 							break
 						}

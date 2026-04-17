@@ -10,7 +10,7 @@ files:
 relationships:
     - target: syded-dashboard
       type: belongs_to
-updated_at: "2026-04-15T09:27:08Z"
+updated_at: "2026-04-15T15:10:50Z"
 responsibility: Broadcast entity/tree change events over WebSocket
 capabilities:
     - Per-project WebSocket rooms

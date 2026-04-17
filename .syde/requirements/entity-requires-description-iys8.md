@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:04Z"
+updated_at: "2026-04-17T10:45:32Z"
 statement: The syde CLI shall require a non-empty description on every entity instance.
 req_type: constraint
 priority: must
@@ -17,4 +17,11 @@ source: manual
 source_ref: concept:entity-8x6p
 requirement_status: active
 rationale: The description is the one-sentence elevator pitch used by list and search commands.
+audited_overlaps:
+    - slug: plan-phase-requires-name-3o8y
+      distinction: Applies to the description field on every entity kind, not the name field on plan phase instances specifically.
+    - slug: plan-requires-objective-vacv
+      distinction: Applies to the description field on every entity kind, not the objective field scoped to plan instances.
+    - slug: task-requires-objective-3bnt
+      distinction: Applies to the description field on every entity kind, not the objective field scoped to task instances.
 ---

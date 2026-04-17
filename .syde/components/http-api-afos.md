@@ -16,7 +16,9 @@ files:
 relationships:
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T11:05:37Z"
+    - target: syde
+      type: belongs_to
+updated_at: "2026-04-17T11:00:57Z"
 responsibility: Handle HTTP routes for entities, tree, search, constraints, context
 capabilities:
     - Serve GET /api/<project>/entities and per-kind listings

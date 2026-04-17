@@ -11,7 +11,7 @@ notes:
 relationships:
     - target: syde
       type: belongs_to
-updated_at: "2026-04-15T11:05:37Z"
+updated_at: "2026-04-17T11:07:56Z"
 context: Launched via 'syde open' or run standalone. Opens a project registry, serves the embedded SPA, and watches markdown files for live updates via WebSocket.
 scope: 'In: HTTP API, WebSocket live-refresh, embedded React SPA, multi-project registry. Out: Entity editing (read-only browser for now).'
 ---

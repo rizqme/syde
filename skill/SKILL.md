@@ -368,8 +368,8 @@ full slug or a parent/child path.
 ## Required For Every Entity
 
 Every entity of every kind MUST have a `--description` — a one-sentence
-identification of what the entity is. This is enforced by `syde validate`
-(missing description = ERROR, not WARN). Without it the dashboard list
+identification of what the entity is. The audit emits a blocking Finding
+on entities with no description. Without it the dashboard list
 views render empty cards, `syde get` shows a stub, and the model becomes
 unreviewable.
 
@@ -390,9 +390,9 @@ system                                   ← a standalone process / app / servic
 ├── components (belongs_to system)        ← internal modules of this process
 │   └── depends_on other components (NO CYCLES)
 ├── contracts (belongs_to system)         ← the process's external boundaries
-├── concepts (belongs_to system)          ← domain objects of this system
-│   ├── references components (implements/used_by)
-│   └── relates_to other concepts (ERD)
+├── concepts (belongs_to system)          ← domain glossary terms
+│   ├── implemented_by components / exposed_via contracts / used_in flows
+│   └── relates_to other concepts
 └── flows, requirements, plans, tasks
 ```
 
@@ -628,58 +628,40 @@ syde add contract "User Registered" \
   --add-rel "user:references"
 ```
 
-### Concept rules (ERD)
+### Concept rules (glossary)
 
-Concepts are first-class ERD entities — high-level domain objects
-with named attributes, domain actions, and cardinality-labelled
-relationships. They render in the dashboard both as a detail panel
-(attributes + actions tables) and as draggable nodes in the ERD view
-(accessed via the List/ERD toggle on the Concepts page). Concepts are
-a **design-level lens** — they carry names and descriptions, never
-concrete Go/SQL/TypeScript types. Types live in code; concepts live
-in the model.
+Concepts are **domain glossary entries** — high-level terms that
+explain what something *means* in the domain, not how it's shaped in
+code. They are a design-level lens: they carry names, descriptions,
+and prose fields explaining meaning, lifecycle, and invariants. They
+do not carry typed attributes, actions, or cardinality-labelled
+relationships — those belong in code (struct fields, methods) or in
+contract schemas. The dashboard renders concepts as a standard
+2-column inbox with a detail panel showing the prose fields plus
+relationship chips grouped by role.
 
 **Every concept MUST have:**
 
-- `--meaning` — what the concept represents in the domain (enforced: ERROR)
-- **At least one `--attribute`** — ERD field `name|description[|refs]`
-  (enforced: ERROR). Each attribute needs a non-empty name; description
-  and refs are optional.
-- `--invariants` — rules that must always hold (recommended: WARN)
+- `--meaning` — what the concept represents in the domain (enforced: blocking Finding)
 - Relationship: `belongs_to:<system-slug>`
 
-**Every concept MAY have:**
+**Every concept SHOULD have:**
 
-- `--action "name|description"` — a domain verb / aggregate operation
-  (e.g. `place|move draft→placed`). Repeatable. Actions are design-
-  level indicators; full interaction surfaces live in contract entities.
-- `--add-rel "<target>:references:<component-slug>"` — the component
-  that owns / implements it.
-- `--add-rel "<target>:relates_to[:cardinality]"` — ERD relationships
-  to other concepts. Cardinality is the optional **third** part of the
-  `--add-rel` spec and must be one of:
+- `--invariants` — rules that must always hold (recommended: blocking Finding)
+- `--lifecycle` — the state machine or progression through stages
 
-| Cardinality    | Meaning                                        |
-|----------------|------------------------------------------------|
-| `one-to-one`   | Each row on the left has exactly one row right |
-| `one-to-many`  | Each row on the left has many rows on the right |
-| `many-to-one`  | Many rows on the left share one row on the right |
-| `many-to-many` | Many-to-many via an explicit join               |
+**Every concept MAY have role-based relationships:**
 
-Empty cardinality (two-part `target:relates_to`) is allowed but the
-ERD view will not render a label on that edge. The audit check
-rejects anything outside the four values above.
+| Relationship type | Target kind | Meaning |
+|-------------------|-------------|---------|
+| `implemented_by`  | component   | Which component implements the concept in code |
+| `exposed_via`     | contract    | Which contract exposes the concept externally   |
+| `used_in`         | flow        | Which flow operates on or produces this concept |
+| `relates_to`      | concept     | Another concept this one relates to             |
 
-**Attribute spec**: `name|description|refs` — pipe-separated, 1-3 parts.
-`name` is required. `description` is optional prose explaining what
-the attribute means, its constraints, or invariants. `refs` is an
-optional comma-separated list of concept slugs this attribute
-references — used by the ERD view to draw attribute-level FK-style
-edges from the attribute row to the referenced concept's card.
-There is **no type** — concepts are design-level, not code-level.
-
-**Action spec**: `name|description`. Simpler than attributes —
-actions are named verbs, no schema.
+`relates_to` is a plain edge with **no cardinality label** — prose
+relationships, not schema-level cardinality. Keep multiplicity detail
+inside the target component or contract schema.
 
 **Worked example (Order / LineItem / Customer):**
 
@@ -687,90 +669,88 @@ actions are named verbs, no schema.
 # Parent domain
 syde add system "Ecommerce" --description "Online store"
 
-# Core aggregate
+# Supporting scaffolding (components, contracts, flows)
+syde add component "Order Service" \
+  --purpose "Place, fulfil, and track customer orders" \
+  --responsibility "CRUD for orders and line items, state machine enforcement" \
+  --capability "Place order" --capability "Cancel order" --capability "Ship order" \
+  --boundaries "Does not handle payments or shipping labels" \
+  --add-rel "ecommerce:belongs_to"
+
+syde add contract "Place Order" \
+  --contract-kind rest --interaction-pattern request-response \
+  --input "POST /orders" \
+  --input-parameter "customer_id|string|placing customer" \
+  --input-parameter "items|array<LineItem>|items to order" \
+  --output "201 Created application/json" \
+  --output-parameter "order.id|string|newly allocated order ID" \
+  --add-rel "ecommerce:belongs_to" \
+  --add-rel "order-service:references"
+
+syde add flow "Place Order Flow" \
+  --description "End-to-end placement from cart to confirmation" \
+  --trigger "Customer submits checkout" \
+  --goal "Order is persisted and confirmation sent" \
+  --add-rel "ecommerce:belongs_to"
+
+# Core glossary entries — prose only, no attributes or actions.
 syde add concept "Order" \
   --description "A customer's purchase request" \
-  --meaning "Groups line items into a billable transaction" \
-  --lifecycle "draft → placed → paid → shipped → delivered" \
-  --invariants "total > 0. Must have at least one line item. Status transitions are forward-only." \
-  --attribute "id|primary key" \
-  --attribute "status|lifecycle state: draft, placed, paid, shipped, delivered" \
-  --attribute "total|sum of line items, must be > 0" \
-  --attribute "placed_at|timestamp when the order transitioned to placed, nullable" \
-  --action "place|transitions from draft to placed" \
-  --action "cancel|reverts to draft if not yet shipped" \
-  --action "ship|moves from paid to shipped" \
+  --meaning "Groups line items into a billable transaction with a single delivery and payment." \
+  --lifecycle "draft → placed → paid → shipped → delivered. Status transitions are forward-only." \
+  --invariants "Must have at least one line item. Total > 0. Once shipped, cannot be cancelled." \
   --add-rel "ecommerce:belongs_to" \
-  --add-rel "customer:relates_to:many-to-one" \
-  --add-rel "line-item:relates_to:one-to-many"
+  --add-rel "order-service:implemented_by" \
+  --add-rel "place-order:exposed_via" \
+  --add-rel "place-order-flow:used_in" \
+  --add-rel "line-item:relates_to" \
+  --add-rel "customer:relates_to"
 
-# Related aggregates — FK-style attribute refs draw per-attribute
-# arrows in the ERD canvas.
 syde add concept "LineItem" \
   --description "One product in an order" \
-  --meaning "Individual product + quantity within an order" \
-  --invariants "quantity > 0. Subtotal = quantity * unit_price." \
-  --attribute "id|primary key" \
-  --attribute "order_id|foreign key to Order|order" \
-  --attribute "product_id|foreign key to Product|product" \
-  --attribute "quantity|must be > 0" \
-  --attribute "unit_price|price at purchase time" \
+  --meaning "A single product-and-quantity entry within an order." \
+  --invariants "Quantity > 0. Subtotal = quantity * unit price captured at purchase time." \
   --add-rel "ecommerce:belongs_to" \
-  --add-rel "order:relates_to:many-to-one"
+  --add-rel "order-service:implemented_by" \
+  --add-rel "order:relates_to"
 
 syde add concept "Customer" \
   --description "A registered buyer" \
-  --meaning "Person or org that can place orders" \
-  --invariants "email is unique and non-empty" \
-  --attribute "id|primary key" \
-  --attribute "email|unique, required" \
-  --attribute "created_at|registration timestamp" \
-  --action "register|creates a new customer account" \
-  --action "deactivate|marks the customer as closed" \
+  --meaning "Person or organisation that can place orders." \
+  --lifecycle "registered → active → deactivated" \
+  --invariants "Email is unique and non-empty across active customers." \
   --add-rel "ecommerce:belongs_to" \
-  --add-rel "order:relates_to:one-to-many"
+  --add-rel "order-service:implemented_by" \
+  --add-rel "order:relates_to"
 ```
 
-After running the above, open the dashboard, click **Concepts** in
-the sidebar, and toggle the view-mode control at the top-right of
-the page from **List** to **ERD**. Every concept renders as a
-draggable card with its name + description in the header, attribute
-rows showing name + description, action chips in the footer, and
-labelled `relates_to` edges connecting related concepts. Attributes
-with refs draw dashed arrows from the attribute row to the target
-concept's card — that is how LineItem.order_id and LineItem.product_id
-visually link to the Order and Product cards above.
+After running the above, open the dashboard and click **Concepts** in
+the sidebar. The page is a standard 2-column inbox: a list on the left
+and a glossary detail panel on the right. The detail panel shows
+`Meaning`, `Lifecycle`, and `Invariants` as prose blocks, followed by
+relationship chips grouped by role (`implemented by`, `exposed via`,
+`used in`, `relates to`). Clicking any chip navigates to the target
+entity.
 
-**Attribute-level FK edges** — the 3rd pipe field on an attribute
-spec is an optional comma-separated list of concept slugs that
-attribute references. Use this for foreign-key-style links:
-
-```bash
-syde update LineItem \
-  --attribute "id|primary key" \
-  --attribute "order_id|foreign key|order" \
-  --attribute "product_id|foreign key|product"
-```
-
-The `order_id` and `product_id` rows will render attribute handles
-in the ERD; the canvas draws dashed arrows from each row to the
-target concept's card. `relates_to` edges remain available for
-aggregate-level cardinality (one-to-many etc.); attribute refs are
-the field-level complement.
+**Migrating an older concept** that was written before the glossary
+redesign? It may still carry attribute/action detail in YAML. Just
+run `syde update <slug>` (any no-op call works) — the re-save strips
+fields that no longer exist on the struct. Then add role-based
+relationships with `--add-rel`, e.g. `syde update order-sk3a
+--add-rel "order-service:implemented_by"`.
 
 **Common mistakes:**
 
-- Forgetting `--attribute` on a new concept. `syde sync check` will
-  reject it as ERROR — concepts without attributes are not reviewable.
-- Typing `--add-rel "customer:relates_to:many"` (invalid cardinality).
-  The audit rejects anything outside the four-value enum above.
-- Putting domain attribute detail in `--structure-notes` prose
-  instead of structured `--attribute` specs. Prose is invisible to
-  the ERD view and to any future code-generation.
-- Leaking implementation types into attribute prose (`uuid`, `int`,
-  `timestamptz`). Concepts are a design-level lens — if you find
-  yourself writing a type, move it into the code entity or contract
-  schema where concrete types belong.
+- Writing schema detail in `--meaning`. If you find yourself typing
+  field names, types, or column lists, stop — those belong on the
+  implementing component, the exposing contract's `input_parameters`,
+  or a `storage` contract.
+- Using the generic `references` relationship to a component. Use
+  `implemented_by` instead so the role is explicit in the graph.
+- Creating a concept that has no meaningful `implemented_by` or
+  `exposed_via` link. A domain term that no code, contract, or flow
+  touches is either too abstract to be useful or a sign that the
+  implementing entity is missing from the model.
 
 ### System rules
 
@@ -872,37 +852,199 @@ requirement layer.
 - No cyclic `depends_on` relationships between components
 - All relationship targets must exist
 
+#### Requirement overlap resolution (MERGE / RENAME / DISTINCT)
+
+`syde add requirement` surfaces any existing active requirement whose
+statement is above 0.6 TF-IDF similarity to the new one. **Text
+similarity is only a candidate signal — semantic overlap is your job
+to verify.** The CLI blocks the create (non-zero exit) unless every
+surfaced overlap is resolved by one of three outcomes:
+
+| Outcome | When | How |
+|---------|------|-----|
+| **MERGE** | The two requirements mean the same thing. | Abandon the new one; reuse the existing slug. Update inbound `refines` / `derives_from` / `references` to point at the survivor. |
+| **RENAME** | They are semantically distinct but the statements accidentally share vocabulary. | Rewrite the new statement with different domain terms so the TF-IDF match drops below 0.6. Retry the create. |
+| **DISTINCT** | They are genuinely close cousins that must both exist. | Retry with `--audited <slug>:"why these two mean different things"` for each overlap. The distinction text is persisted on the requirement and must be ≥20 characters of substantive reasoning. |
+
+The installed PostToolUse hook also injects a system reminder into
+the session whenever `syde add requirement` prints overlap
+candidates, so the decision can't be skipped silently.
+
+**Audit enforcement.** `syde sync check` errors on any acknowledged
+overlap whose distinction is empty or shorter than 20 chars — rubber
+stamps are treated as unresolved. If you acknowledged an overlap with
+a throwaway string, revisit it and write a real semantic reason.
+
+**Contract coverage.** When a requirement's statement names a
+CLI invocation (`syde <sub>`), REST path (`GET /api/...`), dashboard
+screen, or pub-sub event topic, an active contract must cover that
+surface — or the plan must introduce/extend one in the same diff.
+The planning-time and sync-check Findings are symmetric: the
+gap is caught before the plan is approved and against the corpus at
+rest.
+
+**Flow coverage.** When a plan introduces or extends a contract, the
+plan's flow lane must introduce or extend a flow whose `steps`
+reference that contract. The planning-time Finding mirrors the
+existing post-plan `contractFlowFindings` rule so no contract ever
+lives without at least one flow traversing it.
+
 ### Phase 2: CREATE PLAN
 
-A plan has four levels of detail:
-1. **Plan header**: `background`, `objective`, `scope` — why, what success is, what changes
-2. **Phases**: `objective`, `changes`, `details`, `notes` — per-milestone plan
-3. **Tasks**: `objective`, `details`, `acceptance` — per-work-item plan
-4. **Entity drafts**: architecture to create when executed
+A plan has five levels of detail:
+1. **Plan header**: `background`, `objective`, `scope` — why, what success is, what changes at a high level
+2. **Design**: prose implementation design — the detailed "how we're going to build it" narrative
+3. **Changes**: structured diff of every entity that will be deleted, extended, or newly created, organized into six per-kind lanes (requirements, systems, concepts, components, contracts, flows)
+4. **Phases**: `objective`, `changes`, `details`, `notes` — per-milestone plan
+5. **Tasks**: `objective`, `details`, `acceptance` — per-work-item plan, referencing real entities and files
 
 Every plan MUST answer: **WHY** (background), **WHAT SUCCESS LOOKS LIKE**
-(objective), **WHAT CHANGES** (scope). Without these the plan is unreviewable.
+(objective), **WHAT CHANGES AT A HIGH LEVEL** (scope), **HOW WE'LL BUILD IT**
+(design), and **WHICH ENTITIES MOVE** (structured changes). Without these the
+plan is unreviewable.
 
-#### Step 1: Create plan with background / objective / scope
+Per REQ-0331, every plan records its entity changes as a structured diff with
+deleted / extended / new entries, and the completion validator verifies that
+diff against actual entity state before the plan can be marked `completed`.
+
+#### Requirement-first cascade
+
+Before authoring any implementation change, identify the underlying requirements
+first. **Every design decision in the plan must trace back to a requirement.**
+A plan with 5 phases and 2 requirements is a red flag — split each behavioral
+property, constraint, and UI expectation into its own EARS statement.
+
+**Step 1 — Search existing requirements.** Use `syde query --kind requirement`
+and `syde query --search "<term>" --kind requirement`. If an existing
+requirement overlaps, conflicts, or is superseded by the user's request, mark
+the old requirement `superseded` / `obsolete` instead of silently replacing
+intent.
+
+**Step 2 — Decompose into granular requirements.** For each aspect of the
+request, ask: "what specific property must the system have?" Each answer is
+one requirement. Categories to check:
+
+- **Model properties** — new fields, struct shapes, cardinality constraints
+- **Audit / validation rules** — each rule is its own requirement (what triggers it, what it checks; every audit Finding blocks)
+- **UI / rendering behavior** — each visual expectation (colors, layouts, interactions)
+- **Workflow constraints** — ordering rules, one-per-X rules, naming conventions
+- **Organization / grouping** — how entities are categorized, filtered, tagged
+- **Migration / cleanup** — what gets deleted, what replaces it
+
+A good heuristic: if the implementation needs a separate `if` branch or a
+distinct test case, it deserves its own requirement.
+
+**Step 3 — Add requirements to the plan's Requirements lane** before declaring
+implementation changes. Then cascade the implementation lanes in this order:
+Requirements → Components → Contracts → Concepts → Flows. Requirements are
+the why; the other lanes are the how. Never invert that order.
+
+**Step 4 — Link every change to requirements.** Each component/contract/flow
+change should trace back to one or more requirements via `--task` links.
+Orphan implementation changes with no requirement backing are a Finding
+in `syde plan check`.
+
+Always check existing flows. If the request changes behavior captured by a
+flow entity, extend that flow in the plan with `field_changes` for the changed
+`happy_path`, `narrative`, or `edge_cases`; flows rot silently when authors
+forget to update them.
+
+#### Step 1: Create plan with background / objective / scope / design
 
 ```
 syde plan create "<name>" \
   --background "Why does this plan exist? What problem or context drives it?" \
   --objective  "What does success look like when the plan is done?" \
-  --scope      "What's in-scope and out-of-scope at a high level"
+  --scope      "What's in-scope and out-of-scope at a high level" \
+  --design     "Detailed implementation design: architecture choices, data flow, key tradeoffs, migration steps"
 ```
 
-You can update these later with `syde plan update <slug> --background ... --objective ... --scope ...`.
+You can update these later with `syde plan update <slug> --background ... --objective ... --scope ... --design ...`.
 
-Optionally add a longer design narrative in the body:
+The `--design` field is free-form prose. Use it to capture the implementation
+walkthrough the phases gloss over: the overall approach, the key data-shape
+choices, what gets built in which order, and why. Reviewers read the design
+section before they skim phases, so write it like a short RFC, not like a
+commit message.
+
+The background/objective/scope/design sections render at the top of `syde plan
+show` and in the dashboard plan detail page so reviewers see the why/what/how
+before any phase detail.
+
+#### Step 2: Declare the structured change diff
+
+Before creating phases or tasks, spell out **every entity that will be touched**
+as a structured diff. syde models this as six per-kind lanes (requirements,
+systems, concepts, components, contracts, flows), each carrying three lists:
+`deleted`, `extended`, `new`. Every entry has `what` and `why` prose; extended
+entries may also carry programmatically-verified `field_changes`; new entries
+carry a kind-specific `draft` map that seeds the entity when it's created.
+
+Build the diff with `syde plan add-change`:
+
 ```
-syde update <plan-slug> --body "<extended design document>"
+# Mark an entity for deletion
+syde plan add-change delete <plan-slug> component legacy-auth \
+  --why "Replaced by new JWT middleware; no callers remain after phase 2"
+
+# Extend an existing entity; field_changes are verified at completion time
+syde plan add-change extend <plan-slug> component api-server \
+  --what "Add /api/plans routes and wire the plan completion handler" \
+  --why  "REQ-0331 requires a dashboard-visible plan inbox" \
+  --field responsibility="Request routing, validation, plan lifecycle endpoints" \
+  --field boundaries="No direct DB access; delegates to storage layer"
+
+# An extended change with no --field is a hand-review note (completion validator skips programmatic verification for it)
+syde plan add-change extend <plan-slug> flow session-start-bootstrap \
+  --what "Mention the plan inbox in the bootstrap narrative" \
+  --why  "Reviewers land on the inbox first once this ships"
+
+# Use the sentinel DELETE to assert a field must become empty
+syde plan add-change extend <plan-slug> component memory-sync \
+  --what "Retire the learnings pipeline" \
+  --why  "Learnings entity was removed in REQ-0319" \
+  --field files=DELETE
+
+# Declare a brand-new entity; --draft seeds it at entity-create time
+syde plan add-change new <plan-slug> contract \
+  --name "Plan Completion API" \
+  --what "POST /api/plans/:slug/complete returning the validator findings" \
+  --why  "Dashboard reviewers need a one-click gate" \
+  --draft contract_kind=rest \
+  --draft interaction_pattern=request-response \
+  --draft input="POST /api/plans/:slug/complete" \
+  --draft 'input_parameters=[{"path":"slug","type":"string","description":"plan slug"}]' \
+  --draft output="200 OK application/json"
 ```
 
-The background/objective/scope sections render at the top of `syde plan show`
-so reviewers see the why/what/changes before any phase detail.
+Both `--field` and `--draft` are **repeatable**. `--draft` auto-decodes JSON
+literal values (arrays, objects, numbers, booleans), so structured fields like
+`input_parameters` or `files` can be passed as JSON without escaping ceremony.
+The sentinel value `DELETE` on a `--field` means "this field must be the zero
+value when the plan completes".
 
-#### Step 2: Create phases with tasks
+Once tasks exist, every deleted / extended / new change must list the task
+slug(s) that implement it with repeatable `--task <task-slug>` flags. If you
+draft changes before creating tasks, return to the change list after Step 3 and
+make sure every change is claimed by at least one task in the same plan.
+
+You can drop a change that's no longer needed:
+```
+syde plan remove-change <plan-slug> <change-id>
+```
+
+Review the full diff at any time:
+```
+syde plan show-changes <plan-slug>                  # rich, grouped by kind
+syde plan show-changes <plan-slug> --format json    # machine-readable
+```
+
+The dashboard surfaces this diff on the per-plan detail page (see Step 5) with
+side-by-side field renders for extended entries and draft previews for new
+entries. Reviewers should be able to read the plan, design, and diff in the
+browser before they approve.
+
+#### Step 3: Create phases with tasks
 
 Each phase is a **deliverable milestone** with multiple **tasks** (the actual work).
 
@@ -1006,14 +1148,19 @@ done.
 **When to use 3 levels:** >20 tasks, or the plan spans multiple sessions.
 **When to use 2 levels:** <20 tasks, single session plan.
 
-#### Step 3: Declare what each task affects (not drafts)
+#### Step 4: Declare what each task affects
 
-**Plans no longer carry "draft entities".** Tasks instead declare, as
-references, the **existing** entities and **source files** they will modify.
+Each task references the **entities** and **source files** it will touch. The
+structured change diff from Step 2 is the plan-level statement of intent; the
+per-task `--affected-*` flags are what the drift validator uses at `task done`
+time to bump `updated_at` on the right entities.
 
 For every task you create, set:
-- `--affected-entity <slug>` — a slug of an existing entity this task will
-  modify. Repeatable. Validator rejects slugs that don't resolve.
+- `--affected-entity <slug>` — a slug of an entity this task will modify. If
+  the change diff declares a `new` entry for this kind + name, the slug will
+  be the one produced when `syde add` runs during implementation; pass it
+  back into the task via `syde task update --affected-entity` once it exists.
+  Repeatable. Validator rejects slugs that don't resolve.
 - `--affected-file <path>` — a concrete source file this task will touch.
   Must exist as a node in `.syde/tree.yaml` (run `syde tree scan` first).
   Repeatable.
@@ -1029,32 +1176,48 @@ syde task create "Harden JWT middleware" \
   --affected-file internal/auth/keys.go
 ```
 
-**If a task needs to CREATE a brand-new entity that doesn't exist yet**,
-mention it in the phase's `--notes` (free text) and in the task's `--note`
-flag. When the task runs, the agent will execute `syde add component ...`
-(or whatever kind) as part of implementation, then include the new slug
-in the task's `--affected-entity` list by running `syde task update
-<task> --affected-entity <existing-slug> --affected-entity <new-slug>`.
-The "draft entity" concept is gone — plans describe intent in prose,
-entities come into existence at implementation time via `syde add`.
+**If a task needs to CREATE a brand-new entity**, it MUST be declared in the
+plan's structured diff via `syde plan add-change new <plan> <kind> --name
+"..." --draft ...` (Step 2). That's the plan-level record of intent. When the
+task executes, run `syde add <kind> "<name>" ...` using the same name and the
+draft fields as defaults, then attach the freshly-created slug to the task
+with `syde task update <task> --affected-entity <new-slug>`. The plan
+completion validator will refuse to close the plan unless every declared
+`new` change corresponds to a real entity with a matching name + kind.
 
-**Why**: drafts duplicated entity structure inside plan YAML and created
-a "materialize on execute" step that silently went wrong. References
-are simpler: tasks point at real files and real entities, the validator
-can verify both, and `syde task done` automatically bumps UpdatedAt on
-every affected entity so the drift validator knows they've been reviewed.
-
-#### Step 4: Estimate and present
+#### Step 5: Estimate and present
 
 ```
 syde plan estimate <plan-slug>
+syde plan check <plan-slug>
+syde plan open <plan-slug>
 syde plan show <plan-slug> --full
+syde plan show-changes <plan-slug>
 ```
 
 Always use `--full` when presenting — shows phase details, notes, and
-task-by-task status with affected entities / files.
+task-by-task status with affected entities / files. Pair it with
+`show-changes` so the structured diff is visible alongside the phase tree.
 
-Tell the user: "Plan ready. Approve to proceed, or suggest changes."
+Run `syde plan check <plan-slug>` after drafting the structured diff, phases,
+and tasks. Address every Finding before presenting for approval — there is
+no non-blocking severity tier. `syde plan check` must exit 0.
+
+Run `syde plan open <plan-slug>` before asking for approval. This reuses an
+existing dashboard tab via WebSocket navigation when one is connected, or opens
+a new browser tab when none are listening. The plan must be visible in the
+browser before you ask the user to approve it.
+
+The dashboard has a **Plans inbox** at `/<project>/plan` and a per-plan
+detail page at `/<project>/plan/<slug>` with two tabs: **Plan** (design +
+structured changes grouped by kind, with side-by-side diffs for extended
+entries and draft previews for new entries) and **Tasks** (phases collapsed
+with nested task rows). The standalone Tasks sidebar nav is gone — tasks now
+live only inside the plan detail page. Point reviewers at the plan detail URL
+so they can read design + diff in the browser before approving in chat.
+
+Tell the user: "Plan ready. Review in the dashboard or via `syde plan show`.
+Approve to proceed, or suggest changes."
 
 **Approval rule — explicit chat approval required.** You may run `syde plan
 approve <plan-slug>` yourself, BUT only after the user has explicitly approved
@@ -1082,6 +1245,23 @@ start any tasks. Only after the user approves in chat, run `syde plan approve
 
 Work through the plan **one phase at a time**. Complete all tasks in a phase
 before moving to the next. Never jump ahead.
+
+**Do not stop until every task in every phase of the approved plan is done.**
+Once the user has approved a plan, executing it through to completion is a
+commitment, not a series of mid-flight check-ins. Do NOT pause to ask "should
+I continue?" between tasks or phases. Do NOT batch tasks and present them for
+review unless the task itself explicitly requires user input. The only valid
+reasons to stop mid-plan are:
+
+1. A task hits a real blocker (failing build you can't fix, missing
+   credential, ambiguous requirement that needs clarification).
+2. You discover the plan itself was wrong and needs revision — in which case,
+   say so explicitly and propose the revised plan.
+3. The user interrupts you.
+
+If you finish a task and the next one is straightforward, just start it.
+Status updates are fine; permission requests are noise. The user already
+approved the plan — running it is what they're paying for.
 
 **CRITICAL: Write / Edit / MultiEdit / NotebookEdit are HARD-BLOCKED by the
 PreToolUse hook when either condition is true:**
@@ -1204,8 +1384,14 @@ each phase, update the model before moving on:
    - Set `meaning`, `invariants`, `lifecycle`
    - Set `data_sensitivity` for anything containing PII or secrets
 4. **New user-facing workflow** → `syde add flow` or `syde update`
-   - Set `trigger`, `goal`, `narrative` with step-by-step detail
-   - Document `happy_path`, `edge_cases`, `failure_modes`
+   - **One flow per user goal** — not broad categories. "Create Plan", not "Planning".
+   - Set `trigger`, `goal`, and **structured steps** via `--step`
+   - Each step: `--step "id|action|contract|description|on_success|on_failure"`
+   - Steps describe what user and system do; action text names the actor
+   - One contract per step; if a behavior touches two contracts, use two steps
+   - Tag flows by category: `--tag planning`, `--tag authoring`, `--tag dashboard`, etc.
+   - The audit ERRORs on contracts not referenced by any flow step
+   - Legacy prose fields (`narrative`, `happy_path`, `edge_cases`, `failure_modes`) are still supported but prefer structured steps
 5. **Architectural choice made during implementation** → `syde add requirement`
    - Set `statement` (EARS shall-form, save-validated), `--type`, `--priority`,
      `--verification`, `--source`, `--rationale`
@@ -1228,39 +1414,60 @@ proceeding.
 1. `syde task list` — **ALL tasks must be completed**. No `pending` or `in_progress`
    tasks may remain. If any exist, complete them now.
 2. `syde plan show <plan-slug>` — must show 100% complete.
-3. **Refresh the summary tree first** (the rest of the gate reads from it):
+3. **Close the plan with the completion validator:**
+   ```
+   syde plan complete <plan-slug>
+   ```
+   This runs **the full `syde sync check`** and refuses to mark the plan
+   `completed` if ANY errors exist anywhere in the model — not just
+   plan-specific findings. The gate checks:
+   - Plan-completion diff: `delete` targets must not exist, `new` targets
+     must exist, `extend` field_changes must match actual values.
+   - **All sync check errors**: broken relationships, cycles, missing fields,
+     orphan files, TF-IDF overlaps without `--audited`, missing `belongs_to`,
+     etc. The entire model must be clean before a plan can complete.
+   Fix every error `syde sync check` reports before running `plan complete`.
+   `--force` overrides with a warning — only use it if you've explained to
+   the user why the errors are intentionally accepted.
+
+   **Do NOT call `syde plan complete` until `syde sync check` exits 0.**
+   Run `syde sync check` first, fix all findings, then complete.
+4. **Refresh the summary tree** (the rest of the gate reads from it):
    ```
    syde tree scan
    syde tree changes --leaves-only --format json
    # dispatch subagents in parallel to summarize stale files (see Phase 0)
    # then summarize stale folders in the main session using `tree show`
    ```
-4. **`syde sync check --strict` — the one gate.** This is the canonical
-   session-end command. Exit 0 means the session can end; exit 1 means
-   errors exist (broken relationships, cycles, missing fields, orphan
-   files, files not in tree); exit 2 means warnings or stale-tree paths
-   exist under `--strict`. Fix every finding it prints, then rerun until
-   it exits 0:
+5. **`syde sync check` — the one gate, always strict.** This is the
+   canonical session-end command. The audit emits one severity level
+   only — every Finding blocks. Exit 0 means the session can end;
+   exit 1 means at least one Finding exists. There is no `--strict`
+   flag and no non-strict mode. Fix every Finding it prints, then
+   rerun until it exits 0:
    ```
-   syde sync check --strict
+   syde sync check
    ```
    Under the hood `sync check` bundles five previously-separate checks
    so you only need one command at the end:
    - **Structural audit** — required fields on every entity, recommended fields, broken relationship targets, cyclic `belongs_to` / `depends_on`.
    - **Tree ↔ entity consistency** — every `--file` ref exists as a real tree node.
    - **Orphan detection** — every non-ignored source file is owned by at least one entity. Use `syde files orphans` for a targeted list and `syde files coverage <path>` to see who owns a specific file.
-   - **File drift** — file mtime newer than the owner entity's `updated_at` becomes a warning (fixed by `syde task done` with `--affected-entity/--affected-file`, or a direct `syde update`).
+   - **File drift** — file mtime newer than the owner entity's `updated_at` becomes a Finding (fixed by `syde task done` with `--affected-entity/--affected-file`, or a direct `syde update`).
    - **Summary-tree staleness** — any stale file or folder node in `tree.yaml`.
-5. `syde context` — final sanity scan. Read through the snapshot and
+   - **Plan completion drift** (`planCompletionFindings`) — any approved or in-progress plan whose declared change diff no longer matches entity state. Fix by running `syde plan complete` and resolving its Findings.
+   - **Requirement overlap distinction** — any acknowledged overlap whose distinction text is empty or shorter than 20 characters fails as a rubber stamp.
+   - **Contract surface coverage** — any active requirement whose statement names a CLI / REST / screen / event surface that no active contract covers.
+6. `syde context` — final sanity scan. Read through the snapshot and
    confirm it describes the current state of the code.
 
 **You cannot commit or push code with incomplete tasks or a failing
-`syde sync check --strict`.** The PostToolUse Bash hook warns on
-`git commit` / `git push` when tasks are pending or the gate fails, and
-the Stop hook blocks session end with the same gate.
+`syde sync check`.** The PostToolUse Bash hook warns on `git commit`
+/ `git push` when tasks are pending or the gate fails, and the Stop
+hook blocks session end with the same gate.
 
-> `syde validate` still works but is a deprecated alias for
-> `syde sync check --errors-only`. Prefer `syde sync check`.
+> `syde validate` still works as a deprecated alias for
+> `syde sync check`. Prefer `syde sync check`.
 
 ## Rules
 
@@ -1274,8 +1481,8 @@ the Stop hook blocks session end with the same gate.
    approved in chat, run `syde plan approve`, then `syde task start
    <slug>` before any code change. The block prints a stderr message
    explaining which condition failed.
-4. **Never leave the model out of sync** — every code change that affects architecture must be reflected in syde entities. No exceptions. If you added a file, a function, an endpoint, a dependency, or made a design choice — update the model. At task completion time, always pass `syde task done <slug> --affected-entity ... --affected-file ...` declaring the **real** set of entities and files you touched. The done-time flags are merged into the task's existing affected lists, validated, and used by the drift cascade to bump `UpdatedAt` on each affected entity. Omitting them leaves drift warnings in `syde sync check` that you'll have to clear manually. See Phase 3 step 8 for the full invocation.
-5. **Always run `syde tree scan` at session start** and `syde sync check --strict` at session end. Between them, keep the tree clean via the leaves-first summarize loop. Stale tree = rotted understanding for the next session.
+4. **Never leave the model out of sync** — every code change that affects architecture must be reflected in syde entities. No exceptions. If you added a file, a function, an endpoint, a dependency, or made a design choice — update the model. At task completion time, always pass `syde task done <slug> --affected-entity ... --affected-file ...` declaring the **real** set of entities and files you touched. The done-time flags are merged into the task's existing affected lists, validated, and used by the drift cascade to bump `UpdatedAt` on each affected entity. Omitting them leaves drift Findings in `syde sync check` that you'll have to clear manually. See Phase 3 step 8 for the full invocation.
+5. **Always run `syde tree scan` at session start** and `syde sync check` at session end. Between them, keep the tree clean via the leaves-first summarize loop. Stale tree = rotted understanding for the next session.
 6. **Delegate file summarization to subagents, never burn main context on it.** When summarizing stale files for the tree, dispatch subagents in parallel and give each a batch of paths. Each subagent calls `syde tree context <path>` + `syde tree summarize`. Main session only handles folder summaries (cheap, derived from children via `syde tree show`).
 7. **When creating entities on an existing codebase, use `syde tree context <path>`, never naive `Read`.** The tree context returns the ancestor breadcrumb + file summary + content in one call — that's the right framing for `--purpose`, `--responsibility`, `--boundaries`. `Read` is only for verification.
 8. **Always verify new source files** — run `syde constraints check` after writing

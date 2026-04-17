@@ -3,7 +3,7 @@ id: COM-0010
 kind: component
 name: Skill Installer
 slug: skill-installer-wbmu
-description: Writer for .claude/skills/syde, hooks.json, and CLAUDE.md rules from embedded skill files.
+description: Embeds and writes skill files, hooks, and CLAUDE.md rules into target projects
 purpose: Ship the SKILL.md + hooks + references from the syde binary into a project's .claude/ directory
 notes:
     - SKILL.md extended with bootstrap batch-script pattern
@@ -29,8 +29,8 @@ files:
 relationships:
     - target: syde-cli
       type: belongs_to
-updated_at: "2026-04-15T10:44:33Z"
-responsibility: Render and write skill files, hooks.json, and CLAUDE.md append rules
+updated_at: "2026-04-17T11:14:08Z"
+responsibility: Render and write skill files including the Finding-aware sync check instructions, hooks.json overlap reminder, and CLAUDE.md append rules
 capabilities:
     - Write .claude/skills/syde/SKILL.md + references/
     - Write .claude/hooks/syde-hooks.json (PostToolUse + SessionStart + SessionEnd)

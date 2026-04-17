@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'input=$(cat); file_path=$(echo \"$input\" | jq -r \".tool_input.file_path // .tool_input.notebook_path // empty\" 2>/dev/null); if [ -z \"$file_path\" ]; then exit 0; fi; if echo \"$file_path\" | grep -qE \"\\.syde/|\\.claude/|node_modules/|vendor/|web/dist/|web/node_modules/|\\.git/|^/tmp/\"; then exit 0; fi; if [ ! -d .syde ]; then exit 0; fi; approved=$(syde plan list 2>/dev/null | grep -cE \"approved|in-progress\" || true); if [ \"$approved\" = \"0\" ]; then echo \"syde BLOCK: no approved plan. Run syde plan create <name>, present it, wait for explicit chat approval, then syde plan approve <slug>. The skill is strict about this — design before code.\" >&2; exit 2; fi; active=$(syde task list 2>/dev/null | grep -c \"●\" || true); if [ \"$active\" = \"0\" ]; then echo \"syde BLOCK: no active task. Start one with syde task start <slug> before writing code. Tasks track scope, files affected, and drift — writing without one breaks the audit trail.\" >&2; exit 2; fi; exit 0'",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; input=$(cat); file_path=$(echo \"$input\" | jq -r \".tool_input.file_path // .tool_input.notebook_path // empty\" 2>/dev/null); if [ -z \"$file_path\" ]; then exit 0; fi; if echo \"$file_path\" | grep -qE \"\\.syde/|\\.claude/|node_modules/|vendor/|web/dist/|web/node_modules/|\\.git/|^/tmp/\"; then exit 0; fi; if [ ! -d .syde ]; then exit 0; fi; approved=$(syde plan list 2>/dev/null | grep -cE \"approved|in-progress\" || true); if [ \"$approved\" = \"0\" ]; then echo \"syde BLOCK: no approved plan. Run syde plan create <name>, present it, wait for explicit chat approval, then syde plan approve <slug>. The skill is strict about this — design before code.\" >&2; exit 2; fi; active=$(syde task list 2>/dev/null | grep -c \"●\" || true); if [ \"$active\" = \"0\" ]; then echo \"syde BLOCK: no active task. Start one with syde task start <slug> before writing code. Tasks track scope, files affected, and drift — writing without one breaks the audit trail.\" >&2; exit 2; fi; exit 0'",
             "timeout": 5000
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'input=$(cat); file_path=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\" 2>/dev/null); if [ -z \"$file_path\" ]; then exit 0; fi; if echo \"$file_path\" | grep -qE \"\\.syde/|\\.claude/|node_modules/|vendor/|web/dist/|web/node_modules/|\\.git/|^/tmp/\"; then exit 0; fi; if [ ! -d .syde ]; then exit 0; fi; mapped=$(syde constraints check \"$file_path\" --json 2>/dev/null); if [ -z \"$mapped\" ] || [ \"$mapped\" = \"{}\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde: file $file_path is not mapped to any entity. Run syde update <component> --file \\\\\\\"$file_path\\\\\\\" to attach it, or it will orphan at sync check time.\\\"}\"; fi'",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; input=$(cat); file_path=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\" 2>/dev/null); if [ -z \"$file_path\" ]; then exit 0; fi; if echo \"$file_path\" | grep -qE \"\\.syde/|\\.claude/|node_modules/|vendor/|web/dist/|web/node_modules/|\\.git/|^/tmp/\"; then exit 0; fi; if [ ! -d .syde ]; then exit 0; fi; mapped=$(syde constraints check \"$file_path\" --json 2>/dev/null); if [ -z \"$mapped\" ] || [ \"$mapped\" = \"{}\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde: file $file_path is not mapped to any entity. Run syde update <component> --file \\\\\\\"$file_path\\\\\\\" to attach it, or it will orphan at sync check time.\\\"}\"; fi'",
             "timeout": 5000
           }
         ]
@@ -28,8 +28,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [ ! -d .syde ]; then exit 0; fi; input=$(cat); cmd=$(echo \"$input\" | jq -r \".tool_input.command // empty\" 2>/dev/null); if echo \"$cmd\" | grep -qE \"git\\s+commit|git\\s+push\"; then msgs=\"\"; tasks=$(syde task list 2>/dev/null | grep -c \"●\\|○\" || true); if [ \"$tasks\" -gt 0 ]; then msgs=\"$msgs $tasks tasks still pending/in_progress. Run syde task done for each.\"; fi; if ! syde sync check --strict >/dev/null 2>&1; then msgs=\"$msgs syde sync check --strict failed. Fix every error and warning (orphans, drift, stale tree, missing fields) before committing.\"; fi; if [ -n \"$msgs\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde WARNING:$msgs\\\"}\"; fi; fi'",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; if [ ! -d .syde ]; then exit 0; fi; input=$(cat); cmd=$(echo \"$input\" | jq -r \".tool_input.command // empty\" 2>/dev/null); if echo \"$cmd\" | grep -qE \"git\\s+commit|git\\s+push\"; then msgs=\"\"; tasks=$(syde task list 2>/dev/null | grep -c \"●\\|○\" || true); if [ \"$tasks\" -gt 0 ]; then msgs=\"$msgs $tasks tasks still pending/in_progress. Run syde task done for each.\"; fi; if ! syde sync check >/dev/null 2>&1; then msgs=\"$msgs syde sync check failed — every finding blocks (orphans, drift, stale tree, missing fields, overlap rationale gaps). Fix them all before committing.\"; fi; if [ -n \"$msgs\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde WARNING:$msgs\\\"}\"; fi; fi'",
             "timeout": 8000
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; if [ ! -d .syde ]; then exit 0; fi; input=$(cat); cmd=$(echo \"$input\" | jq -r \".tool_input.command // empty\" 2>/dev/null); if ! echo \"$cmd\" | grep -qE \"syde\\s+add\\s+requirement\"; then exit 0; fi; output=$(echo \"$input\" | jq -r \".tool_response.stdout // .tool_response.output // empty\" 2>/dev/null); if ! echo \"$output\" | grep -q \"overlap candidates detected\"; then exit 0; fi; slugs=$(echo \"$output\" | grep -oE \"slug: [a-z0-9-]+\" | awk \"{print \\$2}\" | tr \"\\n\" \" \"); echo \"{\\\"systemMessage\\\": \\\"syde OVERLAP RESOLUTION REQUIRED — TF-IDF surfaced candidate overlaps; text similarity is only a signal. You MUST verify semantic meaning pair-by-pair before continuing. For each overlap slug below: MERGE (drop the new requirement and reuse the existing one), RENAME (rewrite the new statement so both read distinctly, then retry), or DISTINCT (retry with --audited <slug>:\\\\\\\"why this requirement means something different in the domain\\\\\\\" for EACH slug — the rationale must be at least 20 chars and capture a real semantic difference, not a rubber stamp). Do not continue with other work until each pair is resolved. Candidate slugs: $slugs\\\"}\"'",
+            "timeout": 5000
           }
         ]
       }
@@ -40,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [ -d .syde ]; then ctx=$(syde context --json 2>/dev/null); tree_status=\"\"; if ! syde tree status --strict >/dev/null 2>&1; then tree_status=\" TREE SUMMARY IS STALE — run syde tree scan then iterate syde tree changes --leaves-only + syde tree summarize to clean it before planning.\"; fi; if [ -n \"$ctx\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde architecture context: $ctx$tree_status\\\"}\"; fi; fi'",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; if [ -d .syde ]; then ctx=$(syde context --json 2>/dev/null); tree_status=\"\"; if ! syde tree status --strict >/dev/null 2>&1; then tree_status=\" TREE SUMMARY IS STALE — run syde tree scan then iterate syde tree changes --leaves-only + syde tree summarize to clean it before planning.\"; fi; if [ -n \"$ctx\" ]; then echo \"{\\\"systemMessage\\\": \\\"syde architecture context: $ctx$tree_status\\\"}\"; fi; fi'",
             "timeout": 5000
           }
         ]
@@ -52,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [ ! -d .syde ]; then exit 0; fi; syde tree scan >/dev/null 2>&1; if ! syde sync check --strict >/dev/null 2>&1; then highlights=$(syde sync check 2>&1 | grep -E \"ERROR|WARN|Gaps:\" | head -5 | tr \"\\n\" \" \" | sed \"s/\\\"/ /g\"); echo \"{\\\"systemMessage\\\": \\\"syde FINISH GATE: syde sync check --strict failed. Fix every error and warning before ending the session (orphan files, drift, stale summary tree, missing fields, broken rels). Run: syde sync check. Highlights: $highlights\\\"}\"; fi'",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; if [ ! -d .syde ]; then exit 0; fi; syde tree scan >/dev/null 2>&1; if ! syde sync check >/dev/null 2>&1; then highlights=$(syde sync check 2>&1 | grep -E \"ERROR|FINDING|Gaps:\" | head -5 | tr \"\\n\" \" \" | sed \"s/\\\"/ /g\"); echo \"{\\\"systemMessage\\\": \\\"syde FINISH GATE: syde sync check failed — every finding blocks. Fix them all before ending the session (orphan files, drift, stale summary tree, missing fields, broken rels, overlap rationale gaps). Run: syde sync check. Highlights: $highlights\\\"}\"; fi'",
             "timeout": 15000
           }
         ]

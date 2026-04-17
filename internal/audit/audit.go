@@ -12,10 +12,20 @@ import (
 
 type Severity string
 
+// SeverityFinding is the sole audit severity. The project is strict —
+// every finding blocks sync-check, validate, and plan-complete. Older
+// aliases SeverityError, SeverityWarning, and SeverityHint collapse to
+// this single constant so existing call-sites keep compiling, but
+// semantically there is one level.
+const SeverityFinding Severity = "finding"
+
+// Legacy aliases — all equal to SeverityFinding. Kept as a single
+// name each so the audit producers in this package can be migrated
+// incrementally; nothing downgrades a finding.
 const (
-	SeverityError   Severity = "error"
-	SeverityWarning Severity = "warning"
-	SeverityHint    Severity = "hint"
+	SeverityError   = SeverityFinding
+	SeverityWarning = SeverityFinding
+	SeverityHint    = SeverityFinding
 )
 
 type Category string
@@ -31,12 +41,13 @@ const (
 	CatOrphanFile       Category = "orphan_file"
 	CatFileDrift        Category = "file_drift"
 	CatPlanPhase        Category = "plan_phase"
-	CatConceptIntegrity Category = "concept_integrity"
 	CatScreenUnclaimed  Category = "screen_unclaimed"
 	CatRequirement      Category = "requirement_lifecycle"
 	CatTraceability     Category = "requirement_traceability"
 	CatHierarchy        Category = "hierarchy"
 	CatContractFlow     Category = "contract_flow"
+	CatPlanCompletion   Category = "plan_completion"
+	CatPlanAuthoring    Category = "plan_authoring"
 )
 
 // Finding is a single audit result. Path is set for file-scoped findings
@@ -60,30 +71,18 @@ type Report struct {
 	Entities int       `json:"entities"`
 }
 
-// Counts returns (errors, warnings, hints).
+// Counts returns (findings, 0, 0) — the second and third slots are
+// vestigial from the old Error/Warning/Hint split and preserved so
+// existing call sites that unpack three values keep compiling. All
+// findings are at the single SeverityFinding level.
 func (r *Report) Counts() (int, int, int) {
-	var e, w, h int
-	for _, f := range r.Findings {
-		switch f.Severity {
-		case SeverityError:
-			e++
-		case SeverityWarning:
-			w++
-		case SeverityHint:
-			h++
-		}
-	}
-	return e, w, h
+	return len(r.Findings), 0, 0
 }
 
-// HasErrors reports whether any finding is at Error severity.
+// HasErrors reports whether the report has any findings. There is no
+// non-blocking severity, so any finding makes the gate fail.
 func (r *Report) HasErrors() bool {
-	for _, f := range r.Findings {
-		if f.Severity == SeverityError {
-			return true
-		}
-	}
-	return false
+	return len(r.Findings) > 0
 }
 
 // Options toggles which categories Run evaluates. Zero value runs
@@ -124,8 +123,11 @@ func Run(store *storage.Store, t *tree.Tree, opts Options) (*Report, error) {
 	if !opts.SkipCycles {
 		rep.Findings = append(rep.Findings, cycleFindings(all)...)
 		rep.Findings = append(rep.Findings, planPhaseFindings(all)...)
-		rep.Findings = append(rep.Findings, conceptFindings(all)...)
 		rep.Findings = append(rep.Findings, requirementFindings(all)...)
+		rep.Findings = append(rep.Findings, requirementOverlapFindings(all)...)
+		rep.Findings = append(rep.Findings, requirementContractSurfaceFindings(all)...)
+		rep.Findings = append(rep.Findings, planAuthoringFindings(all)...)
+		rep.Findings = append(rep.Findings, planCompletionFindings(all)...)
 	}
 	if t != nil && !opts.SkipTreeConsistency {
 		rep.Findings = append(rep.Findings, screenFindings(all, t)...)

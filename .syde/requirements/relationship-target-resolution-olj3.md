@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:54Z"
+updated_at: "2026-04-17T10:46:07Z"
 statement: If a relationship target slug or ID does not resolve to an existing entity at validation time, then the syde CLI shall reject the parent save with a validation error.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: concept:relationship-hjgt
 requirement_status: active
 rationale: Unresolved targets break graph traversal and impact analysis.
+audited_overlaps:
+    - slug: relationship-targets-must-resolve-d6hz
+      distinction: This requirement scopes to the validation-time resolution pass; the paired one scopes to the general relationship declaration save.
 ---

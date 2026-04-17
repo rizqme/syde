@@ -194,30 +194,78 @@ func ValidateEntity(e Entity) []ValidationError {
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "source", Message: "must be user, plan, migration, or manual"})
 		}
 	case *ConceptEntity:
-		// Meaning is the one-line elevator pitch for the concept;
-		// without it the dashboard renders an empty card and the
-		// concept is unreviewable.
 		if strings.TrimSpace(v.Meaning) == "" {
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "meaning", Message: "required"})
-		}
-		// Attributes define the ERD shape — every concept must have
-		// at least one. This is what makes concept behave like a
-		// first-class domain entity instead of a prose placeholder.
-		if len(v.Attributes) == 0 {
-			errs = append(errs, ValidationError{EntityID: b.ID, Field: "attributes", Message: "required — at least one ERD attribute per concept"})
-		}
-		// Each declared attribute needs a name. Type was removed
-		// from the model — concepts are a high-level lens and carry
-		// no type hint. Description is optional.
-		for i, a := range v.Attributes {
-			if strings.TrimSpace(a.Name) == "" {
-				errs = append(errs, ValidationError{EntityID: b.ID, Field: fmt.Sprintf("attributes[%d].name", i), Message: "required"})
-			}
 		}
 		if strings.TrimSpace(v.Invariants) == "" {
 			errs = append(errs, ValidationError{EntityID: b.ID, Field: "invariants", Message: "recommended"})
 		}
+	case *PlanEntity:
+		errs = append(errs, validatePlanChanges(b.ID, &v.Changes)...)
 	}
 
+	return errs
+}
+
+// validatePlanChanges walks every lane in a plan's Changes block and
+// requires non-empty what/why (or slug/why for Deleted) on every
+// entry. NewChange drafts must carry a non-empty kind and at least
+// one of the kind-required frontmatter fields; ExtendedChange
+// FieldChanges values are free-form strings so only emptiness of
+// the map keys is checked. Errors are produced eagerly — a plan
+// with several problems reports them all.
+func validatePlanChanges(planID string, c *PlanChanges) []ValidationError {
+	var errs []ValidationError
+	lanes := map[string]ChangeLane{
+		"requirements": c.Requirements,
+		"systems":      c.Systems,
+		"concepts":     c.Concepts,
+		"components":   c.Components,
+		"contracts":    c.Contracts,
+		"flows":        c.Flows,
+	}
+	for laneName, lane := range lanes {
+		for i, d := range lane.Deleted {
+			prefix := fmt.Sprintf("changes.%s.deleted[%d]", laneName, i)
+			if strings.TrimSpace(d.Slug) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".slug", Message: "required"})
+			}
+			if strings.TrimSpace(d.Why) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".why", Message: "required"})
+			}
+		}
+		for i, e := range lane.Extended {
+			prefix := fmt.Sprintf("changes.%s.extended[%d]", laneName, i)
+			if strings.TrimSpace(e.Slug) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".slug", Message: "required"})
+			}
+			if strings.TrimSpace(e.What) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".what", Message: "required"})
+			}
+			if strings.TrimSpace(e.Why) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".why", Message: "required"})
+			}
+			for k := range e.FieldChanges {
+				if strings.TrimSpace(k) == "" {
+					errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".field_changes", Message: "field key must be non-empty"})
+				}
+			}
+		}
+		for i, n := range lane.New {
+			prefix := fmt.Sprintf("changes.%s.new[%d]", laneName, i)
+			if strings.TrimSpace(n.Name) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".name", Message: "required"})
+			}
+			if strings.TrimSpace(n.What) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".what", Message: "required"})
+			}
+			if strings.TrimSpace(n.Why) == "" {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".why", Message: "required"})
+			}
+			if len(n.Draft) == 0 {
+				errs = append(errs, ValidationError{EntityID: planID, Field: prefix + ".draft", Message: "required — NewChange must carry at least one kind-specific field"})
+			}
+		}
+	}
 	return errs
 }

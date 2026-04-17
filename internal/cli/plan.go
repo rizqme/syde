@@ -1,12 +1,15 @@
 package cli
 
 import (
+	crand "crypto/rand"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/feedloop/syde/internal/client"
 	"github.com/feedloop/syde/internal/model"
 	"github.com/feedloop/syde/internal/utils"
 	"github.com/spf13/cobra"
@@ -28,6 +31,7 @@ var (
 	planCreateBackground string
 	planCreateObjective  string
 	planCreateScope      string
+	planCreateDesign     string
 )
 
 var planCreateCmd = &cobra.Command{
@@ -52,6 +56,7 @@ var planCreateCmd = &cobra.Command{
 			Background: planCreateBackground,
 			Objective:  planCreateObjective,
 			PlanScope:  planCreateScope,
+			Design:     planCreateDesign,
 			Source:     "manual",
 			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 		}
@@ -280,6 +285,7 @@ var (
 	planUpdateScope      string
 	planUpdateDesc       string
 	planUpdatePurpose    string
+	planUpdateDesign     string
 )
 
 var planUpdateCmd = &cobra.Command{
@@ -313,6 +319,9 @@ var planUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("purpose") {
 			p.Purpose = planUpdatePurpose
+		}
+		if cmd.Flags().Changed("design") {
+			p.Design = planUpdateDesign
 		}
 
 		if _, err := store.Update(p, body); err != nil {
@@ -527,6 +536,230 @@ var planPhaseCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+var planCompleteForce bool
+
+var planCompleteCmd = &cobra.Command{
+	Use:   "complete <plan-slug>",
+	Short: "Mark a plan completed, blocking on plan-completion audit errors",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		slug := args[0]
+
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, body, err := loadPlanForChange(client, slug)
+		if err != nil {
+			return err
+		}
+
+		// Run full sync check — plan complete requires a clean model.
+		report, err := client.c.SyncCheck(true)
+		if err != nil {
+			return fmt.Errorf("fetch audit report: %w", err)
+		}
+
+		// Show plan-specific completion findings.
+		planSlug := plan.GetBase().CanonicalSlug()
+		type finding = struct {
+			Severity, Category, Message, EntitySlug string
+		}
+		var planFindings []finding
+		for _, f := range report.Errors {
+			if f.Category == "plan_completion" && f.EntitySlug == planSlug {
+				planFindings = append(planFindings, finding{f.Severity, f.Category, f.Message, f.EntitySlug})
+			}
+		}
+		for _, f := range report.Warnings {
+			if f.Category == "plan_completion" && f.EntitySlug == planSlug {
+				planFindings = append(planFindings, finding{f.Severity, f.Category, f.Message, f.EntitySlug})
+			}
+		}
+		for _, f := range planFindings {
+			icon := "!"
+			if f.Severity == "error" {
+				icon = "✗"
+			}
+			fmt.Printf("  %s [%s] %s\n", icon, f.Severity, f.Message)
+		}
+
+		// Count ALL errors across the full sync check (not just plan-scoped).
+		totalErrors := len(report.Errors)
+		planErrors := 0
+		for _, f := range planFindings {
+			if f.Severity == "error" {
+				planErrors++
+			}
+		}
+
+		if totalErrors > 0 && !planCompleteForce {
+			if planErrors > 0 {
+				fmt.Printf("\n  Plan completion findings: %d error(s)\n", planErrors)
+			}
+			if totalErrors > planErrors {
+				fmt.Printf("  Sync check has %d additional error(s) — run 'syde sync check' for details\n", totalErrors-planErrors)
+			}
+			return fmt.Errorf("plan completion blocked: syde sync check reports %d total error(s) — fix all errors or re-run with --force", totalErrors)
+		}
+
+		plan.PlanStatus = model.PlanCompleted
+		plan.CompletedAt = time.Now().UTC().Format(time.RFC3339)
+		if _, err := client.Update(plan, body); err != nil {
+			return err
+		}
+		fmt.Printf("Plan %s → completed\n", plan.Name)
+		if totalErrors > 0 {
+			fmt.Printf("  (forced despite %d audit error(s))\n", totalErrors)
+		}
+		return nil
+	},
+}
+
+var planOpenCmd = &cobra.Command{
+	Use:   "open <plan-slug>",
+	Short: "Open a plan in the dashboard",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		wc, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer wc.Close()
+
+		plan, _, err := loadPlanForChange(wc, args[0])
+		if err != nil {
+			return err
+		}
+
+		path := fmt.Sprintf("/%s/plan/%s", wc.c.ProjectSlug(), plan.GetBase().CanonicalSlug())
+		resp, err := wc.c.Navigate(path)
+		if err != nil {
+			return fmt.Errorf("send navigate event: %w", err)
+		}
+
+		url := wc.c.DashboardURL(path)
+		if resp.Clients > 0 {
+			fmt.Println("opened in existing dashboard tab")
+			fmt.Println(url)
+			return nil
+		}
+
+		openBrowser(url)
+		fmt.Println(url)
+		return nil
+	},
+}
+
+var planCheckCmd = &cobra.Command{
+	Use:   "check <plan-slug>",
+	Short: "Check plan authoring and completion findings",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		wc, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer wc.Close()
+
+		plan, _, err := loadPlanForChange(wc, args[0])
+		if err != nil {
+			return err
+		}
+
+		findings, err := runPlanCheck(wc, plan)
+		if err != nil {
+			return err
+		}
+
+		errorCount := printPlanCheckFindings(findings)
+		if errorCount > 0 {
+			return fmt.Errorf("plan check failed: %d error(s)", errorCount)
+		}
+		return nil
+	},
+}
+
+func runPlanCheck(wc *writeClient, plan *model.PlanEntity) ([]client.Finding, error) {
+	report, err := wc.c.SyncCheck(true)
+	if err != nil {
+		return nil, fmt.Errorf("fetch audit report: %w", err)
+	}
+	planSlug := plan.GetBase().CanonicalSlug()
+	var scoped []client.Finding
+	for _, bucket := range [][]client.Finding{report.Errors, report.Warnings, report.Hints} {
+		for _, f := range bucket {
+			if f.EntitySlug != planSlug {
+				continue
+			}
+			if f.Category != "plan_authoring" && f.Category != "plan_completion" {
+				continue
+			}
+			scoped = append(scoped, f)
+		}
+	}
+	return scoped, nil
+}
+
+func printPlanCheckFindings(findings []client.Finding) int {
+	if len(findings) == 0 {
+		fmt.Println("No plan check findings.")
+		return 0
+	}
+	order := []string{"error", "warning", "hint"}
+	errorCount := 0
+	for _, severity := range order {
+		var bucket []client.Finding
+		for _, f := range findings {
+			if f.Severity == severity {
+				bucket = append(bucket, f)
+			}
+		}
+		if len(bucket) == 0 {
+			continue
+		}
+		fmt.Printf("%s (%d)\n", strings.ToUpper(severity), len(bucket))
+		for _, f := range bucket {
+			if severity == "error" {
+				errorCount++
+			}
+			field := ""
+			if f.Field != "" {
+				field = " [" + f.Field + "]"
+			}
+			fmt.Printf("  - %s%s: %s\n", f.Category, field, f.Message)
+		}
+	}
+	return errorCount
+}
+
+// runPlanCompletionCheck calls the syded audit endpoint and filters
+// the findings down to plan_completion entries scoped to the given
+// plan. The HealthReport groups by severity; we flatten both errors
+// and warnings so the caller can print them in the same loop.
+func runPlanCompletionCheck(wc *writeClient, plan *model.PlanEntity) ([]client.Finding, error) {
+	report, err := wc.c.SyncCheck(true)
+	if err != nil {
+		return nil, fmt.Errorf("fetch audit report: %w", err)
+	}
+	planSlug := plan.GetBase().CanonicalSlug()
+	var scoped []client.Finding
+	for _, bucket := range [][]client.Finding{report.Errors, report.Warnings} {
+		for _, f := range bucket {
+			if f.Category != "plan_completion" {
+				continue
+			}
+			if f.EntitySlug != planSlug {
+				continue
+			}
+			scoped = append(scoped, f)
+		}
+	}
+	return scoped, nil
 }
 
 var planSyncCmd = &cobra.Command{
@@ -774,6 +1007,415 @@ var planEstimateCmd = &cobra.Command{
 	},
 }
 
+var (
+	planChangeWhy          string
+	planChangeWhat         string
+	planChangeName         string
+	planChangeFields       []string
+	planChangeTasks        []string
+	planChangeDraftFlags   = map[string]string{}
+	planChangeDraftListFlg = map[string][]string{}
+)
+
+// newChangeID returns a 4-char lowercase alphanumeric id for a
+// plan-change entry. Unique within a single plan is enough; the
+// caller can address the entry via remove-change <plan> <id>.
+func newChangeID() string {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 4)
+	r := make([]byte, 4)
+	_, _ = crand.Read(r)
+	for i := range b {
+		b[i] = alphabet[int(r[i])%len(alphabet)]
+	}
+	return string(b)
+}
+
+// planChangeLane returns a pointer to the named lane so handlers can
+// mutate it in place. Kind must be one of the six coverage kinds
+// (requirement/system/concept/component/contract/flow).
+func planChangeLane(changes *model.PlanChanges, kind string) (*model.ChangeLane, error) {
+	switch strings.ToLower(kind) {
+	case "requirement", "requirements":
+		return &changes.Requirements, nil
+	case "system", "systems":
+		return &changes.Systems, nil
+	case "concept", "concepts":
+		return &changes.Concepts, nil
+	case "component", "components":
+		return &changes.Components, nil
+	case "contract", "contracts":
+		return &changes.Contracts, nil
+	case "flow", "flows":
+		return &changes.Flows, nil
+	}
+	return nil, fmt.Errorf("unknown kind %q (expected requirement|system|concept|component|contract|flow)", kind)
+}
+
+// loadPlanForChange resolves a plan by slug and returns the entity +
+// body so the caller can append a change and store.Update it back.
+func loadPlanForChange(client *writeClient, slug string) (*model.PlanEntity, string, error) {
+	entity, body, err := client.Get(slug)
+	if err != nil {
+		return nil, "", err
+	}
+	plan, ok := entity.(*model.PlanEntity)
+	if !ok {
+		return nil, "", fmt.Errorf("%s is not a plan", slug)
+	}
+	return plan, body, nil
+}
+
+var planAddChangeDeleteCmd = &cobra.Command{
+	Use:   "delete <plan-slug> <kind> <target-slug>",
+	Short: "Append a Deleted entry to a plan's changes lane",
+	Args:  cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		planSlug, kind, targetSlug := args[0], args[1], args[2]
+		if strings.TrimSpace(planChangeWhy) == "" {
+			return fmt.Errorf("--why is required")
+		}
+
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, body, err := loadPlanForChange(client, planSlug)
+		if err != nil {
+			return err
+		}
+		lane, err := planChangeLane(&plan.Changes, kind)
+		if err != nil {
+			return err
+		}
+		lane.Deleted = append(lane.Deleted, model.DeletedChange{
+			ID:    newChangeID(),
+			Slug:  targetSlug,
+			Why:   planChangeWhy,
+			Tasks: planChangeTasks,
+		})
+
+		if _, err := client.Update(plan, body); err != nil {
+			return fmt.Errorf("update plan: %w", err)
+		}
+		fmt.Printf("Added delete-change to %s (%s lane): %s\n", planSlug, kind, targetSlug)
+		return nil
+	},
+}
+
+var planAddChangeExtendCmd = &cobra.Command{
+	Use:   "extend <plan-slug> <kind> <target-slug>",
+	Short: "Append an Extended entry to a plan's changes lane",
+	Args:  cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		planSlug, kind, targetSlug := args[0], args[1], args[2]
+		if strings.TrimSpace(planChangeWhat) == "" || strings.TrimSpace(planChangeWhy) == "" {
+			return fmt.Errorf("--what and --why are required")
+		}
+		fieldChanges, err := parseFieldChanges(planChangeFields)
+		if err != nil {
+			return err
+		}
+
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, body, err := loadPlanForChange(client, planSlug)
+		if err != nil {
+			return err
+		}
+		lane, err := planChangeLane(&plan.Changes, kind)
+		if err != nil {
+			return err
+		}
+		lane.Extended = append(lane.Extended, model.ExtendedChange{
+			ID:           newChangeID(),
+			Slug:         targetSlug,
+			What:         planChangeWhat,
+			Why:          planChangeWhy,
+			FieldChanges: fieldChanges,
+			Tasks:        planChangeTasks,
+		})
+
+		if _, err := client.Update(plan, body); err != nil {
+			return fmt.Errorf("update plan: %w", err)
+		}
+		fmt.Printf("Added extend-change to %s (%s lane): %s (%d field changes)\n", planSlug, kind, targetSlug, len(fieldChanges))
+		return nil
+	},
+}
+
+// parseFieldChanges turns repeatable --field key=value flags into a
+// map. Keys must be non-empty; "DELETE" is the sentinel value that
+// tells the completion validator the target field should be cleared.
+func parseFieldChanges(flags []string) (map[string]string, error) {
+	if len(flags) == 0 {
+		return nil, nil
+	}
+	out := make(map[string]string, len(flags))
+	for _, f := range flags {
+		idx := strings.Index(f, "=")
+		if idx <= 0 {
+			return nil, fmt.Errorf("invalid --field %q: expected key=value", f)
+		}
+		k := strings.TrimSpace(f[:idx])
+		v := f[idx+1:]
+		if k == "" {
+			return nil, fmt.Errorf("invalid --field %q: empty key", f)
+		}
+		out[k] = v
+	}
+	return out, nil
+}
+
+var planAddChangeNewCmd = &cobra.Command{
+	Use:   "new <plan-slug> <kind>",
+	Short: "Append a NewChange draft to a plan's changes lane",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		planSlug, kind := args[0], args[1]
+		if strings.TrimSpace(planChangeName) == "" || strings.TrimSpace(planChangeWhat) == "" || strings.TrimSpace(planChangeWhy) == "" {
+			return fmt.Errorf("--name, --what, and --why are required")
+		}
+		draft, err := parseDraftFields(planChangeFields)
+		if err != nil {
+			return err
+		}
+		if len(draft) == 0 {
+			return fmt.Errorf("at least one --draft key=value is required — NewChange must carry kind-specific fields")
+		}
+
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, body, err := loadPlanForChange(client, planSlug)
+		if err != nil {
+			return err
+		}
+		lane, err := planChangeLane(&plan.Changes, kind)
+		if err != nil {
+			return err
+		}
+		lane.New = append(lane.New, model.NewChange{
+			ID:    newChangeID(),
+			Name:  planChangeName,
+			What:  planChangeWhat,
+			Why:   planChangeWhy,
+			Draft: draft,
+			Tasks: planChangeTasks,
+		})
+
+		if _, err := client.Update(plan, body); err != nil {
+			return fmt.Errorf("update plan: %w", err)
+		}
+		fmt.Printf("Added new-change to %s (%s lane): %s (%d draft fields)\n", planSlug, kind, planChangeName, len(draft))
+		return nil
+	},
+}
+
+// parseDraftFields parses repeatable --draft key=value pairs. Values
+// that parse as JSON arrays/objects/numbers/booleans are decoded into
+// their native Go types so per-kind list fields (capabilities, tags,
+// attributes) round-trip cleanly. Everything else stays a string.
+func parseDraftFields(flags []string) (map[string]interface{}, error) {
+	if len(flags) == 0 {
+		return nil, nil
+	}
+	out := make(map[string]interface{}, len(flags))
+	for _, f := range flags {
+		idx := strings.Index(f, "=")
+		if idx <= 0 {
+			return nil, fmt.Errorf("invalid --draft %q: expected key=value", f)
+		}
+		k := strings.TrimSpace(f[:idx])
+		v := f[idx+1:]
+		if k == "" {
+			return nil, fmt.Errorf("invalid --draft %q: empty key", f)
+		}
+		// Try JSON-decode first so arrays/objects/numbers/bools
+		// round-trip into native Go types. Fall back to raw string.
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" && (trimmed[0] == '[' || trimmed[0] == '{' || trimmed[0] == '"' || trimmed == "true" || trimmed == "false") {
+			var decoded interface{}
+			if err := json.Unmarshal([]byte(trimmed), &decoded); err == nil {
+				out[k] = decoded
+				continue
+			}
+		}
+		out[k] = v
+	}
+	return out, nil
+}
+
+var planAddChangeCmd = &cobra.Command{
+	Use:   "add-change",
+	Short: "Append a structured change entry to a plan",
+}
+
+// removeChangeFromLane drops any entry whose ID matches id from the
+// three sub-slices and reports whether it removed anything.
+func removeChangeFromLane(lane *model.ChangeLane, id string) bool {
+	removed := false
+	var keptDeleted []model.DeletedChange
+	for _, d := range lane.Deleted {
+		if d.ID == id {
+			removed = true
+			continue
+		}
+		keptDeleted = append(keptDeleted, d)
+	}
+	var keptExtended []model.ExtendedChange
+	for _, e := range lane.Extended {
+		if e.ID == id {
+			removed = true
+			continue
+		}
+		keptExtended = append(keptExtended, e)
+	}
+	var keptNew []model.NewChange
+	for _, n := range lane.New {
+		if n.ID == id {
+			removed = true
+			continue
+		}
+		keptNew = append(keptNew, n)
+	}
+	if removed {
+		lane.Deleted = keptDeleted
+		lane.Extended = keptExtended
+		lane.New = keptNew
+	}
+	return removed
+}
+
+var planRemoveChangeCmd = &cobra.Command{
+	Use:   "remove-change <plan-slug> <change-id>",
+	Short: "Remove a change entry from a plan by id",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		planSlug, changeID := args[0], args[1]
+
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, body, err := loadPlanForChange(client, planSlug)
+		if err != nil {
+			return err
+		}
+		lanes := []*model.ChangeLane{
+			&plan.Changes.Requirements,
+			&plan.Changes.Systems,
+			&plan.Changes.Concepts,
+			&plan.Changes.Components,
+			&plan.Changes.Contracts,
+			&plan.Changes.Flows,
+		}
+		found := false
+		for _, lane := range lanes {
+			if removeChangeFromLane(lane, changeID) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("no change with id %q in plan %q", changeID, planSlug)
+		}
+		if _, err := client.Update(plan, body); err != nil {
+			return fmt.Errorf("update plan: %w", err)
+		}
+		fmt.Printf("Removed change %s from plan %s\n", changeID, planSlug)
+		return nil
+	},
+}
+
+var planShowChangesFormat string
+
+var planShowChangesCmd = &cobra.Command{
+	Use:   "show-changes <plan-slug>",
+	Short: "Print a plan's structured change diff",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		plan, _, err := loadPlanForChange(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		if planShowChangesFormat == "json" {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(plan.Changes)
+		}
+
+		lanes := map[string]model.ChangeLane{
+			"requirements": plan.Changes.Requirements,
+			"systems":      plan.Changes.Systems,
+			"concepts":     plan.Changes.Concepts,
+			"components":   plan.Changes.Components,
+			"contracts":    plan.Changes.Contracts,
+			"flows":        plan.Changes.Flows,
+		}
+		laneOrder := []string{"requirements", "systems", "concepts", "components", "contracts", "flows"}
+		empty := true
+		for _, name := range laneOrder {
+			lane := lanes[name]
+			if len(lane.Deleted) == 0 && len(lane.Extended) == 0 && len(lane.New) == 0 {
+				continue
+			}
+			empty = false
+			fmt.Printf("── %s ── (del:%d ext:%d new:%d)\n", name, len(lane.Deleted), len(lane.Extended), len(lane.New))
+			for _, d := range lane.Deleted {
+				taskSuffix := formatChangeTasks(d.Tasks)
+				fmt.Printf("  ✗ [%s] delete %s — %s%s\n", d.ID, d.Slug, d.Why, taskSuffix)
+			}
+			for _, e := range lane.Extended {
+				fields := ""
+				if len(e.FieldChanges) > 0 {
+					var kv []string
+					for k, v := range e.FieldChanges {
+						kv = append(kv, fmt.Sprintf("%s=%q", k, v))
+					}
+					fields = " {" + strings.Join(kv, ", ") + "}"
+				}
+				taskSuffix := formatChangeTasks(e.Tasks)
+				fmt.Printf("  ± [%s] extend %s — %s%s%s\n     why: %s\n", e.ID, e.Slug, e.What, fields, taskSuffix, e.Why)
+			}
+			for _, n := range lane.New {
+				taskSuffix := formatChangeTasks(n.Tasks)
+				fmt.Printf("  + [%s] new %q — %s%s\n     why: %s\n     draft: %v\n", n.ID, n.Name, n.What, taskSuffix, n.Why, n.Draft)
+			}
+			fmt.Println()
+		}
+		if empty {
+			fmt.Println("(no changes)")
+		}
+		return nil
+	},
+}
+
+func formatChangeTasks(tasks []string) string {
+	if len(tasks) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" [tasks: %s]", strings.Join(tasks, ","))
+}
+
 var planSyncFile string
 
 func init() {
@@ -783,12 +1425,14 @@ func init() {
 	planCreateCmd.Flags().StringVar(&planCreateBackground, "background", "", "why this plan exists (context, motivation)")
 	planCreateCmd.Flags().StringVar(&planCreateObjective, "objective", "", "what success looks like")
 	planCreateCmd.Flags().StringVar(&planCreateScope, "scope", "", "what's in-scope / out-of-scope")
+	planCreateCmd.Flags().StringVar(&planCreateDesign, "design", "", "detailed implementation design prose (rendered as markdown in the dashboard)")
 
 	planUpdateCmd.Flags().StringVar(&planUpdateBackground, "background", "", "update background")
 	planUpdateCmd.Flags().StringVar(&planUpdateObjective, "objective", "", "update objective")
 	planUpdateCmd.Flags().StringVar(&planUpdateScope, "scope", "", "update scope")
 	planUpdateCmd.Flags().StringVar(&planUpdateDesc, "description", "", "update description")
 	planUpdateCmd.Flags().StringVar(&planUpdatePurpose, "purpose", "", "update purpose")
+	planUpdateCmd.Flags().StringVar(&planUpdateDesign, "design", "", "update implementation design prose")
 
 	planPhaseCmd.Flags().StringVar(&planPhaseName, "name", "", "update phase name")
 	planPhaseCmd.Flags().StringVar(&planPhaseParent, "parent", "", "set parent phase ID for nesting")
@@ -809,7 +1453,28 @@ func init() {
 
 	planSyncCmd.Flags().StringVar(&planSyncFile, "file", "", "path to plan file (instead of scanning .claude/plans/)")
 
+	planAddChangeDeleteCmd.Flags().StringVar(&planChangeWhy, "why", "", "why the entity will be deleted (required)")
+	planAddChangeDeleteCmd.Flags().StringArrayVar(&planChangeTasks, "task", nil, "task slug implementing this change (repeatable)")
+
+	planAddChangeExtendCmd.Flags().StringVar(&planChangeWhat, "what", "", "what concretely changes (required)")
+	planAddChangeExtendCmd.Flags().StringVar(&planChangeWhy, "why", "", "why the change is being made (required)")
+	planAddChangeExtendCmd.Flags().StringArrayVar(&planChangeFields, "field", nil, "declared field change in key=value form (repeatable; value 'DELETE' clears the field)")
+	planAddChangeExtendCmd.Flags().StringArrayVar(&planChangeTasks, "task", nil, "task slug implementing this change (repeatable)")
+
+	planAddChangeNewCmd.Flags().StringVar(&planChangeName, "name", "", "human-readable name for the new entity (required)")
+	planAddChangeNewCmd.Flags().StringVar(&planChangeWhat, "what", "", "one-line description of what the new entity does (required)")
+	planAddChangeNewCmd.Flags().StringVar(&planChangeWhy, "why", "", "why it needs to exist (required)")
+	planAddChangeNewCmd.Flags().StringArrayVar(&planChangeFields, "draft", nil, "kind-specific draft field in key=value form (repeatable; at least one required)")
+	planAddChangeNewCmd.Flags().StringArrayVar(&planChangeTasks, "task", nil, "task slug implementing this change (repeatable)")
+
+	planAddChangeCmd.AddCommand(planAddChangeDeleteCmd, planAddChangeExtendCmd, planAddChangeNewCmd)
+
+	planShowChangesCmd.Flags().StringVar(&planShowChangesFormat, "format", "rich", "output format (rich|json)")
+
+	planCompleteCmd.Flags().BoolVar(&planCompleteForce, "force", false, "complete the plan even when plan_completion audit reports errors")
+
 	planCmd.AddCommand(planCreateCmd, planListCmd, planShowCmd, planApproveCmd, planUpdateCmd,
-		planPhaseCmd, planSyncCmd, planExecuteCmd, planAddPhaseCmd, planEstimateCmd)
+		planPhaseCmd, planSyncCmd, planExecuteCmd, planAddPhaseCmd, planEstimateCmd,
+		planAddChangeCmd, planRemoveChangeCmd, planShowChangesCmd, planCompleteCmd, planOpenCmd, planCheckCmd)
 	rootCmd.AddCommand(planCmd)
 }

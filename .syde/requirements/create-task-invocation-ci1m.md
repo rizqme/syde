@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-cli-2478
       type: belongs_to
-updated_at: "2026-04-15T11:00:55Z"
+updated_at: "2026-04-17T10:46:03Z"
 statement: When the user runs syde task create <name>, the syde CLI shall create a new task entity file and print its slug.
 req_type: interface
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: contract:create-task-23f4
 requirement_status: active
 rationale: Task creation is the primary mechanism for tracking implementation work.
+audited_overlaps:
+    - slug: create-plan-invocation-inv4
+      distinction: Covers syde task create, producing a task entity and printing its slug; the plan creation requirement covers a different subcommand producing a plan entity and also prints a plan ID.
 ---

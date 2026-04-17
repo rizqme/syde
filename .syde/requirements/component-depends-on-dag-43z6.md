@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:56Z"
+updated_at: "2026-04-17T10:46:08Z"
 statement: If adding a depends_on relationship between components would create a cycle, then the syde CLI shall reject the save with a cycle error.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: concept:relationship-hjgt
 requirement_status: active
 rationale: Cyclic component dependencies make layering and build order impossible to compute.
+audited_overlaps:
+    - slug: system-belongs-to-acyclic-79sv
+      distinction: 'Different entity kind and relationship: this guards depends_on cycles between components, while the other guards belongs_to cycles between systems.'
 ---

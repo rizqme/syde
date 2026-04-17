@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -19,16 +20,16 @@ var upgrader = websocket.Upgrader{
 // Hub manages connected WebSocket clients and broadcasts reload events.
 type Hub struct {
 	mu      sync.Mutex
-	clients map[*websocket.Conn]bool
+	clients map[*websocket.Conn]string
 }
 
 func newHub() *Hub {
-	return &Hub{clients: make(map[*websocket.Conn]bool)}
+	return &Hub{clients: make(map[*websocket.Conn]string)}
 }
 
-func (h *Hub) add(conn *websocket.Conn) {
+func (h *Hub) add(conn *websocket.Conn, projectSlug string) {
 	h.mu.Lock()
-	h.clients[conn] = true
+	h.clients[conn] = projectSlug
 	h.mu.Unlock()
 }
 
@@ -50,14 +51,34 @@ func (h *Hub) broadcast(msg []byte) {
 	}
 }
 
+func (h *Hub) broadcastProject(projectSlug string, msg []byte) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	count := 0
+	for conn, connProject := range h.clients {
+		if connProject != projectSlug {
+			continue
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+			delete(h.clients, conn)
+			conn.Close()
+			continue
+		}
+		count++
+	}
+	return count
+}
+
 var hub = newHub()
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	projectSlug := strings.TrimPrefix(r.URL.Path, "/ws/")
+	projectSlug = strings.Trim(projectSlug, "/")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	hub.add(conn)
+	hub.add(conn, projectSlug)
 
 	// Keep connection alive, remove on close
 	go func() {
@@ -68,6 +89,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+func NavigateAll(projectSlug, path string) int {
+	msg, _ := json.Marshal(map[string]string{
+		"type": "navigate",
+		"path": path,
+	})
+	return hub.broadcastProject(projectSlug, msg)
 }
 
 // watchSydeDir watches a .syde/ directory for changes and broadcasts reload events.

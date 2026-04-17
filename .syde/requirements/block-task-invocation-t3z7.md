@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-cli-2478
       type: belongs_to
-updated_at: "2026-04-15T11:00:19Z"
+updated_at: "2026-04-17T10:45:41Z"
 statement: When the user runs syde task block <slug>, the syde CLI shall transition the task's task_status field to blocked.
 req_type: interface
 priority: must
@@ -17,4 +17,9 @@ source: manual
 source_ref: contract:block-task-egd4
 requirement_status: active
 rationale: Blocked state communicates that work cannot proceed without unblocking.
+audited_overlaps:
+    - slug: complete-task-invocation-dm0b
+      distinction: 'Different command and end state: block transitions task_status to blocked via syde task block, while done transitions it to completed via syde task done.'
+    - slug: start-task-invocation-gdej
+      distinction: 'Different command and end state: block transitions task_status to blocked, while start transitions it to in_progress via syde task start.'
 ---

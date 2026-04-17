@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:28Z"
+updated_at: "2026-04-17T10:45:41Z"
 statement: The audit engine shall not mutate any entity in the store during an audit run.
 req_type: constraint
 priority: must
@@ -17,4 +17,9 @@ source: manual
 source_ref: component:audit-engine-4ktg
 requirement_status: active
 rationale: Audits must be safe to run on a live model without side effects.
+audited_overlaps:
+    - slug: audit-engine-does-not-mutate-summary-tree-wmeu
+      distinction: 'Different target: this requirement forbids mutating store entities, while the other forbids mutating the summary tree state.'
+    - slug: query-engine-does-not-mutate-store-f8c6
+      distinction: 'Different component: this constrains the audit engine, while the other constrains the query engine during read operations.'
 ---

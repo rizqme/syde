@@ -11,10 +11,7 @@ relationships:
       type: belongs_to
     - target: web-spa
       type: references
-    - target: design-model-operations-coverage-wsrh
-      type: involves
-      label: flow
-updated_at: "2026-04-15T09:27:08Z"
+updated_at: "2026-04-16T10:51:15Z"
 contract_kind: screen
 interaction_pattern: render
 input: /

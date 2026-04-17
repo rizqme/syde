@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/feedloop/syde/internal/audit"
 	"github.com/feedloop/syde/internal/model"
+	"github.com/feedloop/syde/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -36,13 +38,9 @@ var (
 	addVersioningNotes    string
 	addContractWireframe  string
 	// Concept
-	addMeaning           string
-	addStructureNotes    string
-	addLifecycle         string
-	addInvariants        string
-	addDataSensitivity   string
-	addConceptAttributes []string
-	addConceptActions    []string
+	addMeaning    string
+	addLifecycle  string
+	addInvariants string
 	// Flow
 	addTrigger      string
 	addGoal         string
@@ -51,6 +49,7 @@ var (
 	addEdgeCases    string
 	addFailureModes string
 	addPerfNotes    string
+	addFlowSteps    []string
 	// Requirement (statement/rationale/supersedes shared with legacy decision flags)
 	addStatement  string
 	addRationale  string
@@ -65,6 +64,8 @@ var (
 	addReqSupersededBy   string
 	addReqObsoleteReason string
 	addReqApprovedAt     string
+	addReqAuditedOverlaps []string
+	addReqForce           bool
 	// System
 	addSysContext     string
 	addSysScope       string
@@ -87,34 +88,35 @@ func parseContractParams(specs []string) []model.ContractParam {
 	return out
 }
 
-// parseConceptAttributes converts "name|type|description" specs into
-// ConceptAttribute slices. Empty specs are skipped; malformed specs
-// (empty name) are silently dropped — the validator later flags
-// concepts with zero attributes so nothing slips through unnoticed.
-func parseConceptAttributes(specs []string) []model.ConceptAttribute {
-	var out []model.ConceptAttribute
+// parseFlowSteps converts "id|action|contract|description|on_success|on_failure"
+// specs into FlowStep slices. Minimum 2 fields (id + action), rest optional.
+func parseFlowSteps(specs []string) []model.FlowStep {
+	var out []model.FlowStep
 	for _, s := range specs {
 		if s == "" {
 			continue
 		}
-		if a, ok := model.ParseConceptAttribute(s); ok {
-			out = append(out, a)
-		}
-	}
-	return out
-}
-
-// parseConceptActions converts "name|description" specs into
-// ConceptAction slices.
-func parseConceptActions(specs []string) []model.ConceptAction {
-	var out []model.ConceptAction
-	for _, s := range specs {
-		if s == "" {
+		parts := strings.SplitN(s, "|", 6)
+		if len(parts) < 2 || strings.TrimSpace(parts[0]) == "" {
 			continue
 		}
-		if a, ok := model.ParseConceptAction(s); ok {
-			out = append(out, a)
+		step := model.FlowStep{
+			ID:     strings.TrimSpace(parts[0]),
+			Action: strings.TrimSpace(parts[1]),
 		}
+		if len(parts) > 2 {
+			step.Contract = strings.TrimSpace(parts[2])
+		}
+		if len(parts) > 3 {
+			step.Description = strings.TrimSpace(parts[3])
+		}
+		if len(parts) > 4 {
+			step.OnSuccess = strings.TrimSpace(parts[4])
+		}
+		if len(parts) > 5 {
+			step.OnFailure = strings.TrimSpace(parts[5])
+		}
+		out = append(out, step)
 	}
 	return out
 }
@@ -251,12 +253,8 @@ var addCmd = &cobra.Command{
 			v.Wireframe = addContractWireframe
 		case *model.ConceptEntity:
 			v.Meaning = addMeaning
-			v.StructureNotes = addStructureNotes
 			v.Lifecycle = addLifecycle
 			v.Invariants = addInvariants
-			v.DataSensitivity = addDataSensitivity
-			v.Attributes = parseConceptAttributes(addConceptAttributes)
-			v.Actions = parseConceptActions(addConceptActions)
 		case *model.FlowEntity:
 			v.Trigger = addTrigger
 			v.Goal = addGoal
@@ -265,6 +263,7 @@ var addCmd = &cobra.Command{
 			v.EdgeCases = addEdgeCases
 			v.FlowFailureModes = addFailureModes
 			v.PerformanceNotes = addPerfNotes
+			v.Steps = parseFlowSteps(addFlowSteps)
 		case *model.RequirementEntity:
 			status, err := parseRequirementStatus(addReqStatus)
 			if err != nil {
@@ -285,6 +284,7 @@ var addCmd = &cobra.Command{
 			v.SupersededBy = parseRefList(addReqSupersededBy)
 			v.ObsoleteReason = addReqObsoleteReason
 			v.ApprovedAt = addReqApprovedAt
+			v.AuditedOverlaps = parseAuditedOverlaps(addReqAuditedOverlaps)
 			if !hasRelationshipType(b.Relationships, model.RelBelongsTo) {
 				if parent := rootSystemTarget(store); parent != "" {
 					b.Relationships = append(b.Relationships, model.Relationship{Target: parent, Type: model.RelBelongsTo})
@@ -316,6 +316,39 @@ var addCmd = &cobra.Command{
 			return fmt.Errorf("validation failed:\n%s", strings.Join(msgs, "\n"))
 		}
 
+		// Pre-creation overlap detection for requirements using TF-IDF.
+		// Blocks the create unless every overlap above the threshold is
+		// acknowledged via --audited slug[:reason] or the author passes
+		// --force. This shifts the overlap gate to the earliest possible
+		// moment so no overlapping entity is written to disk.
+		if req, ok := entity.(*model.RequirementEntity); ok && req.Statement != "" {
+			overlapMsgs, unackedSlugs, err := detectRequirementOverlaps(store, req, b.ID, parseAuditedOverlaps(addReqAuditedOverlaps))
+			if err != nil {
+				return fmt.Errorf("overlap detection: %w", err)
+			}
+			if len(overlapMsgs) > 0 {
+				fmt.Println()
+				fmt.Println("⚠ overlap candidates detected — semantic review required:")
+				for _, o := range overlapMsgs {
+					fmt.Println(o)
+				}
+				if len(unackedSlugs) > 0 && !addReqForce {
+					fmt.Println()
+					fmt.Println("  Resolve each unacknowledged overlap before creating:")
+					fmt.Println("    MERGE   — reuse the existing requirement, do not create a duplicate")
+					fmt.Println("    RENAME  — rewrite this statement so the two read distinctly, then retry")
+					fmt.Println("    DISTINCT— pass --audited <slug>:\"semantic distinction rationale\" for each slug below")
+					fmt.Println()
+					for _, s := range unackedSlugs {
+						fmt.Printf("      --audited %s:\"<why this requirement means something different>\"\n", s)
+					}
+					fmt.Println()
+					fmt.Println("  Override with --force if the overlap is genuinely unavoidable (rare).")
+					return fmt.Errorf("requirement creation blocked: %d unacknowledged overlap(s)", len(unackedSlugs))
+				}
+			}
+		}
+
 		filePath, err := store.Create(entity, addBody)
 		if err != nil {
 			return fmt.Errorf("create entity: %w", err)
@@ -327,6 +360,61 @@ var addCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// detectRequirementOverlaps runs TF-IDF similarity for a candidate
+// requirement against all active requirements, returning human-readable
+// overlap messages and the set of overlap slugs that are not yet
+// acknowledged. selfID is excluded from the comparison.
+func detectRequirementOverlaps(store *writeClient, candidate *model.RequirementEntity, selfID string, audited []model.AuditedOverlap) ([]string, []string, error) {
+	newTerms := audit.SignificantTerms(candidate.Statement)
+	if len(newTerms) == 0 {
+		return nil, nil, nil
+	}
+	allEntities, err := store.List(model.KindRequirement)
+	if err != nil {
+		return nil, nil, err
+	}
+	type reqRef struct {
+		id, name, slug string
+		terms          map[string]bool
+	}
+	var allTermSets []map[string]bool
+	var others []reqRef
+	for _, ewb := range allEntities {
+		other, ok := ewb.Entity.(*model.RequirementEntity)
+		if !ok || other.RequirementStatus != model.RequirementActive || other.Statement == "" {
+			continue
+		}
+		ob := other.GetBase()
+		terms := audit.SignificantTerms(other.Statement)
+		if len(terms) == 0 {
+			continue
+		}
+		allTermSets = append(allTermSets, terms)
+		if ob.ID != selfID {
+			others = append(others, reqRef{id: ob.ID, name: ob.Name, slug: ob.CanonicalSlug(), terms: terms})
+		}
+	}
+	corpus := audit.NewTFIDFCorpus(allTermSets)
+	auditedSet := map[string]bool{}
+	for _, a := range audited {
+		auditedSet[a.Slug] = true
+		auditedSet[utils.BaseSlug(a.Slug)] = true
+	}
+	var msgs []string
+	var unacked []string
+	for _, o := range others {
+		sim := corpus.TFIDFSimilarity(newTerms, o.terms)
+		if sim <= 0.6 {
+			continue
+		}
+		msgs = append(msgs, fmt.Sprintf("  ⚠ %s %q (%.0f%% TF-IDF) — slug: %s", o.id, o.name, sim*100, o.slug))
+		if !auditedSet[o.slug] && !auditedSet[utils.BaseSlug(o.slug)] {
+			unacked = append(unacked, o.slug)
+		}
+	}
+	return msgs, unacked, nil
 }
 
 func init() {
@@ -363,13 +451,9 @@ func init() {
 	f.StringVar(&addVersioningNotes, "versioning-notes", "", "versioning notes")
 	f.StringVar(&addContractWireframe, "wireframe", "", "screen contract UIML wireframe source — required when --contract-kind=screen")
 	// Concept
-	f.StringVar(&addMeaning, "meaning", "", "concept meaning")
-	f.StringVar(&addStructureNotes, "structure-notes", "", "structure notes")
-	f.StringVar(&addLifecycle, "lifecycle", "", "lifecycle")
-	f.StringVar(&addInvariants, "invariants", "", "invariants")
-	f.StringVar(&addDataSensitivity, "data-sensitivity", "", "data sensitivity")
-	f.StringArrayVar(&addConceptAttributes, "attribute", nil, "concept attribute 'name|type|description' (repeatable) — ERD-style field")
-	f.StringArrayVar(&addConceptActions, "action", nil, "concept action 'name|description' (repeatable) — domain verb on the aggregate")
+	f.StringVar(&addMeaning, "meaning", "", "concept meaning (one-liner explaining what this domain term is)")
+	f.StringVar(&addLifecycle, "lifecycle", "", "lifecycle prose for the concept")
+	f.StringVar(&addInvariants, "invariants", "", "invariants — rules that must always hold")
 	// Flow
 	f.StringVar(&addTrigger, "trigger", "", "flow trigger")
 	f.StringVar(&addGoal, "goal", "", "flow goal")
@@ -377,6 +461,7 @@ func init() {
 	f.StringVar(&addHappyPath, "happy-path", "", "happy path")
 	f.StringVar(&addEdgeCases, "edge-cases", "", "edge cases")
 	f.StringVar(&addFailureModes, "failure-modes", "", "failure modes")
+	f.StringArrayVar(&addFlowSteps, "step", nil, "flow step 'id|action|contract|description|on_success|on_failure' (repeatable)")
 	f.StringVar(&addPerfNotes, "performance-notes", "", "performance notes")
 	// Requirement
 	f.StringVar(&addStatement, "statement", "", "requirement statement (EARS shall-form)")
@@ -391,6 +476,8 @@ func init() {
 	f.StringVar(&addReqSupersededBy, "superseded-by", "", "requirement refs that supersede this one, comma-separated")
 	f.StringVar(&addReqObsoleteReason, "obsolete-reason", "", "why the requirement is obsolete")
 	f.StringVar(&addReqApprovedAt, "approved-at", "", "requirement approval timestamp")
+	f.StringArrayVar(&addReqAuditedOverlaps, "audited", nil, "acknowledged overlapping requirement as slug[:distinction rationale] (repeatable)")
+	f.BoolVar(&addReqForce, "force", false, "bypass the overlap gate even when unacknowledged overlaps exist (rare)")
 	// System
 	f.StringVar(&addSysContext, "context-text", "", "system context")
 	f.StringVar(&addSysScope, "scope", "", "system scope")

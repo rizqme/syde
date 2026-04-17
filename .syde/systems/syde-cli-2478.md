@@ -8,7 +8,7 @@ purpose: Give agents and humans one ergonomic CLI that speaks the full syde mode
 relationships:
     - target: syde
       type: belongs_to
-updated_at: "2026-04-15T11:06:07Z"
+updated_at: "2026-04-17T11:14:08Z"
 context: Invoked on every session start (SessionStart hook), every file write (PostToolUse hook), and throughout a planning/implementation loop.
 scope: 'In: all subcommands under ''syde'' (add, get, list, update, query, plan, task, tree, validate, etc.). Out: HTTP serving (syded owns that).'
 ---

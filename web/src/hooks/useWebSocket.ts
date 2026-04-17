@@ -1,6 +1,14 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-export function useWebSocket(projectSlug: string | null, onReload: () => void) {
+type DashboardMessage =
+  | { type: 'reload'; file?: string }
+  | { type: 'navigate'; path: string };
+
+export function useWebSocket(
+  projectSlug: string | null,
+  onReload: () => void,
+  onNavigate?: (path: string) => void,
+) {
   const wsRef = useRef<WebSocket | null>(null);
   const retryRef = useRef(1000);
 
@@ -9,7 +17,18 @@ export function useWebSocket(projectSlug: string | null, onReload: () => void) {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${proto}//${location.host}/ws/${projectSlug}`);
 
-    ws.onmessage = () => {
+    ws.onmessage = (event) => {
+      let msg: DashboardMessage | null = null;
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        onReload();
+        return;
+      }
+      if (msg?.type === 'navigate' && msg.path) {
+        onNavigate?.(msg.path);
+        return;
+      }
       onReload();
     };
 
@@ -25,7 +44,7 @@ export function useWebSocket(projectSlug: string | null, onReload: () => void) {
     };
 
     wsRef.current = ws;
-  }, [projectSlug, onReload]);
+  }, [projectSlug, onReload, onNavigate]);
 
   useEffect(() => {
     connect();

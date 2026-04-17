@@ -9,13 +9,15 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:47:01Z"
+updated_at: "2026-04-15T12:48:22Z"
 statement: The syde plan model shall not allow plans or phases to embed draft entity definitions.
 req_type: constraint
 priority: must
 verification: audit walking plan entities for embedded drafts
 source: manual
 source_ref: decision:DEC-0007
-requirement_status: active
+requirement_status: superseded
 rationale: Draft entities duplicated schema inside plan YAML and led to a fragile 'materialize on execute' step. References are simpler, validator-friendly, and they power the auto-bump of updated_at when a task finishes.
+superseded_by:
+    - plans-shall-carry-structured-change-diffs-6ah1
 ---

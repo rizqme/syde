@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T10:52:29Z"
+updated_at: "2026-04-17T10:46:01Z"
 statement: The syde CLI shall ensure that every plan phase ID is unique within its parent plan.
 req_type: constraint
 priority: must
@@ -17,4 +17,7 @@ source: manual
 source_ref: concept:plan-phase-23bb
 requirement_status: active
 rationale: Non-unique phase IDs break task-to-phase lookups.
+audited_overlaps:
+    - slug: tree-node-path-unique-in-tree-zgei
+      distinction: Enforces uniqueness of plan phase IDs within a plan; target enforces uniqueness of tree node paths in the summary tree.
 ---

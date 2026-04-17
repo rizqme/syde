@@ -1,6 +1,7 @@
 package skill
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,11 +31,11 @@ func InstallClaude(projectRoot string) error {
 
 	// Write reference files
 	refs := map[string]string{
-		"entity-spec.md":             EntitySpecRef,
-		"commands.md":                CommandsRef,
-		"clarify-guide.md":           ClarifyGuideRef,
-		"sync-workflow.md":           SyncWorkflowRef,
-		"requirement-derivation.md":  RequirementDerivationRef,
+		"entity-spec.md":            EntitySpecRef,
+		"commands.md":               CommandsRef,
+		"clarify-guide.md":          ClarifyGuideRef,
+		"sync-workflow.md":          SyncWorkflowRef,
+		"requirement-derivation.md": RequirementDerivationRef,
 	}
 	for name, content := range refs {
 		if err := os.WriteFile(filepath.Join(refsDir, name), []byte(content), 0644); err != nil {
@@ -76,11 +77,11 @@ func InstallCodex(projectRoot string) error {
 	}
 
 	refs := map[string]string{
-		"entity-spec.md":             EntitySpecRef,
-		"commands.md":                CommandsRef,
-		"clarify-guide.md":           ClarifyGuideRef,
-		"sync-workflow.md":           SyncWorkflowRef,
-		"requirement-derivation.md":  RequirementDerivationRef,
+		"entity-spec.md":            EntitySpecRef,
+		"commands.md":               CommandsRef,
+		"clarify-guide.md":          ClarifyGuideRef,
+		"sync-workflow.md":          SyncWorkflowRef,
+		"requirement-derivation.md": RequirementDerivationRef,
 	}
 	for name, content := range refs {
 		if err := os.WriteFile(filepath.Join(refsDir, name), []byte(content), 0644); err != nil {
@@ -92,7 +93,7 @@ func InstallCodex(projectRoot string) error {
 	if err := os.MkdirAll(codexDir, 0755); err != nil {
 		return fmt.Errorf("create .codex dir: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(codexDir, "hooks.json"), []byte(CodexHooksJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(codexDir, "hooks.json"), []byte(renderCodexHooksJSON(projectRoot)), 0644); err != nil {
 		return err
 	}
 	if err := enableCodexHooksFeature(filepath.Join(codexDir, "config.toml")); err != nil {
@@ -104,6 +105,48 @@ func InstallCodex(projectRoot string) error {
 	}
 
 	return nil
+}
+
+func renderCodexHooksJSON(projectRoot string) string {
+	command := codexHookCommand(projectRoot)
+	return strings.ReplaceAll(CodexHooksJSON, "__SYDE_CODEX_HOOK_COMMAND__", jsonStringContent(command))
+}
+
+func codexHookCommand(projectRoot string) string {
+	for _, candidate := range codexHookSydeCandidates(projectRoot) {
+		if isExecutableFile(candidate) {
+			return candidate + " codex-hook"
+		}
+	}
+	return `/bin/bash -lc 'PATH="$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; exec syde codex-hook'`
+}
+
+func codexHookSydeCandidates(projectRoot string) []string {
+	var candidates []string
+	if exe, err := os.Executable(); err == nil && exe != "" {
+		if abs, err := filepath.Abs(exe); err == nil {
+			candidates = append(candidates, abs)
+		}
+	}
+	candidates = append(candidates, filepath.Join(projectRoot, "syde"))
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		candidates = append(candidates, filepath.Join(home, ".local", "bin", "syde"))
+	}
+	return candidates
+}
+
+func isExecutableFile(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir() && info.Mode()&0111 != 0
+}
+
+func jsonStringContent(s string) string {
+	data, err := json.Marshal(s)
+	if err != nil {
+		return s
+	}
+	quoted := string(data)
+	return strings.TrimSuffix(strings.TrimPrefix(quoted, `"`), `"`)
 }
 
 func updateClaudeMD(projectRoot string) error {

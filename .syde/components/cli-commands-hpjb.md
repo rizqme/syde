@@ -3,7 +3,7 @@ id: COM-0002
 kind: component
 name: CLI Commands
 slug: cli-commands-hpjb
-description: Cobra command tree exposing every syde feature as a CLI subcommand.
+description: Cobra command tree exposing every syde feature as a CLI subcommand
 purpose: Expose every syde feature as a cobra subcommand
 notes:
     - 'Verification cleanup: scan completeness audit output now avoids fmt.Println with an embedded trailing newline so go vet passes under go test ./....'
@@ -41,8 +41,8 @@ files:
 relationships:
     - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-15T11:05:36Z"
-responsibility: Define and register all syde CLI commands under the root cobra tree
+updated_at: "2026-04-17T10:58:20Z"
+responsibility: Define and register all syde CLI commands under the root cobra tree, including the requirement overlap gate that blocks unacknowledged creates and the always-strict sync-check gate
 capabilities:
     - Entity CRUD (add, get, list, update, remove)
     - Query and search (query, search, graph)

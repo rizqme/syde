@@ -68,97 +68,88 @@
 
 ### Concept
 
-Concepts are first-class ERD entities — high-level domain objects
-with named attributes, domain actions, and cardinality-labelled
-`relates_to` relationships. Concepts are a **design-level lens** —
-attributes carry name and description only, no concrete types. The
-dashboard renders them in two places:
-
-- **Concept detail panel** — accessed by clicking any concept in the
-  Concepts list. Shows attribute and action tables alongside the
-  usual entity fields.
-- **ERD view** — accessed via the **List / ERD** toggle at the
-  top-right of the Concepts page (not a separate sidebar entry).
-  Renders every concept as a draggable React Flow card with
-  attribute rows, cardinality-labelled aggregate edges, and
-  FK-style per-attribute edges for attributes that carry `refs`.
+Concepts are **domain glossary entries** — short prose definitions of
+the terms that matter in the domain. They are a design-level lens and
+carry no typed attributes, no actions, and no cardinality-labelled
+relationships. Schema detail and implementation types belong in code
+or in contract schemas, never on a concept. The dashboard renders
+concepts as a standard 2-column inbox: a list on the left, a glossary
+detail panel on the right showing the prose fields plus relationship
+chips grouped by role.
 
 | YAML key | CLI flag | Description |
 |----------|----------|-------------|
-| `meaning` | `--meaning` | **Required** — one-line domain meaning |
-| `attributes` | `--attribute` | **Required (≥1)** — repeatable, `name\|description\|refs` |
-| `actions` | `--action` | Optional, repeatable, `name\|description` |
+| `meaning` | `--meaning` | **Required** — what the term represents in the domain |
 | `invariants` | `--invariants` | Recommended — rules that must always hold |
-| `structure_notes` | `--structure-notes` | Free-form structure notes (prefer structured attributes) |
-| `lifecycle` | `--lifecycle` | Lifecycle description (state machine, etc.) |
-| `data_sensitivity` | `--data-sensitivity` | Sensitivity (e.g., PII, public) |
+| `lifecycle` | `--lifecycle` | Optional — state machine or progression of stages |
 
-**Attribute spec** — pipe-separated, 1–3 parts:
+There are no `attributes`, `actions`, `data_sensitivity`, or
+`structure_notes` fields anymore. A concept that was authored under
+the earlier schema can be migrated with a no-op `syde update <slug>`:
+the re-save drops the obsolete keys from YAML because the struct no
+longer carries them.
 
-- `name` (required) — the field / column / property name
-- `description` — optional prose for what the attribute means, its
-  invariants, constraints, or intent. Rendered as the secondary
-  line in the ERD card and in the concept detail panel.
-- `refs` — optional comma-separated list of concept slugs this
-  attribute references (FK-style). The ERD view draws a dashed
-  arrow from this attribute row directly to each referenced
-  concept's card, labelled with the attribute name.
+**Role-based relationships** — pick the one that matches how the
+concept is realised in the rest of the model:
 
-There is **no type field**. Concrete types belong in code or in
-contract schemas, not in the design model. If you find yourself
-writing `uuid` or `timestamptz` in an attribute, move that detail
-into the description prose or the component that implements the
-concept.
+| Relationship type | Target kind | Meaning |
+|-------------------|-------------|---------|
+| `implemented_by`  | component   | Component that implements this domain concept in code |
+| `exposed_via`     | contract    | Contract that exposes this concept at a process boundary |
+| `used_in`         | flow        | Flow that operates on or produces this concept |
+| `relates_to`      | concept     | Another concept this one relates to (no cardinality) |
 
 Examples:
 
-- `id|primary key`
-- `total|must be > 0`
-- `status|lifecycle state: draft, placed, paid, shipped`
-- `customer_id|foreign key|customer` (attribute-level FK)
-- `tag_ids|tag references|tag,label` (multiple refs)
+- `--add-rel "order-service:implemented_by"` — the Order concept is
+  realised by the Order Service component.
+- `--add-rel "place-order:exposed_via"` — the Order concept appears
+  in the Place Order contract's schema.
+- `--add-rel "place-order-flow:used_in"` — the Order concept is
+  produced by the Place Order flow.
+- `--add-rel "line-item:relates_to"` — Order and LineItem are
+  related domain concepts. No cardinality label.
 
-**Action spec** — pipe-separated, 1–2 parts:
-
-- `name` (required) — the verb (e.g. `place`, `cancel`, `ship`)
-- `description` — one-line explanation of what the action does
-
-Examples: `place|transitions from draft to placed`, `cancel|reverts to draft if not yet shipped`.
-
-**Cardinality labels on `relates_to`** — `--add-rel` accepts an
-optional third part for relationship cardinality. Syntax:
-`<target>:relates_to:<cardinality>`. The cardinality value MUST be
-one of the four canonical values — anything else is rejected by
-`syde sync check --strict`:
-
-| Label          | Meaning                                          |
-|----------------|--------------------------------------------------|
-| `one-to-one`   | Each row on the left has exactly one on the right |
-| `one-to-many`  | Each row on the left has many on the right       |
-| `many-to-one`  | Many rows on the left share one on the right     |
-| `many-to-many` | Many-to-many via an explicit join                |
-
-Cardinality is optional — a two-part `--add-rel "x:relates_to"`
-stays valid and renders an unlabeled edge in the ERD view.
+Use the generic `references` relationship only when none of the
+role-based types fit (rare).
 
 **Validator rules (enforced by `syde sync check`):**
 
 - `meaning` is required (ERROR)
-- `attributes` must have at least one entry (ERROR)
-- Each attribute needs a non-empty `name` (ERROR)
-- `invariants` is recommended (WARN)
-- `relates_to.label` must be in the cardinality enum when non-empty (ERROR)
+- `invariants` is recommended (Finding when empty)
+- `relates_to` carries no cardinality label (audit does not validate one)
 
 ### Flow
+Each flow represents **one user goal** (e.g. "Create Plan", "Browse Components").
+Steps describe what user and system do at each point in the journey.
+
 | YAML key | CLI flag | Description |
 |----------|----------|-------------|
 | `trigger` | `--trigger` | What starts this flow |
 | `goal` | `--goal` | What this flow achieves |
-| `narrative` | `--narrative` | Step-by-step narrative |
+| `steps` | `--step` | **Structured steps** (repeatable). Format: `id\|action\|contract\|description\|on_success\|on_failure`. Min 2 fields (id + action). |
+| `narrative` | `--narrative` | Prose narrative (legacy — prefer steps) |
 | `happy_path` | `--happy-path` | Happy path description |
 | `edge_cases` | `--edge-cases` | Edge cases |
 | `failure_modes` | `--failure-modes` | Failure modes |
 | `performance_notes` | `--performance-notes` | Performance notes |
+
+#### FlowStep fields
+| Field | Description |
+|-------|-------------|
+| `id` | Short intra-flow identifier (e.g. `s1`, `s2`). Must be unique within the flow. |
+| `action` | What happens — verb phrase describing what user or system does. |
+| `contract` | Slug of the contract this step exercises. Empty for internal steps (legitimate; the audit only fires on unresolvable refs, not on intentionally empty ones). |
+| `description` | Optional elaboration. |
+| `on_success` | Step ID to follow on success, `done`, or empty (= implicit next in array order). |
+| `on_failure` | Step ID to follow on failure, `done`, `abort`, or empty (= no failure path). |
+
+Audit rules:
+- ERROR: contract not referenced by any flow step across all flows
+- ERROR: step `contract` ref doesn't resolve to an existing contract
+- ERROR: step `on_success`/`on_failure` ref doesn't resolve within the same flow
+- ERROR: duplicate step ID within a flow
+- (internal steps with an empty `contract` field are legitimate and silent — the audit only fires on unresolvable contract refs)
 
 ### Requirement
 Requirements preserve user intent and approved plan intent as append-only
@@ -180,6 +171,7 @@ mark the older requirement `superseded` or `obsolete`.
 | `superseded_by` | `--superseded-by` | Comma-separated newer requirement refs |
 | `obsolete_reason` | `--obsolete-reason` | Required when status is `obsolete` |
 | `approved_at` | `--approved-at` | Approval/capture timestamp |
+| `audited_overlaps` | `--audited` | List of `{slug, distinction}` acknowledging TF-IDF overlap pairs. Pass as `slug:distinction text` (distinction ≥20 chars, must describe real semantic difference). |
 
 **EARS patterns** — every `statement` must match exactly one of these:
 
@@ -217,6 +209,14 @@ Validation rules:
 - `obsolete` requirements must have `obsolete_reason`.
 - Supersede links must point to requirement entities and be reciprocal.
 - Requirements are append-only; `syde remove` refuses to delete them.
+- Any two active requirements with TF-IDF similarity ≥0.6 must acknowledge
+  each other via `audited_overlaps`, and each acknowledgement must carry a
+  `distinction` rationale of at least 20 characters. `syde add requirement`
+  blocks non-zero on unacknowledged overlaps unless `--force` is passed.
+- Requirement statements that name a CLI invocation (`syde <sub>`), REST
+  path, dashboard screen, or pub-sub event topic must have a matching
+  active contract whose `input` covers the surface. Planning-time and
+  post-plan audits are symmetric.
 
 **Backfilling from an existing codebase.** See
 `references/requirement-derivation.md` for the deterministic algorithm
@@ -269,9 +269,12 @@ Add with `--add-rel "target-slug:type"`. Valid types:
 | `consumes` | Uses interface |
 | `uses` | General usage |
 | `involves` | Participates in (flow→component) |
-| `references` | Points to (contract→concept, concept→component) |
-| `relates_to` | ERD-style relationship (concept→concept) |
+| `references` | Points to (generic; prefer role-based types where applicable) |
+| `relates_to` | Plain relationship between two concepts (no cardinality label) |
 | `implements` | Implements (component→concept) |
+| `implemented_by` | Concept → component that implements it in code |
+| `exposed_via` | Concept → contract that exposes it externally |
+| `used_in` | Concept → flow that operates on or produces it |
 | `applies_to` | Applies to target (requirement→component) |
 | `refines` | Requirement narrows a design target (requirement→component/contract/concept/system, or requirement→requirement) |
 | `derives_from` | Requirement is derived from a parent requirement (requirement→requirement) |

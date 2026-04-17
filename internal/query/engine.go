@@ -74,13 +74,13 @@ func (e *Engine) Filter(kind model.EntityKind, tag string) ([]EntitySummary, err
 				Files:         b.Files,
 				Relationships: rels,
 			}
-			if c, ok := ewb.Entity.(*model.ConceptEntity); ok {
-				summary.Attributes = c.Attributes
-				summary.Actions = c.Actions
-			}
 			if ct, ok := ewb.Entity.(*model.ContractEntity); ok {
 				summary.ContractKind = ct.ContractKind
 				summary.InteractionPattern = ct.InteractionPattern
+			}
+			if p, ok := ewb.Entity.(*model.PlanEntity); ok {
+				summary.PlanStatus = string(p.PlanStatus)
+				summary.UpdatedAt = b.UpdatedAt
 			}
 			if req, ok := ewb.Entity.(*model.RequirementEntity); ok {
 				if summary.Description == "" {
@@ -111,11 +111,6 @@ type EntitySummary struct {
 	// Outbound relationships only — enough for client-side filtering by
 	// belongs_to / depends_on / references / etc.
 	Relationships []SummaryRelation `json:"relationships,omitempty"`
-	// Concept-specific fields surfaced in the list view so the ERD
-	// page can render nodes without a second per-entity fetch. Nil
-	// for every non-concept kind (omitempty keeps the JSON clean).
-	Attributes []model.ConceptAttribute `json:"attributes,omitempty"`
-	Actions    []model.ConceptAction    `json:"actions,omitempty"`
 	// Contract-specific fields surfaced in the list view so the
 	// filter bar can narrow the Contracts page by kind and pattern
 	// without a second per-entity fetch.
@@ -128,13 +123,15 @@ type EntitySummary struct {
 	RequirementStatus string `json:"requirement_status,omitempty"`
 	Source            string `json:"source,omitempty"`
 	SourceRef         string `json:"source_ref,omitempty"`
+	// Plan-specific fields surfaced in the list view so the frontend
+	// can sort by date and filter by status without a detail fetch.
+	PlanStatus string `json:"plan_status,omitempty"`
+	UpdatedAt  string `json:"updated_at,omitempty"`
 }
 
 // SummaryRelation is a flat outbound relationship reference. Label
-// carries the free-form annotation from Relationship.Label — in
-// particular the ERD cardinality value on relates_to between concepts
-// (one-to-one / one-to-many / many-to-one / many-to-many). Empty when
-// no label was set at creation time.
+// carries the free-form annotation from Relationship.Label. Empty
+// when no label was set at creation time.
 type SummaryRelation struct {
 	Type   string `json:"type"`
 	Target string `json:"target"`

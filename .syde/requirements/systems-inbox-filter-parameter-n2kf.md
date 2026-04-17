@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syded-dashboard-e82c
       type: belongs_to
-updated_at: "2026-04-15T10:59:22Z"
+updated_at: "2026-04-17T10:46:07Z"
 statement: Where a filter query parameter is provided on the /system route, the dashboard shall restrict the systems list to entities matching the filter DSL query.
 req_type: interface
 priority: should
@@ -17,4 +17,7 @@ source: manual
 source_ref: contract:systems-inbox-screen-qgp4
 requirement_status: active
 rationale: Filter support lets users scope large inboxes to a workable subset.
+audited_overlaps:
+    - slug: components-inbox-filter-parameter-hidj
+      distinction: Filter parameter governs the /system route systems list; the paired requirement governs the /component route components list.
 ---

@@ -324,6 +324,19 @@ func (c *Client) ConstraintsCheck(path string) ([]byte, error) {
 	return c.getRaw("constraints-check", q)
 }
 
+type NavigateResponse struct {
+	Clients int `json:"clients"`
+}
+
+func (c *Client) Navigate(path string) (*NavigateResponse, error) {
+	var out NavigateResponse
+	return &out, c.postJSON("navigate", map[string]string{"path": path}, &out)
+}
+
+func (c *Client) DashboardURL(path string) string {
+	return c.base + path
+}
+
 // Constraints fetches the active-constraints list (decisions) for
 // the current project.
 func (c *Client) Constraints() ([]byte, error) {

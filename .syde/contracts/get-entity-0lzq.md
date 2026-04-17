@@ -1,28 +1,25 @@
 ---
-contract_kind: cli
-description: Show full entity details for a slug, ID, or parent/child path.
 id: CON-0009
-input: syde get <slug>
-input_parameters:
-    - description: positional, required. Full slug, bare slug, or parent/child path
-      path: slug
-      type: string
-interaction_pattern: request-response
 kind: contract
 name: Get Entity
-output: human-readable entity dump on stdout
-output_parameters:
-    - description: YAML frontmatter + markdown body rendered with ANSI colors
-      path: body
-      type: string
+slug: get-entity-0lzq
+description: Show full entity details for a slug, ID, or parent/child path.
 relationships:
     - target: syde-cli
       type: belongs_to
     - target: cli-commands
       type: references
-    - label: flow
-      target: design-model-operations-coverage-wsrh
-      type: involves
-slug: get-entity-0lzq
-updated_at: "2026-04-14T03:27:03Z"
+updated_at: "2026-04-16T10:51:15Z"
+contract_kind: cli
+interaction_pattern: request-response
+input: syde get <slug>
+input_parameters:
+    - path: slug
+      type: string
+      description: positional, required. Full slug, bare slug, or parent/child path
+output: human-readable entity dump on stdout
+output_parameters:
+    - path: body
+      type: string
+      description: YAML frontmatter + markdown body rendered with ANSI colors
 ---

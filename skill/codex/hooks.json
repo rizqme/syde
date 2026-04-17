@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "__SYDE_CODEX_HOOK_COMMAND__",
             "statusMessage": "Loading syde architecture context",
             "timeout": 30
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "__SYDE_CODEX_HOOK_COMMAND__",
             "statusMessage": "Capturing syde requirement",
             "timeout": 20
           }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "__SYDE_CODEX_HOOK_COMMAND__",
             "statusMessage": "Checking syde plan/task guardrails",
             "timeout": 10
           }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "__SYDE_CODEX_HOOK_COMMAND__",
             "statusMessage": "Checking syde file mapping",
             "timeout": 20
           }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "__SYDE_CODEX_HOOK_COMMAND__",
             "statusMessage": "Running syde finish gate",
             "timeout": 60
           }

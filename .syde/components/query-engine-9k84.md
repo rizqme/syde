@@ -15,7 +15,7 @@ relationships:
       type: belongs_to
     - target: storage-engine
       type: depends_on
-updated_at: "2026-04-15T10:58:06Z"
+updated_at: "2026-04-17T08:13:52Z"
 responsibility: Resolve, format, and diff entities for the 'syde query' command
 capabilities:
     - Transitive impact analysis (what breaks if this changes)

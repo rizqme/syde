@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApi } from '../hooks/useApi';
 import { api, EntityDetailResponse, Relationship } from '../lib/api';
+import { FlowChart } from './FlowChart';
 import { KindBadge } from './KindBadge';
 import { iconForKind, FileIcon, ChevronRightIcon } from './icons';
 
@@ -17,22 +18,19 @@ interface EntityDetailProps {
   // When true, render without the floating w-96 shell. Used by the
   // inbox-style 2-column entity view where the detail fills the right pane.
   inline?: boolean;
-  // When true, hide the X close button in the top-right. Used by the
-  // concept page where the List/ERD toggle occupies that spot.
-  hideClose?: boolean;
 }
 
-export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline, hideClose }: EntityDetailProps) {
+export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline }: EntityDetailProps) {
   const { data, loading, error } = useApi<EntityDetailResponse>(() => api.entity(slug), [slug]);
 
-  if (loading) return <DetailShell onClose={onClose} inline={inline} hideClose={hideClose}><div className="text-muted-foreground text-sm p-4">Loading...</div></DetailShell>;
-  if (error || !data) return <DetailShell onClose={onClose} inline={inline} hideClose={hideClose}><div className="text-red-400 text-sm p-4">Entity not found: {slug}</div></DetailShell>;
+  if (loading) return <DetailShell onClose={onClose} inline={inline}><div className="text-muted-foreground text-sm p-4">Loading...</div></DetailShell>;
+  if (error || !data) return <DetailShell onClose={onClose} inline={inline}><div className="text-red-400 text-sm p-4">Entity not found: {slug}</div></DetailShell>;
 
   const e = data.entity;
   const kind = e.kind as string;
 
   return (
-    <DetailShell onClose={onClose} inline={inline} hideClose={hideClose}>
+    <DetailShell onClose={onClose} inline={inline}>
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2 mb-2">
           <KindBadge kind={kind} />
@@ -52,7 +50,7 @@ export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline, hi
       </div>
 
       <div className="p-4 space-y-4 overflow-y-auto flex-1">
-        <KindFields entity={e} kind={kind} />
+        <KindFields entity={e} kind={kind} onNavigate={onNavigate} />
 
         {kind === 'system' && data.relationships && (
           <SystemChildren
@@ -168,7 +166,7 @@ export function EntityDetail({ slug, onNavigate, onOpenFile, onClose, inline, hi
   );
 }
 
-function DetailShell({ children, onClose, inline, hideClose }: { children: React.ReactNode; onClose: () => void; inline?: boolean; hideClose?: boolean }) {
+function DetailShell({ children, onClose, inline }: { children: React.ReactNode; onClose: () => void; inline?: boolean }) {
   // Inline: fills the right pane of the 2-column entity view, no border-l
   // (the list pane already has border-r), no fixed width.
   // Floating: legacy 384px panel for special views (plan/task).
@@ -177,13 +175,11 @@ function DetailShell({ children, onClose, inline, hideClose }: { children: React
     : 'w-96 border-l border-border bg-background flex flex-col h-full shrink-0';
   return (
     <div className={wrapperClass}>
-      {!hideClose && (
-        <div className="flex justify-end p-2">
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-sm px-2">
-            ✕
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end p-2">
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-sm px-2">
+          ✕
+        </button>
+      </div>
       {children}
     </div>
   );
@@ -198,7 +194,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function KindFields({ entity: e, kind }: { entity: Record<string, any>; kind: string }) {
+function KindFields({ entity: e, kind, onNavigate }: { entity: Record<string, any>; kind: string; onNavigate?: (slug: string, kind?: string, filter?: string) => void }) {
   switch (kind) {
     case 'component':
       return (
@@ -266,31 +262,6 @@ function KindFields({ entity: e, kind }: { entity: Record<string, any>; kind: st
           {e.meaning && <Field label="Meaning" value={e.meaning} />}
           {e.lifecycle && <Field label="Lifecycle" value={e.lifecycle} />}
           {e.invariants && <Field label="Invariants" value={e.invariants} />}
-          {e.data_sensitivity && <Field label="Data Sensitivity" value={e.data_sensitivity} />}
-          {e.attributes?.length > 0 && (
-            <ParamTable
-              label="Attributes"
-              params={e.attributes.map((a: { name: string; description?: string }) => ({
-                path: a.name,
-                description: a.description,
-              }))}
-            />
-          )}
-          {e.actions?.length > 0 && (
-            <div>
-              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mb-1">Actions</div>
-              <div className="rounded border border-border bg-card divide-y divide-border">
-                {e.actions.map((a: { name: string; description?: string }, i: number) => (
-                  <div key={i} className="p-2 text-xs">
-                    <div className="font-mono text-foreground">{a.name}</div>
-                    {a.description && (
-                      <div className="text-muted-foreground mt-0.5 leading-relaxed">{a.description}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       );
     case 'flow':
@@ -301,6 +272,15 @@ function KindFields({ entity: e, kind }: { entity: Record<string, any>; kind: st
               {e.trigger && <span className="text-muted-foreground">{e.trigger}</span>}
               {e.trigger && e.goal && <span className="text-kind-flow">→</span>}
               {e.goal && <span className="font-medium">{e.goal}</span>}
+            </div>
+          )}
+          {e.steps && e.steps.length > 0 && (
+            <div className="mt-2">
+              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-2">Steps</div>
+              <FlowChart
+                steps={e.steps}
+                onContractClick={(slug) => onNavigate?.(slug, 'contract')}
+              />
             </div>
           )}
           {e.narrative && <Field label="Narrative" value={e.narrative} />}
@@ -496,6 +476,9 @@ const TYPE_LABEL: Record<string, string> = {
   references: 'references',
   relates_to: 'relates to',
   implements: 'implements',
+  implemented_by: 'implemented by',
+  exposed_via: 'exposed via',
+  used_in: 'used in',
   applies_to: 'applies to',
   modifies: 'modifies',
   visualizes: 'visualizes',

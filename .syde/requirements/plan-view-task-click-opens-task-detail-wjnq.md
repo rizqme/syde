@@ -8,7 +8,7 @@ relationships:
       type: refines
     - target: syded-dashboard-e82c
       type: belongs_to
-updated_at: "2026-04-15T11:00:01Z"
+updated_at: "2026-04-17T11:07:56Z"
 statement: When the user clicks a task row on the plan view screen, the dashboard shall navigate to that task's detail view.
 req_type: interface
 priority: should
@@ -17,4 +17,7 @@ source: manual
 source_ref: contract:plan-view-screen-gb2y
 requirement_status: active
 rationale: Task drill-down is the primary interaction from plan hierarchy to task editing.
+audited_overlaps:
+    - slug: graph-node-click-navigates-to-detail-8fsr
+      distinction: plan-view-task-click triggers within the plan tasks tab; graph-node-click is the Graph canvas detail navigation — different parent screens
 ---

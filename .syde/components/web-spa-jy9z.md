@@ -16,40 +16,44 @@ notes:
     - Component cards now show description (always present
     - ' validator-enforced) (2026-04-14).'
 files:
-    - web/src/main.tsx
+    - scripts/wireframe-shot.sh
+    - web/embed.go
+    - web/eslint.config.js
+    - web/index.html
+    - web/package.json
     - web/src/App.tsx
+    - web/src/main.tsx
     - web/src/index.css
     - web/src/components/EntityDetail.tsx
+    - web/src/components/EntityEmptyState.tsx
+    - web/src/components/EntityFilterBar.tsx
     - web/src/components/EntityList.tsx
+    - web/src/components/ExtendedFieldDiff.tsx
+    - web/src/components/FlowChart.tsx
     - web/src/components/KindBadge.tsx
+    - web/src/components/NewContractDraftView.tsx
+    - web/src/components/NewEntityDraftView.tsx
+    - web/src/components/PhaseTaskList.tsx
+    - web/src/components/PlanChangesView.tsx
+    - web/src/components/PlanDetailPanel.tsx
     - web/src/components/RelationshipChip.tsx
     - web/src/components/SearchPalette.tsx
     - web/src/components/Sidebar.tsx
     - web/src/components/icons.tsx
-    - web/src/components/EntityEmptyState.tsx
-    - web/src/components/EntityFilterBar.tsx
     - web/src/hooks/useApi.ts
     - web/src/hooks/useWebSocket.ts
     - web/src/lib/api.ts
+    - web/tsconfig.app.json
+    - web/tsconfig.json
+    - web/tsconfig.node.json
+    - web/vite.config.ts
     - web/src/pages/Overview.tsx
     - web/src/pages/FileTree.tsx
-    - web/src/pages/PlanView.tsx
-    - web/src/pages/TaskBoard.tsx
     - web/src/pages/Graph.tsx
-    - web/src/pages/ERD.tsx
-    - web/embed.go
-    - web/index.html
-    - web/package.json
-    - web/vite.config.ts
-    - web/tsconfig.json
-    - web/tsconfig.app.json
-    - web/tsconfig.node.json
-    - web/eslint.config.js
-    - scripts/wireframe-shot.sh
 relationships:
     - target: syded-dashboard
       type: belongs_to
-updated_at: "2026-04-15T11:05:37Z"
+updated_at: "2026-04-17T09:05:21Z"
 responsibility: React 18 + TypeScript + Vite + Tailwind v4 single-page app rendered by syded
 capabilities:
     - Overview page with entity counts and relationships

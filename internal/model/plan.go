@@ -45,6 +45,65 @@ const (
 	PlanCompleted  PlanStatus = "completed"
 )
 
+// DeletedChange records an entity a plan will delete.
+type DeletedChange struct {
+	ID    string   `yaml:"id" json:"id"`
+	Slug  string   `yaml:"slug" json:"slug"`
+	Why   string   `yaml:"why" json:"why"`
+	Tasks []string `yaml:"tasks,omitempty" json:"tasks,omitempty"`
+}
+
+// ExtendedChange records an in-place modification to an existing
+// entity. FieldChanges is optional; when present it maps frontmatter
+// field names to their proposed new value (the special sentinel
+// "DELETE" means the field should be cleared). The plan completion
+// validator diffs FieldChanges against the target entity's current
+// state and errors on any mismatch. Extended entries without
+// FieldChanges are hand-review only — the validator emits a WARN
+// rather than an ERROR.
+type ExtendedChange struct {
+	ID           string            `yaml:"id" json:"id"`
+	Slug         string            `yaml:"slug" json:"slug"`
+	What         string            `yaml:"what" json:"what"`
+	Why          string            `yaml:"why" json:"why"`
+	FieldChanges map[string]string `yaml:"field_changes,omitempty" json:"field_changes,omitempty"`
+	Tasks        []string          `yaml:"tasks,omitempty" json:"tasks,omitempty"`
+}
+
+// NewChange drafts a brand-new entity inside a plan. Draft carries
+// kind-specific fields (responsibility/capabilities for components,
+// input/output/contract_kind/wireframe for contracts, statement/
+// req_type/priority/verification for requirements, etc.). The plan
+// completion validator expects an entity with the declared Name and
+// kind to exist once the plan is marked complete.
+type NewChange struct {
+	ID    string                 `yaml:"id" json:"id"`
+	Name  string                 `yaml:"name" json:"name"`
+	What  string                 `yaml:"what" json:"what"`
+	Why   string                 `yaml:"why" json:"why"`
+	Draft map[string]interface{} `yaml:"draft,omitempty" json:"draft,omitempty"`
+	Tasks []string               `yaml:"tasks,omitempty" json:"tasks,omitempty"`
+}
+
+// ChangeLane is the per-kind bucket of diff entries for a plan.
+type ChangeLane struct {
+	Deleted  []DeletedChange  `yaml:"deleted,omitempty" json:"deleted,omitempty"`
+	Extended []ExtendedChange `yaml:"extended,omitempty" json:"extended,omitempty"`
+	New      []NewChange      `yaml:"new,omitempty" json:"new,omitempty"`
+}
+
+// PlanChanges is the structured diff a plan carries: six per-kind
+// lanes (requirements/systems/concepts/components/contracts/flows)
+// each with their own Deleted/Extended/New lists.
+type PlanChanges struct {
+	Requirements ChangeLane `yaml:"requirements,omitempty" json:"requirements,omitempty"`
+	Systems      ChangeLane `yaml:"systems,omitempty" json:"systems,omitempty"`
+	Concepts     ChangeLane `yaml:"concepts,omitempty" json:"concepts,omitempty"`
+	Components   ChangeLane `yaml:"components,omitempty" json:"components,omitempty"`
+	Contracts    ChangeLane `yaml:"contracts,omitempty" json:"contracts,omitempty"`
+	Flows        ChangeLane `yaml:"flows,omitempty" json:"flows,omitempty"`
+}
+
 // PlanEntity represents an implementation plan.
 type PlanEntity struct {
 	BaseEntity     `yaml:",inline"`
@@ -52,12 +111,14 @@ type PlanEntity struct {
 	Background     string      `yaml:"background,omitempty"`
 	Objective      string      `yaml:"objective,omitempty"`
 	PlanScope      string      `yaml:"scope,omitempty"`
+	Design         string      `yaml:"design,omitempty"`
 	Source         string      `yaml:"source,omitempty"`
 	ClaudePlanFile string      `yaml:"claude_plan_file,omitempty"`
 	CreatedAt      string      `yaml:"created_at,omitempty"`
 	ApprovedAt     string      `yaml:"approved_at,omitempty"`
 	CompletedAt    string      `yaml:"completed_at,omitempty"`
 	Phases         []PlanPhase `yaml:"phases,omitempty"`
+	Changes        PlanChanges `yaml:"changes,omitempty"`
 }
 
 // Progress returns the completion percentage of the plan.

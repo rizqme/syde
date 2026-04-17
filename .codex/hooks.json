@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "/Users/rizqme/.local/bin/syde codex-hook",
             "statusMessage": "Loading syde architecture context",
             "timeout": 30
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "/Users/rizqme/.local/bin/syde codex-hook",
             "statusMessage": "Capturing syde requirement",
             "timeout": 20
           }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "/Users/rizqme/.local/bin/syde codex-hook",
             "statusMessage": "Checking syde plan/task guardrails",
             "timeout": 10
           }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "/Users/rizqme/.local/bin/syde codex-hook",
             "statusMessage": "Checking syde file mapping",
             "timeout": 20
           }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "syde codex-hook",
+            "command": "/Users/rizqme/.local/bin/syde codex-hook",
             "statusMessage": "Running syde finish gate",
             "timeout": 60
           }

@@ -1,4 +1,4 @@
-scanned_at: "2026-04-17T11:13:53Z"
+scanned_at: "2026-04-17T11:25:13Z"
 root: .
 nodes:
     .:
@@ -8,21 +8,20 @@ nodes:
             - .gitignore
             - Makefile
             - README.md
-            - SVEH-concept.pdf
             - cmd
             - go.mod
             - internal
             - scripts
             - skill
             - web
-        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ (syde, syded, listoverlaps debug utility) and internal/ (audit/cli/dashboard/model/storage/query/tree/graph/uiml/skill plus support packages), a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Audit engine collapsed to a single Finding severity (Error/Warning/Hint are non-blocking aliases), TF-IDF requirement-overlap detection with --audited slug:distinction acknowledgement (≥20-char rationale required), --strict flag dropped from sync check and validate, planning-time contract-surface and flow-coverage rules mirrored post-plan via the parity registry, legacy 'internal step' and 'extends without field_changes' warnings retired.
-        updated_at: "2026-04-17T11:16:00Z"
+        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
+        updated_at: "2026-04-17T11:25:34Z"
     .gitignore:
         type: file
         parent: .
-        size: 91
-        hash: bb1ec59dd60592b8df75e8603d461fc10b051a7202af263e590f4f3174d2ff05
-        mtime: "2026-04-12T12:07:36Z"
+        size: 108
+        hash: 19a0706bf82a763966b7b6c788e4df76da733ba086e81b2a39421e7d35fb9aa1
+        mtime: "2026-04-17T11:18:14Z"
         summary: 'Minimal gitignore for the syde repo: excludes the built syde/syded binaries at the repo root, Windows .exe files, macOS .DS_Store, and the test-report.md artifact.'
         updated_at: "2026-04-13T04:40:28Z"
         ignored: true
@@ -38,20 +37,11 @@ nodes:
     README.md:
         type: file
         parent: .
-        size: 13113
-        hash: 11d259d2c03f14d20127af4a32819d952de25fcb8851ed13e9e00b809e2d6fbe
-        mtime: "2026-04-15T09:14:55Z"
-        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code skill. Covers install, quick start, the full Claude Code workflow (session start → clarify → plan → approve → implement → validate → remember), entity types, a thorough CLI reference, UIML designs, dashboard, sync, and the .syde/ directory layout.
-        updated_at: "2026-04-13T04:40:36Z"
-        ignored: true
-    SVEH-concept.pdf:
-        type: file
-        parent: .
-        size: 18911
-        hash: e9a9fecba6b6095504a54c5762a865e36c14ab6540acbcd3e727935d64cf60dc
-        mtime: "2026-04-17T09:33:25Z"
-        summary: ReportLab-generated PDF reference document (Helvetica/Times/Courier fonts, A4 page) describing the SVEH concept. Binary asset checked into the repo root for human reference; not consumed by the syde CLI or audit engine.
-        updated_at: "2026-04-17T10:59:27Z"
+        size: 17840
+        hash: 9e8ac64540c3a92012dc99efc7fd4cfe5970dd3ffc8ac663d08bf7cbf721b74f
+        mtime: "2026-04-17T11:25:04Z"
+        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
+        updated_at: "2026-04-17T11:25:34Z"
         ignored: true
     cmd:
         type: dir

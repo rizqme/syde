@@ -21,6 +21,83 @@ also installs the skill into `.claude/`, `.agents/`, `.codex/`,
 For a fresh project, run `syde init --install-skill` once after install
 to create `.syde/` and bootstrap the skill in one command.
 
+## Starting a new project (greenfield)
+
+```bash
+mkdir my-project && cd my-project
+git init
+syde init --install-skill
+```
+
+Open Claude Code or Codex in the project and say:
+
+```
+load skill syde
+
+I want to build <one-line product description>.
+```
+
+The agent will:
+
+1. **Clarify** — list 5–15 questions about scope, users, tech stack,
+   constraints, failure modes, with a recommended answer for each. Wait
+   for your replies.
+2. **Draft the architecture** — author the top system, sub-systems,
+   components, contracts (CLI / REST / screen / event / storage), domain
+   concepts, and key flows in a structured plan diff. Open the plan in
+   the dashboard.
+3. **Wait for `approve`** — only after explicit chat approval does the
+   agent run `syde plan approve`.
+4. **Implement** — work through every task, mark each done with the
+   real affected entities + files, run `syde sync check`, fix every
+   finding, mark the plan completed.
+
+You never type a `syde` command. The architecture grows alongside the
+code from the very first session.
+
+## Starting from an existing codebase
+
+```bash
+cd existing-project
+syde init --install-skill
+```
+
+Open the agent and say:
+
+```
+load skill syde
+
+This project already has code. Bootstrap the architecture from it.
+```
+
+The agent will follow the sync workflow in
+`.claude/skills/syde/references/sync-workflow.md`:
+
+1. **Phase 0 — survey the source** via `syde sync` and `syde tree scan`.
+   Builds a summary tree (one-line summary on every file and folder)
+   that mirrors the source tree. Subagents run in parallel to summarise
+   stale leaves; the main session writes folder summaries from
+   children's summaries.
+2. **Bootstrap entities** in 5 rounds, each round writing one kind:
+   the top system + sub-systems → components (one per package / module
+   with `--purpose`, `--responsibility`, `--capability`s, `--boundaries`,
+   `--file` paths) → contracts (one per CLI command / HTTP endpoint /
+   screen / event / storage schema) → concepts (one per domain term) →
+   flows (one per user goal, steps reference contracts by slug). Each
+   round uses `syde tree context <path>` for the framing — never raw
+   `Read` calls.
+3. **Backfill requirements** as EARS statements per the deterministic
+   procedure in `references/requirement-derivation.md`. Each component
+   and contract gets several requirements traceable via `refines` /
+   `derives_from`.
+4. **Run `syde sync check`** — every finding blocks. The agent resolves
+   orphan files (map to a component or `syde tree ignore`), broken
+   relationships, requirement overlap acknowledgements, contract surface
+   coverage gaps, and flow coverage gaps until the gate passes.
+
+Once bootstrap is clean, the agent is ready for normal feature work — the
+quick-start exchange below applies.
+
 ## Quick Start (inside Claude Code or Codex)
 
 In a session in your project, just say:

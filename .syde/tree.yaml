@@ -1,4 +1,4 @@
-scanned_at: "2026-04-17T11:29:42Z"
+scanned_at: "2026-04-17T11:31:05Z"
 root: .
 nodes:
     .:
@@ -14,8 +14,8 @@ nodes:
             - scripts
             - skill
             - web
-        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (PREFIX=/Users/rizqme/.local/bin). The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
-        updated_at: "2026-04-17T11:29:42Z"
+        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (which also runs syde install-skill --all when run from a project with .syde/). The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
+        updated_at: "2026-04-17T11:31:06Z"
     .gitignore:
         type: file
         parent: .
@@ -28,20 +28,20 @@ nodes:
     Makefile:
         type: file
         parent: .
-        size: 508
-        hash: d4279e28893188f4c63cfbf4dee280f5cf9df77a5697c815961a5fc29feebc38
-        mtime: "2026-04-12T23:44:52Z"
-        summary: 'Build automation for the syde repo. Targets: ''frontend'' (bun install + build in web/), ''build'' (frontend then go build for syde and syded), ''install''/''uninstall'' to PREFIX (default ~/.local/bin), ''clean'' (remove binaries and web/dist), and ''dev'' (run Vite dev server for the dashboard SPA).'
-        updated_at: "2026-04-13T04:40:34Z"
+        size: 785
+        hash: 2a542153954c6662cd52aafe7c0b0d999e2514102435fbedde37d9157dd10163
+        mtime: "2026-04-17T11:30:13Z"
+        summary: 'Build automation for the syde repo. Targets: ''frontend'' (bun install + build in web/), ''build'' (compiles syde and syded with frontend prereq), ''install'' (installs binaries to PREFIX=$HOME/.local/bin and runs syde install-skill --all when invoked from a project with .syde/), ''uninstall'', ''clean'', ''dev'' (vite dev server).'
+        updated_at: "2026-04-17T11:31:05Z"
         ignored: true
     README.md:
         type: file
         parent: .
-        size: 17945
-        hash: 6633a730cb70f27bad58433bbf4f076facfd58ab58b9049dca25c26d67b53604
-        mtime: "2026-04-17T11:29:28Z"
-        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install via make install, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
-        updated_at: "2026-04-17T11:29:42Z"
+        size: 18792
+        hash: 70b74291a240e5aaae9d197d81d55060016254974bbd14a374dcfc6b6ebd9134
+        mtime: "2026-04-17T11:30:47Z"
+        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install via make install (which also installs the skill into the current project), the 'load skill syde' session-start instruction, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
+        updated_at: "2026-04-17T11:31:06Z"
         ignored: true
     cmd:
         type: dir

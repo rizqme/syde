@@ -10,9 +10,31 @@ syde stores your system's architecture as markdown files in `.syde/` — require
 make install
 ```
 
-Builds the React SPA, compiles `syde` and `syded`, and installs them into
-`$HOME/.local/bin` (override with `PREFIX=/usr/local make install`).
-Requires Go and [Bun](https://bun.sh).
+Builds the React SPA, compiles `syde` and `syded`, installs them into
+`$HOME/.local/bin` (override with `PREFIX=/usr/local make install`), and
+— when run from inside a project that already has a `.syde/` directory —
+also installs the skill (`syde install-skill --all`) into `.claude/`,
+`.agents/`, `.codex/`, `CLAUDE.md`, and `AGENTS.md`. Requires Go and
+[Bun](https://bun.sh).
+
+For a fresh project, run `syde init --install-skill` after install to
+create `.syde/` and bootstrap the skill in one command.
+
+## Loading the skill in a session
+
+The skill is installed as a file (`.claude/skills/syde/SKILL.md`,
+`.agents/skills/syde/SKILL.md`) but doesn't activate until you tell the
+agent to load it. At the start of every Claude Code or Codex session in
+this project, run:
+
+```
+load skill syde
+```
+
+After that, the SessionStart hook injects the architecture context, the
+PreToolUse hook gates code edits behind an approved plan + active task,
+and the PostToolUse hooks enforce overlap resolution and the strict
+sync-check gate.
 
 ## Quick Start
 

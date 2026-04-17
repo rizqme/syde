@@ -7,10 +7,12 @@ syde stores your system's architecture as markdown files in `.syde/` — require
 ## Install
 
 ```bash
-go build -o syde  ./cmd/syde/
-go build -o syded ./cmd/syded/
-mv syde syded /usr/local/bin/
+make install
 ```
+
+Builds the React SPA, compiles `syde` and `syded`, and installs them into
+`$HOME/.local/bin` (override with `PREFIX=/usr/local make install`).
+Requires Go and [Bun](https://bun.sh).
 
 ## Quick Start
 

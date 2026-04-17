@@ -1,4 +1,4 @@
-scanned_at: "2026-04-17T11:25:13Z"
+scanned_at: "2026-04-17T11:29:42Z"
 root: .
 nodes:
     .:
@@ -14,8 +14,8 @@ nodes:
             - scripts
             - skill
             - web
-        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
-        updated_at: "2026-04-17T11:25:34Z"
+        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (PREFIX=/Users/rizqme/.local/bin). The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
+        updated_at: "2026-04-17T11:29:42Z"
     .gitignore:
         type: file
         parent: .
@@ -37,11 +37,11 @@ nodes:
     README.md:
         type: file
         parent: .
-        size: 17840
-        hash: 9e8ac64540c3a92012dc99efc7fd4cfe5970dd3ffc8ac663d08bf7cbf721b74f
-        mtime: "2026-04-17T11:25:04Z"
-        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
-        updated_at: "2026-04-17T11:25:34Z"
+        size: 17945
+        hash: 6633a730cb70f27bad58433bbf4f076facfd58ab58b9049dca25c26d67b53604
+        mtime: "2026-04-17T11:29:28Z"
+        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install via make install, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
+        updated_at: "2026-04-17T11:29:42Z"
         ignored: true
     cmd:
         type: dir

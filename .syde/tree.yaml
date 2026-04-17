@@ -1,4 +1,4 @@
-scanned_at: "2026-04-17T11:31:05Z"
+scanned_at: "2026-04-17T11:34:25Z"
 root: .
 nodes:
     .:
@@ -14,8 +14,8 @@ nodes:
             - scripts
             - skill
             - web
-        summary: Repository for syde, a text-first software design CLI and syded dashboard. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (which also runs syde install-skill --all when run from a project with .syde/). The strict-audit overhaul (April 2026) collapsed severity into a single Finding tier, added MERGE/RENAME/DISTINCT requirement overlap workflow, surface and flow coverage rules at planning + post-plan time, and a planning↔post-plan parity registry.
-        updated_at: "2026-04-17T11:31:06Z"
+        summary: Repository for syde, a text-first software design model that disciplines AI coding agents. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (which also runs syde install-skill --all when run from a project with .syde/). Agents activate the skill via 'load skill syde'; from there the strict-audit workflow takes over.
+        updated_at: "2026-04-17T11:34:34Z"
     .gitignore:
         type: file
         parent: .
@@ -37,11 +37,11 @@ nodes:
     README.md:
         type: file
         parent: .
-        size: 18792
-        hash: 70b74291a240e5aaae9d197d81d55060016254974bbd14a374dcfc6b6ebd9134
-        mtime: "2026-04-17T11:30:47Z"
-        summary: User-facing documentation for syde — the text-first software design model CLI and Claude Code/Codex skill. Covers install via make install (which also installs the skill into the current project), the 'load skill syde' session-start instruction, the strict single-Finding audit, plan structured-change diffs, MERGE/RENAME/DISTINCT requirement overlap workflow, planning↔post-plan symmetry, contract surface coverage, flow coverage, the 8 entity kinds, all 17 relationship types, hooks wiring, and the .syde/ directory layout.
-        updated_at: "2026-04-17T11:31:06Z"
+        size: 8631
+        hash: 051cbb9765892e38ef9ddf41f510f2d56d8b5035500d97bd96dd15e3da455b3c
+        mtime: "2026-04-17T11:34:12Z"
+        summary: 'User-facing documentation for syde — a text-first software design model that turns AI coding agents (Claude Code, Codex) into disciplined collaborators. Focuses on the agent-driven workflow: install via make install, load skill syde at session start, talk to the agent in plain English while the skill enforces clarify-before-code, plan-before-edit, structured plan diff, MERGE/RENAME/DISTINCT requirement overlap workflow, contract surface coverage, flow coverage, strict single-Finding audit, and planning↔post-plan symmetry. CLI reference deferred to skill/references/commands.md.'
+        updated_at: "2026-04-17T11:34:25Z"
         ignored: true
     cmd:
         type: dir

@@ -1,8 +1,10 @@
 # syde
 
-Text-first software design model for source code repositories. Works as a standalone CLI and as a Claude Code / Codex skill that enforces architectural constraints during development.
+Text-first software design model that turns your AI coding agent (Claude Code, Codex, etc.) into a disciplined collaborator. The agent does the work; syde keeps it honest.
 
-syde stores your system's architecture as markdown files in `.syde/` — requirements, components, contracts, flows, concepts, plans, and tasks. A BadgerDB index enables fast queries; a summary tree mirrors your source tree with one-line summaries on every file and folder. When integrated with Claude Code or Codex, syde auto-loads your architecture at session start, blocks code edits without an approved plan and active task, and runs a strict audit that exits non-zero on any finding.
+syde stores your system's architecture as markdown files in `.syde/` — requirements, components, contracts, flows, concepts, plans, and tasks. When you load the skill, the agent gets the full architecture in its first message, must clarify before writing, must produce an approved structured plan before any edit, must track the work as tasks with affected entities and files, and must pass a strict single-Finding audit before the session can end.
+
+You don't run syde commands by hand. You talk to the agent.
 
 ## Install
 
@@ -13,301 +15,91 @@ make install
 Builds the React SPA, compiles `syde` and `syded`, installs them into
 `$HOME/.local/bin` (override with `PREFIX=/usr/local make install`), and
 — when run from inside a project that already has a `.syde/` directory —
-also installs the skill (`syde install-skill --all`) into `.claude/`,
-`.agents/`, `.codex/`, `CLAUDE.md`, and `AGENTS.md`. Requires Go and
-[Bun](https://bun.sh).
+also installs the skill into `.claude/`, `.agents/`, `.codex/`,
+`CLAUDE.md`, and `AGENTS.md`. Requires Go and [Bun](https://bun.sh).
 
-For a fresh project, run `syde init --install-skill` after install to
-create `.syde/` and bootstrap the skill in one command.
+For a fresh project, run `syde init --install-skill` once after install
+to create `.syde/` and bootstrap the skill in one command.
 
-## Loading the skill in a session
+## Quick Start (inside Claude Code or Codex)
 
-The skill is installed as a file (`.claude/skills/syde/SKILL.md`,
-`.agents/skills/syde/SKILL.md`) but doesn't activate until you tell the
-agent to load it. At the start of every Claude Code or Codex session in
-this project, run:
+In a session in your project, just say:
 
 ```
 load skill syde
 ```
 
-After that, the SessionStart hook injects the architecture context, the
-PreToolUse hook gates code edits behind an approved plan + active task,
-and the PostToolUse hooks enforce overlap resolution and the strict
-sync-check gate.
+That activates the SessionStart hook (architecture context auto-loaded), the PreToolUse hook (blocks code edits without an approved plan + active task), and the PostToolUse hooks (overlap resolution + strict gate at session end).
 
-## Quick Start
+Then drive the agent in plain English:
 
-```bash
-cd your-project
-syde init --install-skill
+```
+You: I want to add user authentication.
+
+Agent (syde-driven):
+  1. Asks clarifying questions — auth method, session duration, password
+     reset flow, rate limits — with recommended answers. Waits for your
+     reply.
+  2. Drafts a plan with background, objective, scope, design, and a
+     structured change diff (which requirements / contracts / components
+     / flows are added, extended, deleted). Opens it in the dashboard.
+     "Approve to proceed."
+  3. You: "approve". Agent runs syde plan approve.
+  4. Agent works one task at a time: starts the task, writes code, marks
+     done with the real list of affected entities and files. Repeats
+     until every phase is complete.
+  5. Agent runs syde sync check. Every finding blocks; agent fixes them
+     all before reporting done.
 ```
 
-This writes:
-- `.syde/` — design model directory with entity subdirectories, BadgerDB index, summary tree
-- `.claude/skills/syde/SKILL.md` — skill that controls Claude's behavior
-- `.claude/skills/syde/references/*.md` — entity spec, command reference, requirement-derivation, sync-workflow
-- `.claude/hooks/syde-hooks.json` — SessionStart, PreToolUse, PostToolUse, and Stop hooks
-- `.codex/hooks.json` + `.codex/config.toml` — equivalent for Codex
-- `CLAUDE.md` and `AGENTS.md` — mandatory rules appended idempotently
+You never run `syde plan create` or `syde task done` yourself. The agent does. Your job is to confirm the clarifications, approve the plan, and review the result.
 
-## What happens in a Claude Code / Codex session
+## What the skill enforces
 
-**1. Session start — architecture auto-loads.** SessionStart hook runs `syde context` and injects your full design model into Claude. Claude starts every session already knowing the system.
-
-**2. Phase 0 — refresh the summary tree.** `syde tree scan` walks the source tree, marks changed files stale. Claude (or subagents in parallel) writes a 1-3 sentence summary on every stale file/folder via `syde tree summarize`. Claude consults `syde tree show <path>` and `syde tree context <path>` instead of cold `Read` calls — cheaper on tokens, framed by the architectural breadcrumb.
-
-**3. Clarify first.** The skill instructs Claude to be critical: list missing requirements with recommended answers, propose constraints, ask "what happens when this fails?". Claude waits for explicit confirmation.
-
-**4. Plan — required before any code edit.** The PreToolUse hook **blocks** every Write / Edit / MultiEdit / NotebookEdit unless: (a) a plan is in `approved` or `in-progress` state, AND (b) a task is `in_progress`. Claude must:
-
-```bash
-syde plan create "Add User Auth"               \
-  --background "..." --objective "..." --scope "..." --design "..."
-
-# Declare the structured change diff (per-kind lanes: requirements,
-# systems, concepts, components, contracts, flows). Each entry has
-# what / why and either field_changes (for extends) or a draft map
-# (for new entries). Tasks are linked to the changes they implement.
-syde plan add-change new    <plan> requirement --name "..." --draft statement="The system shall ..." --draft req_type=functional --draft priority=must
-syde plan add-change extend <plan> component   auth-middleware --field responsibility="..." --task harden-jwt-keys
-syde plan add-change delete <plan> contract    legacy-login    --why "Replaced by JWT"
-
-syde plan add-phase <plan> --name "Scaffolding" --details "..."
-syde task create   "Harden JWT keys" --plan <plan> --phase phase_1 \
-    --objective "Rotate signing key without downtime" \
-    --affected-entity auth-middleware --affected-file internal/auth/keys.go
-
-syde plan check  <plan>     # Must exit 0 — every Finding blocks
-syde plan open   <plan>     # Open in dashboard for review
-syde plan approve <plan>    # ONLY after explicit user approval in chat
-```
-
-**5. Implement with task tracking.**
-
-```bash
-syde task start <task>      # Marks active; PreToolUse hook now lets Write through
-# ... write code ...
-syde task done <task> \
-    --affected-entity auth-middleware --affected-entity jwt-config \
-    --affected-file internal/auth/middleware.go \
-    --affected-file internal/auth/keys.go
-```
-
-The done-time `--affected-*` flags merge into the predicted set and bump `updated_at` on each affected entity (drift tracking).
-
-**6. Finish — strict gate.**
-
-```bash
-syde tree scan                    # Refresh summaries for changed files
-syde sync check                   # Single severity level: every Finding blocks
-syde plan complete <plan>         # Refuses unless every declared change matches reality
-```
-
-The Stop hook re-runs `syde sync check` and blocks session end if anything fails.
+| Gate | Where | What |
+|------|-------|------|
+| **Architecture context** | SessionStart hook | `syde context` injected so the agent starts every session knowing the system. |
+| **Clarify before code** | Skill rules | Agent must list requirements, propose constraints, ask "what happens when this fails?" — and **wait for your confirmation**. |
+| **Plan before edit** | PreToolUse hook on Write / Edit / MultiEdit / NotebookEdit | Code edits **blocked** unless a plan is approved and a task is in_progress. Hard exit code 2. |
+| **Structured plan diff** | `syde plan check` | Every plan declares `delete` / `extend` / `new` lanes per kind with what / why / field_changes / draft. Plan check exits non-zero on any gap. |
+| **Explicit chat approval** | Skill rules | The agent runs `syde plan approve` only after you say "approve" in chat — not on "ok" or "sure". |
+| **Task-tracked work** | `syde task start` / `syde task done` | Each task names its affected entities + files; done-time flags merge into reality so drift is visible. |
+| **Requirement overlap = semantic review** | `syde add requirement` gate + PostToolUse hook | TF-IDF surfaces candidate overlaps; the CLI **blocks** unless the agent resolves each by MERGE (drop the new one), RENAME (rewrite to read distinctly), or DISTINCT (`--audited slug:"why these mean different things"`, ≥20 chars of substantive reasoning). The post-plan audit re-checks every acknowledgement and fails on rubber stamps. |
+| **Contract surface coverage** | Audit (planning + post-plan) | Every requirement that names a CLI command, REST path, dashboard screen, or pub-sub topic must have a matching active contract. Caught at plan time and against the corpus at rest. |
+| **Flow coverage** | Audit (planning + post-plan) | Every active contract must be referenced by at least one flow step. Plans that introduce contracts must touch flows in the same diff. |
+| **Strict audit** | `syde sync check` | One severity level. Every finding blocks. No `--strict` flag, no warning tier. |
+| **Plan completion** | `syde plan complete` | Refuses to mark completed unless every declared change matches actual entity state — deletes really gone, news really created, extended fields really equal the declared values. |
+| **Session-end gate** | Stop hook | Re-runs `syde sync check`; blocks session end on any finding. |
+| **Planning ↔ post-plan symmetry** | `internal/audit/symmetry.go` parity registry + Go test | Every planning rule has an equivalent post-plan rule, so an intent missed at plan time is still caught against entity state. Adding a one-sided rule fails the test. |
 
 ## The design model
 
-syde models your architecture with **8 entity kinds**:
+The agent works with **8 entity kinds**:
 
-| Kind | What it represents | Required fields |
-|------|-------------------|-----------------|
-| **system** | A standalone process / app / service | `description`; sub-systems via `belongs_to:<parent-system>` |
-| **component** | An internal module of a process | `purpose`, `responsibility`, `capability` (≥1), `boundaries`, `--file` paths |
-| **contract** | One process boundary (CLI cmd / REST endpoint / event / screen / storage schema) | `contract_kind`, `interaction_pattern`, `input`, `input_parameter` (≥1), `output`, `output_parameter` (≥1); screens add `--wireframe` UIML |
-| **concept** | A domain glossary entry | `meaning`; `invariants` and `lifecycle` recommended |
-| **flow** | One user goal as a step list | `trigger`, `goal`, `--step` entries (`id\|action\|contract\|description\|on_success\|on_failure`) |
-| **requirement** | Append-only EARS shall-form intent | `statement` (EARS-validated on save), `req_type`, `priority`, `verification`, `source`, `rationale` |
-| **plan** | A tracked implementation plan with structured change diff | `background`, `objective`, `scope`, `design`, change lanes per kind, phases with tasks |
-| **task** | A work item with affected entities + files | `objective`, `details`, `acceptance`, `--affected-entity`, `--affected-file` |
+| Kind | What it represents |
+|------|-------------------|
+| **system** | A standalone process / app / service. Sub-systems nest via `belongs_to`. |
+| **component** | An internal module of a process — `purpose`, `responsibility`, `capability`s, `boundaries`, `--file` paths. |
+| **contract** | One process boundary — CLI command, REST endpoint, event, screen, storage schema, RPC, GraphQL, WebSocket. Carries invocation signature + input/output parameters. |
+| **concept** | A domain glossary entry — `meaning`, `invariants`, `lifecycle`. Wired to its realisation via `implemented_by` (component), `exposed_via` (contract), `used_in` (flow). |
+| **flow** | One user goal as an ordered step list. Each step references a contract by slug. |
+| **requirement** | Append-only EARS shall-form intent. The five EARS patterns (Ubiquitous, Event-driven, State-driven, Unwanted-behavior, Optional-feature) are validated on save. |
+| **plan** | A tracked implementation plan with structured change diff (deleted / extended / new per lane), phases, tasks. |
+| **task** | A work item with affected entities + files. Done-time `--affected-*` clears drift on the listed entities. |
 
-Each entity is a markdown file with YAML frontmatter in `.syde/<kind-plural>/<slug>.md`. Human-readable, git-friendly, editable by hand or via CLI.
+Each entity is a markdown file with YAML frontmatter in `.syde/<kind-plural>/<slug>.md`. Human-readable, git-friendly, editable by hand if you want to.
 
 ### Relationship types
 
 `belongs_to`, `depends_on`, `exposes`, `consumes`, `uses`, `involves`, `references`, `relates_to`, `implements`, `applies_to`, `modifies`, `visualizes`, `refines`, `derives_from`, `implemented_by`, `exposed_via`, `used_in`.
 
-The last three (`implemented_by`, `exposed_via`, `used_in`) wire concepts to the components, contracts, and flows that realise them — the dashboard renders them as grouped chips on the concept detail panel.
-
-## Strict audit — single Finding severity
-
-There is **one severity level**. Every audit finding blocks `syde sync check`, `syde plan check`, `syde plan complete`, and the session-end Stop hook. There is no `--strict` flag and no non-blocking warning tier. The skill teaches: "if it's worth mentioning, it's worth fixing."
-
-`syde sync check` bundles:
-
-- **Structural audit** — required fields, recommended fields, broken relationship targets, cycles in `belongs_to` and `depends_on`.
-- **Tree ↔ entity consistency** — every `--file` ref exists in the summary tree.
-- **Orphan detection** — every non-ignored source file is owned by at least one entity (`syde files orphans` lists them).
-- **Drift** — file mtime newer than the owner entity's `updated_at` becomes a Finding (cleared by `syde task done` with `--affected-*`).
-- **Summary-tree staleness** — any stale file or folder in `tree.yaml`.
-- **Plan completion drift** — declared changes that no longer match entity state.
-- **Requirement overlap distinction** — acknowledged TF-IDF overlaps without semantic distinction text fail as rubber stamps.
-- **Contract surface coverage** — active requirements naming a CLI / REST / screen / event surface must have a matching active contract.
-- **Flow coverage** — every active contract is referenced by at least one flow step.
-
-## Requirement overlap workflow (MERGE / RENAME / DISTINCT)
-
-`syde add requirement` computes TF-IDF similarity against every active requirement. Above the 0.6 threshold the CLI **blocks** the create unless every surfaced overlap is resolved by one of three outcomes:
-
-| Outcome | When | How |
-|---------|------|-----|
-| **MERGE** | The two requirements mean the same thing. | Abandon the new one; reuse the existing slug. |
-| **RENAME** | They are semantically distinct but the statements accidentally share vocabulary. | Rewrite the new statement and retry. |
-| **DISTINCT** | They are genuinely close cousins that must both exist. | Retry with `--audited <slug>:"why these two mean different things"` for each overlap. The distinction text is persisted on the requirement and must be ≥20 characters of substantive reasoning. |
-
-The post-plan audit re-checks every acknowledgement: empty / trivially short distinction text fails as a rubber stamp. A PostToolUse hook on `syde add requirement` injects a system reminder listing the resolution paths so Claude cannot silently skip the review.
-
-`--force` overrides the gate but should be rare and explained.
-
-## Plan structured-change diff
-
-Every plan declares its work as a structured diff with three lists per kind lane (`deleted`, `extended`, `new`):
+## Dashboard
 
 ```bash
-syde plan add-change delete <plan> component legacy-auth --why "Replaced by JWT in phase 2"
-
-syde plan add-change extend <plan> component api-server \
-  --what "Add /api/plans routes and wire the plan completion handler" \
-  --why  "REQ-0331 requires a dashboard-visible plan inbox" \
-  --field responsibility="Request routing, validation, plan lifecycle endpoints" \
-  --field boundaries="No direct DB access; delegates to storage layer" \
-  --task wire-plan-routes
-
-syde plan add-change new $PLAN contract \
-  --name "Plan Completion API" \
-  --what "POST /api/plans/:slug/complete returning the validator findings" \
-  --why  "Dashboard reviewers need a one-click gate" \
-  --draft contract_kind=rest --draft interaction_pattern=request-response \
-  --draft input="POST /api/plans/:slug/complete" \
-  --draft 'input_parameters=[{"path":"slug","type":"string","description":"plan slug"}]' \
-  --draft output="200 OK application/json"
+syde open
 ```
 
-`syde plan complete` runs the completion validator: every declared `delete` must no longer exist, every declared `new` must exist with the declared name + kind, every declared `extend` field_change must equal the declared value (or be empty if the sentinel `DELETE` was used). If anything fails, the plan stays `approved` / `in-progress`.
-
-## Planning ↔ post-plan symmetry
-
-Every planning-time rule has an equivalent post-plan rule encoded in `internal/audit/symmetry.go`. So intent flagged at `syde plan check` is also caught against actual entity state at `syde sync check`. A Go test asserts the parity registry stays populated as new rules are added.
-
-Examples of paired rules:
-- requirement overlap detection (planning + post-plan)
-- contract surface coverage on requirements (planning + post-plan)
-- contract-flow coverage (planning + post-plan)
-- requirement traceability (planning lane coverage + post-plan link check)
-
-## CLI reference
-
-### Architecture overview
-
-```bash
-syde context                         # Full snapshot: entities, plans, tasks
-syde context --json                  # Machine-readable (used by SessionStart hook)
-syde status                          # Entity counts
-syde sync check                      # Strict audit gate (every Finding blocks)
-```
-
-### Entity CRUD
-
-```bash
-syde add component "Auth Service" \
-  --description "Handles authentication" \
-  --purpose "Validate session tokens before request handlers run" \
-  --responsibility "JWT verification, OAuth2 token exchange" \
-  --capability "Verify JWT" --capability "Refresh access token" \
-  --boundaries "Does NOT own user profiles" \
-  --file internal/auth/middleware.go --file internal/auth/keys.go \
-  --add-rel "myapp:belongs_to" \
-  --add-rel "auth-token-validation-required:references"
-
-syde get auth-service                # Full entity details
-syde list components                 # All components
-syde search "auth"                   # Full-text search
-syde update auth-service --capability "Verify JWT" --capability "Refresh access token" --capability "Revoke session"
-syde remove auth-service             # With confirmation; --force to skip
-```
-
-Every entity supports `--note` (repeatable) for informal reminders, quirks, operational notes.
-
-### Rich queries
-
-```bash
-syde query <slug>                          # Entity + relationships + tasks
-syde query <slug> --full                   # Everything including body
-syde query <slug> --content                # Read source file with framing
-syde query --kind component --tag security # Filter
-syde query --search "BadgerDB index"       # Multi-word AND, auto-broadens to OR
-syde query --code "func NewStore("         # Literal-string search across tracked source
-syde query --file internal/storage/index.go --content  # Read file framed by owner
-syde query --impacts auth-service          # Transitive impact analysis
-syde query --depends-on query-engine       # Forward graph walk
-syde query --depended-by query-engine      # Reverse graph walk
-syde query --diff <slug> --since 7d        # Git change history
-```
-
-`syde query` is the single entry point — it surfaces orphan files (`⚠ DRIFT`) and uncovered code in the same call.
-
-### Plans + tasks
-
-```bash
-syde plan create   "Add Payment Processing" --background ... --objective ... --scope ... --design ...
-syde plan add-change new    <plan> requirement --name ... --draft ...
-syde plan add-change extend <plan> component   <slug>  --field key=value --task <task>
-syde plan add-change delete <plan> flow        <slug>
-syde plan add-phase <plan> --name "Scaffolding" --details ...
-syde plan show     <plan> --full
-syde plan show-changes <plan>             # Structured diff grouped by kind
-syde plan check    <plan>                 # Pre-approval audit; must exit 0
-syde plan open     <plan>                 # Open in dashboard
-syde plan approve  <plan>                 # After explicit user chat approval
-syde plan complete <plan>                 # Strict completion gate
-syde plan estimate <plan>                 # Size + split recommendation
-
-syde task create "Build payment webhook" --plan add-payment --phase phase_1 \
-    --objective ... --details ... --acceptance ... \
-    --affected-entity payment-service --affected-file internal/payment/webhook.go
-syde task start <task>
-syde task done  <task> --affected-entity ... --affected-file ...
-syde task block <task> --reason "Waiting for Stripe API key"
-syde task sub   <parent> "Subtask name"
-syde task list
-```
-
-### Files & summary tree
-
-```bash
-syde files orphans                   # Tracked files with no owning component
-syde files coverage <path>           # Who owns this file?
-
-syde tree scan                       # Walk fs, mark changed files stale (.gitignore honored)
-syde tree status                     # Stale file/folder counts
-syde tree changes --leaves-only      # List stale leaves for the summarize loop
-syde tree show <folder>              # Children with their stored summaries
-syde tree context <path>             # Breadcrumb + summary + content
-syde tree summarize <path> --summary "..."
-syde tree ignore <path>              # Exempt from orphan + stale checks
-```
-
-### Dashboard
-
-```bash
-syde server start                    # Start syded on :5703
-syde open                            # Start + register project + open browser
-syde plan open <plan>                # WebSocket-navigates an open dashboard tab, or opens new tab
-syde wireframe render <screen-slug> --format html|ascii|image --out /tmp/x.html --open
-```
-
-The dashboard at `http://localhost:5703/<project-slug>` shows entity inboxes (2-column list + detail), plans with structured-change diffs and per-phase task progress, flow charts, file tree, force-directed graph, and concept glossary cards.
-
-## Hooks
-
-The installed `.claude/hooks/syde-hooks.json` (and `.codex/hooks.json`) wires:
-
-- **SessionStart** — `syde context` injected into Claude.
-- **PreToolUse: Write/Edit/MultiEdit/NotebookEdit** — blocks the edit unless an approved plan is active AND a task is `in_progress`. Excluded paths: `.syde/`, `.claude/`, `node_modules/`, `vendor/`, `web/dist/`, `.git/`, `/tmp/`.
-- **PostToolUse: Write** — warns if the new file is not mapped to any component.
-- **PostToolUse: Bash on `syde add requirement`** — when overlap candidates appear, injects a MERGE/RENAME/DISTINCT system reminder listing the surfaced slugs.
-- **PostToolUse: Bash on `git commit/push`** — warns if tasks are pending or `syde sync check` fails.
-- **Stop** — re-runs `syde sync check`; blocks session end on any Finding.
+Starts `syded` and opens `http://localhost:5703/<project-slug>`. You get entity inboxes (2-column list + detail), plans with the structured-change diff and per-phase task progress, flow charts, file tree, force-directed entity graph, and concept glossary cards. The agent uses `syde plan open <plan>` to navigate an already-open dashboard tab via WebSocket so you can review plans without copy-pasting URLs.
 
 ## `.syde/` directory layout
 
@@ -319,11 +111,11 @@ The installed `.claude/hooks/syde-hooks.json` (and `.codex/hooks.json`) wires:
 ├── index/                 # BadgerDB cache (gitignored, rebuildable via syde reindex)
 ├── systems/               # System entities
 ├── components/            # Component entities
-├── contracts/             # Contract entities (rest / cli / event / screen / pubsub / storage / rpc / graphql / websocket)
-├── concepts/              # Concept entities (glossary)
-├── flows/                 # Flow entities (steps reference contracts by slug)
+├── contracts/             # Contract entities
+├── concepts/              # Concept entities
+├── flows/                 # Flow entities
 ├── requirements/          # Requirement entities (EARS shall-form, append-only)
-├── plans/                 # Plan entities (background/objective/scope/design + structured change diff + phases)
+├── plans/                 # Plan entities (with structured change diff + phases)
 └── tasks/                 # Task entities (affected entities + files)
 ```
 
@@ -333,6 +125,10 @@ Add to `.gitignore`:
 ```
 
 Everything else in `.syde/` should be committed — it's your architecture documentation.
+
+## CLI reference
+
+The CLI exists for the agent and for power users / contributors. In normal use you don't invoke it directly. If you need it: every command supports `--help`, and `skill/references/commands.md` (also installed at `.claude/skills/syde/references/commands.md`) is the full reference the skill consumes.
 
 ## License
 

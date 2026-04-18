@@ -24,6 +24,16 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'PATH=\"$PWD:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; input=$(cat); file_path=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\" 2>/dev/null); if [ -z \"$file_path\" ]; then exit 0; fi; if echo \"$file_path\" | grep -qE \"\\.syde/|\\.claude/|node_modules/|vendor/|web/dist/|web/node_modules/|\\.git/|^/tmp/\"; then exit 0; fi; if [ ! -d .syde ]; then exit 0; fi; rel=${file_path#$PWD/}; comp_slug=$(syde query --file \"$rel\" --no-related --format json 2>/dev/null | jq -r \".owners[] | select(.kind==\\\"component\\\") | .slug\" | head -1); if [ -z \"$comp_slug\" ]; then exit 0; fi; reqs=$(syde query --refined-by \"$comp_slug\" --format json 2>/dev/null | jq -r \".entities[].slug\" 2>/dev/null | head -10 | tr \"\\n\" \",\" | sed \"s/,$//\"); if [ -z \"$reqs\" ]; then exit 0; fi; echo \"{\\\"systemMessage\\\": \\\"syde RECHECK AFFECTED REQUIREMENTS: $file_path is in component $comp_slug. Re-read each refining requirement below, confirm it still holds against the current code, then run: syde requirement verify <slug>. Affected: $reqs\\\"}\"'",
+            "timeout": 8000
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

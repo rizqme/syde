@@ -579,6 +579,56 @@ func (e *Engine) DependedBy(slug string) ([]EntitySummary, error) {
 	return results, nil
 }
 
+// RefinedBy returns active requirements that refine the named component
+// (via a `refines` relationship). The inbound index uses IDs while YAML
+// targets may be slugs, so fall back to a full scan of requirement
+// relationships when inbound lookup misses — mirrors the four-way
+// alias tolerance used by the audit engine.
+func (e *Engine) RefinedBy(slug string) ([]EntitySummary, error) {
+	entity, _, err := e.Store.Get(slug)
+	if err != nil {
+		return nil, err
+	}
+	b := entity.GetBase()
+	aliases := map[string]bool{
+		b.ID:                              true,
+		b.CanonicalSlug():                 true,
+		utils.BaseSlug(b.CanonicalSlug()): true,
+		utils.Slugify(b.Name):             true,
+	}
+
+	all, err := e.Store.ListAll()
+	if err != nil {
+		return nil, err
+	}
+	var results []EntitySummary
+	seen := map[string]bool{}
+	for _, ewb := range all {
+		req, ok := ewb.Entity.(*model.RequirementEntity)
+		if !ok || req.RequirementStatus != model.RequirementActive {
+			continue
+		}
+		for _, rel := range req.GetBase().Relationships {
+			if rel.Type != model.RelRefines || !aliases[rel.Target] {
+				continue
+			}
+			if seen[req.ID] {
+				break
+			}
+			seen[req.ID] = true
+			rb := req.GetBase()
+			results = append(results, EntitySummary{
+				ID:   rb.ID,
+				Kind: string(rb.Kind),
+				Name: rb.Name,
+				Slug: rb.CanonicalSlug(),
+			})
+			break
+		}
+	}
+	return results, nil
+}
+
 // unused import guard
 var _ = fmt.Sprintf
 

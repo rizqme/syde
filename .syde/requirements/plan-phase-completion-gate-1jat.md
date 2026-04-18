@@ -6,9 +6,9 @@ slug: plan-phase-completion-gate-1jat
 relationships:
     - target: plan-sk33
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:46:01Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:19Z"
 statement: If any task under a plan phase is not completed, then the syde CLI shall not allow the phase to transition to completed.
 req_type: constraint
 priority: must
@@ -22,4 +22,8 @@ audited_overlaps:
       distinction: Blocks phase completion based on task status; target blocks parent phase completion based on child phase status.
     - slug: plan-requires-approval-before-execution-vldv
       distinction: Gates phase completion on task status; target gates task transitions on plan draft status before any execution begins.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:19Z"
 ---

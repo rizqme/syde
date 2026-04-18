@@ -6,9 +6,9 @@ slug: entity-requires-description-iys8
 relationships:
     - target: entity-8x6p
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:45:32Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:04Z"
 statement: The syde CLI shall require a non-empty description on every entity instance.
 req_type: constraint
 priority: must
@@ -24,4 +24,8 @@ audited_overlaps:
       distinction: Applies to the description field on every entity kind, not the objective field scoped to plan instances.
     - slug: task-requires-objective-3bnt
       distinction: Applies to the description field on every entity kind, not the objective field scoped to task instances.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:04Z"
 ---

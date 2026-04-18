@@ -22,11 +22,11 @@ import { iconForKind } from '../components/icons';
 // pure architecture map.
 const INCLUDED_KINDS = new Set(['system', 'component', 'contract', 'concept', 'flow', 'decision']);
 
-// Top-level system is the project root, sub-system nests under another
-// system, component is the granular unit; the rest are leaves.
+// Systems are flat (PLN-0019 — no root, no sub-system hierarchy), so
+// every system renders at one size. Components are the granular unit;
+// the rest are leaves.
 const KIND_RADIUS: Record<string, number> = {
-  'system-root': 32,
-  'system-sub': 24,
+  system: 28,
   component: 18,
   contract: 11,
   concept: 11,
@@ -126,42 +126,28 @@ export function Graph({ onSelectEntity }: GraphProps) {
   const built = useMemo(() => {
     if (!data?.nodes) return null;
 
-    // Index of node id → node, plus alias map so edges that target a slug
-    // (e.g. `syde`) instead of an ID (`SYS-0003`) still resolve.
+    // The backend resolves every relationship target to a canonical
+    // entity ID before emitting edges, so a single id-keyed index is
+    // enough to resolve both sources and targets.
     const allowedById = new Map<string, GraphResponse['nodes'][number]>();
-    const allowedByName = new Map<string, GraphResponse['nodes'][number]>();
     for (const n of data.nodes) {
       if (!INCLUDED_KINDS.has(n.kind)) continue;
       allowedById.set(n.id, n);
-      // Index by lowercased + dashified name so slug edges (`syde`,
-      // `syde-cli`) resolve to their entity.
-      allowedByName.set(slugifyName(n.name), n);
     }
 
-    // First pass: figure out which systems are sub-systems (have an outbound
-    // belongs_to that lands on another system). Anything else with kind
-    // 'system' is treated as a top-level (root) system.
-    const subSystemIds = new Set<string>();
-    for (const e of data.edges) {
-      if (e.type !== 'belongs_to') continue;
-      const src = allowedById.get(e.source);
-      if (!src || src.kind !== 'system') continue;
-      const tgt = allowedById.get(e.target) || allowedByName.get(e.target);
-      if (tgt && tgt.kind === 'system') subSystemIds.add(src.id);
-    }
+    // Systems are flat under PLN-0019 — every system renders at one
+    // tier with the same size and colour. No root vs sub-system
+    // distinction is computed.
 
-    // Build the layout nodes.
     const nodes: GraphNode[] = [];
     for (const n of data.nodes) {
       if (!INCLUDED_KINDS.has(n.kind)) continue;
-      let sizeKey = n.kind;
-      if (n.kind === 'system') sizeKey = subSystemIds.has(n.id) ? 'system-sub' : 'system-root';
       nodes.push({
         id: n.id,
         name: n.name,
         kind: n.kind,
-        sizeKey,
-        radius: KIND_RADIUS[sizeKey] ?? 8,
+        sizeKey: n.kind,
+        radius: KIND_RADIUS[n.kind] ?? 8,
         color: KIND_COLOR[n.kind] ?? '#94a3b8',
       });
     }
@@ -172,14 +158,8 @@ export function Graph({ onSelectEntity }: GraphProps) {
     const links: GraphLink[] = [];
     for (const e of data.edges) {
       const src = nodeById.get(e.source);
-      if (!src) continue;
-      let tgt = nodeById.get(e.target);
-      if (!tgt) {
-        // Edge stored its target as a slug — try the name index.
-        const aliased = allowedByName.get(e.target);
-        if (aliased) tgt = nodeById.get(aliased.id);
-      }
-      if (!tgt) continue;
+      const tgt = nodeById.get(e.target);
+      if (!src || !tgt) continue;
       links.push({ source: src.id, target: tgt.id, type: e.type });
     }
 
@@ -439,8 +419,8 @@ export function Graph({ onSelectEntity }: GraphProps) {
                       textAnchor="middle"
                       dy={n.radius + 12}
                       fill={isHot ? '#fafafa' : 'rgba(226,232,240,0.85)'}
-                      fontSize={n.sizeKey === 'system-root' ? 13 : n.sizeKey === 'system-sub' ? 11 : n.kind === 'component' ? 10 : 9}
-                      fontWeight={n.sizeKey === 'system-root' || n.sizeKey === 'system-sub' ? 600 : 400}
+                      fontSize={n.kind === 'system' ? 12 : n.kind === 'component' ? 10 : 9}
+                      fontWeight={n.kind === 'system' ? 600 : 400}
                       style={{ pointerEvents: 'none', userSelect: 'none' }}
                     >
                       {n.name}
@@ -530,8 +510,7 @@ export function Graph({ onSelectEntity }: GraphProps) {
 }
 
 const LEGEND_ENTRIES = [
-  { kind: 'system-root', label: 'System (root)', color: KIND_COLOR.system, dot: 16 },
-  { kind: 'system-sub', label: 'Sub-system', color: KIND_COLOR.system, dot: 13 },
+  { kind: 'system', label: 'System', color: KIND_COLOR.system, dot: 15 },
   { kind: 'component', label: 'Component', color: KIND_COLOR.component, dot: 11 },
   { kind: 'contract', label: 'Contract', color: KIND_COLOR.contract, dot: 9 },
   { kind: 'concept', label: 'Concept', color: KIND_COLOR.concept, dot: 9 },

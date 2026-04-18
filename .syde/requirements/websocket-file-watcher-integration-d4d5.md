@@ -6,9 +6,7 @@ slug: websocket-file-watcher-integration-d4d5
 relationships:
     - target: websocket-server-hdup
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-15T10:53:16Z"
+updated_at: "2026-04-18T09:37:07Z"
 statement: When a file watcher detects a change inside a project's .syde directory, the syded WebSocket server shall publish a refresh event to that project's room.
 req_type: functional
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:websocket-server-hdup
 requirement_status: active
 rationale: Disk changes are the trigger for every live refresh.
+verified_against:
+    websocket-server-hdup:
+        hash: c2d6b7c8e035720d03d5754cdb196199ca2da6a30d1db538fa95a0ba7fe31fc5
+        at: "2026-04-18T09:37:07Z"
 ---

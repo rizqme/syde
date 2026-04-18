@@ -53,7 +53,7 @@ files:
 relationships:
     - target: syded-dashboard
       type: belongs_to
-updated_at: "2026-04-17T09:05:21Z"
+updated_at: "2026-04-18T09:28:27Z"
 responsibility: React 18 + TypeScript + Vite + Tailwind v4 single-page app rendered by syded
 capabilities:
     - Overview page with entity counts and relationships

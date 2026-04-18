@@ -11,7 +11,7 @@ relationships:
       type: belongs_to
     - target: web-spa
       type: references
-updated_at: "2026-04-16T10:51:15Z"
+updated_at: "2026-04-18T09:28:27Z"
 contract_kind: screen
 interaction_pattern: render
 input: /__graph__

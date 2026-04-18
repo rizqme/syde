@@ -6,9 +6,11 @@ slug: clear-all-sync-check-concept-redesign-tasks-hglg
 relationships:
     - target: approved-plan-clear-all-sync-check-findings-and-enforce-zero-finding-completion
       type: derives_from
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:45:55Z"
+    - target: audit-engine-4ktg
+      type: refines
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:59Z"
 statement: The syde design model shall trace concept-redesign cleanup tasks back to the Clear-all-sync-check plan via this scoped requirement.
 req_type: constraint
 priority: must
@@ -29,4 +31,11 @@ audited_overlaps:
       distinction: 'Different parent plan: this traces Clear-all-sync-check concept tasks, while the other traces flow-authoring cleanup under the Flow-steps plan.'
     - slug: flow-steps-chart-and-doc-tasks
       distinction: 'Different parent plan: this traces Clear-all-sync-check concept tasks, while the other traces chart-and-doc cleanup under the Flow-steps plan.'
+verified_against:
+    audit-engine-4ktg:
+        hash: ef935d985e980f0e4d1d7dd4eab9ff52c9d0581e2f5f4a976302a3ba33822fbe
+        at: "2026-04-18T09:37:59Z"
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:59Z"
 ---

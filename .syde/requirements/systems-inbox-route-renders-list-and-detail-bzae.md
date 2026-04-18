@@ -6,9 +6,9 @@ slug: systems-inbox-route-renders-list-and-detail-bzae
 relationships:
     - target: systems-inbox-screen-qgp4
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:46:07Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:37:35Z"
 statement: When the user navigates to the /system route, the dashboard shall render a two-column systems inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: /system route renders systems inbox; /decision route renders decisions inbox, different URLs and entity kinds.
     - slug: flows-inbox-route-renders-list-and-detail-1eij
       distinction: /system route renders systems inbox; /flow route renders flows inbox, different URLs and entity kinds.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:37:35Z"
 ---

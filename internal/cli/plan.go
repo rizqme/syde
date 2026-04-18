@@ -12,6 +12,7 @@ import (
 	"github.com/feedloop/syde/internal/client"
 	"github.com/feedloop/syde/internal/model"
 	"github.com/feedloop/syde/internal/utils"
+	"github.com/feedloop/syde/skill"
 	"github.com/spf13/cobra"
 )
 
@@ -651,6 +652,50 @@ var planOpenCmd = &cobra.Command{
 
 		openBrowser(url)
 		fmt.Println(url)
+		return nil
+	},
+}
+
+var planReviewCmd = &cobra.Command{
+	Use:   "review <plan-slug>",
+	Short: "Print a plan-reviewer subagent prompt with the plan interpolated",
+	Long: `Loads the plan markdown and the reviewer-prompt template bundled
+with the skill, interpolates the plan content, and prints the rendered
+prompt to stdout. Paste the output into a fresh subagent (Claude Code
+sub-agent, Codex agent, claude --print session, etc.) to receive a
+calibrated Approved | Issues Found verdict.
+
+Output is the prompt only — the CLI does not invoke a reviewer itself.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		wc, err := openWriteClient()
+		if err != nil {
+			return err
+		}
+		defer wc.Close()
+
+		plan, _, err := loadPlanForChange(wc, args[0])
+		if err != nil {
+			return err
+		}
+		planSlug := plan.GetBase().CanonicalSlug()
+
+		sydeDir := wc.FS.Root
+		planPath := filepath.Join(sydeDir, "plans", planSlug+".md")
+		planBytes, err := os.ReadFile(planPath)
+		if err != nil {
+			return fmt.Errorf("read plan markdown: %w", err)
+		}
+
+		tmplBytes, err := skill.FS.ReadFile("references/plan-review-prompt.md")
+		if err != nil {
+			return fmt.Errorf("load reviewer prompt template: %w", err)
+		}
+		tmpl := string(tmplBytes)
+		rendered := strings.ReplaceAll(tmpl, "{{plan_slug}}", planSlug)
+		rendered = strings.ReplaceAll(rendered, "{{plan_markdown}}", string(planBytes))
+
+		fmt.Println(rendered)
 		return nil
 	},
 }
@@ -1473,6 +1518,7 @@ func init() {
 
 	planCompleteCmd.Flags().BoolVar(&planCompleteForce, "force", false, "complete the plan even when plan_completion audit reports errors")
 
+	planCmd.AddCommand(planReviewCmd)
 	planCmd.AddCommand(planCreateCmd, planListCmd, planShowCmd, planApproveCmd, planUpdateCmd,
 		planPhaseCmd, planSyncCmd, planExecuteCmd, planAddPhaseCmd, planEstimateCmd,
 		planAddChangeCmd, planRemoveChangeCmd, planShowChangesCmd, planCompleteCmd, planOpenCmd, planCheckCmd)

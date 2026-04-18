@@ -315,57 +315,43 @@ func requirementFanoutFindings(all []model.EntityWithBody) []Finding {
 	return out
 }
 
+// hierarchyFindings enforces the flat-systems model introduced in
+// PLN-0019: every system is a standalone top-level process, so no
+// system may carry a belongs_to edge. Requirements remain exempt from
+// the belongs_to rule under PLN-0018 (anchored by refines:component).
+// Every other entity kind must carry ≥1 belongs_to — multiple are
+// allowed for components that span more than one process binary.
 func hierarchyFindings(all []model.EntityWithBody) []Finding {
-	var roots []*model.BaseEntity
-	for _, ewb := range all {
-		b := ewb.Entity.GetBase()
-		if b.Kind == model.KindSystem && !hasAuditRelType(b.Relationships, model.RelBelongsTo) {
-			roots = append(roots, b)
-		}
-	}
-
 	var out []Finding
-	if len(roots) == 0 {
-		out = append(out, Finding{
-			Severity: SeverityError,
-			Category: CatHierarchy,
-			Message:  "one root system must exist without belongs_to",
-			Field:    "belongs_to",
-		})
-	}
-	if len(roots) > 1 {
-		for _, root := range roots {
-			out = append(out, Finding{
-				Severity:   SeverityError,
-				Category:   CatHierarchy,
-				Message:    "only one root system may omit belongs_to",
-				EntityKind: root.Kind,
-				EntitySlug: root.CanonicalSlug(),
-				EntityName: root.Name,
-				Field:      "belongs_to",
-			})
-		}
-	}
-
-	rootSlug := ""
-	if len(roots) == 1 {
-		rootSlug = roots[0].CanonicalSlug()
-	}
 	for _, ewb := range all {
 		b := ewb.Entity.GetBase()
-		if b.Kind == model.KindSystem && b.CanonicalSlug() == rootSlug {
-			continue
-		}
-		if !hasAuditRelType(b.Relationships, model.RelBelongsTo) {
-			out = append(out, Finding{
-				Severity:   SeverityError,
-				Category:   CatHierarchy,
-				Message:    "must have a belongs_to parent",
-				EntityKind: b.Kind,
-				EntitySlug: b.CanonicalSlug(),
-				EntityName: b.Name,
-				Field:      "belongs_to",
-			})
+		switch b.Kind {
+		case model.KindSystem:
+			if hasAuditRelType(b.Relationships, model.RelBelongsTo) {
+				out = append(out, Finding{
+					Severity:   SeverityFinding,
+					Category:   CatHierarchy,
+					Message:    "system must not have belongs_to — systems are standalone top-level entities (PLN-0019)",
+					EntityKind: b.Kind,
+					EntitySlug: b.CanonicalSlug(),
+					EntityName: b.Name,
+					Field:      "belongs_to",
+				})
+			}
+		case model.KindRequirement:
+			// Anchored by refines:component under PLN-0018.
+		default:
+			if !hasAuditRelType(b.Relationships, model.RelBelongsTo) {
+				out = append(out, Finding{
+					Severity:   SeverityFinding,
+					Category:   CatHierarchy,
+					Message:    "must have a belongs_to parent",
+					EntityKind: b.Kind,
+					EntitySlug: b.CanonicalSlug(),
+					EntityName: b.Name,
+					Field:      "belongs_to",
+				})
+			}
 		}
 	}
 	return out

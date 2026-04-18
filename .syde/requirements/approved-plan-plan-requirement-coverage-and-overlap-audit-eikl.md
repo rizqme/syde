@@ -7,13 +7,11 @@ relationships:
     - target: plan-requirement-coverage-and-overlap-audit-y33i
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-updated_at: "2026-04-17T10:46:55Z"
+    - target: audit-engine-4ktg
+      type: refines
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:36Z"
 statement: The syde plan authoring audit shall emit a warning when a plan's requirement lane is disproportionately small relative to its other lanes and a second warning when a new requirement's statement overlaps an existing active requirement above the TF-IDF threshold.
 req_type: functional
 priority: must
@@ -34,4 +32,11 @@ audited_overlaps:
       distinction: Plan authoring audit warnings on requirement lanes vs. flow entity step-list schema and flowchart rendering — different entity kind and different concern.
     - slug: approved-plan-requirement-overlap-audit-with-mandatory-acknowledgement-xgvu
       distinction: Plan-authoring audit warning on TF-IDF overlaps within a plan's requirement lane vs. syde add requirement hard-requiring --audited acknowledgement for each TF-IDF match — advisory warning vs blocking acknowledgement and different command.
+verified_against:
+    audit-engine-4ktg:
+        hash: ef935d985e980f0e4d1d7dd4eab9ff52c9d0581e2f5f4a976302a3ba33822fbe
+        at: "2026-04-18T09:37:36Z"
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:36Z"
 ---

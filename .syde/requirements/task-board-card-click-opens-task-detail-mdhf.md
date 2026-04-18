@@ -3,10 +3,8 @@ id: REQ-0253
 kind: requirement
 name: Task Board Card Click Opens Task Detail
 slug: task-board-card-click-opens-task-detail-mdhf
-relationships:
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-16T01:09:57Z"
+relationships: []
+updated_at: '2026-04-16T01:09:57Z'
 statement: When the user clicks a task card on the task board, the dashboard shall open that task's detail view.
 req_type: interface
 priority: should

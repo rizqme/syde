@@ -6,9 +6,9 @@ slug: contracts-inbox-route-renders-list-and-detail-sjvw
 relationships:
     - target: contracts-inbox-screen-x2tr
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:45:58Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:38:10Z"
 statement: When the user navigates to the /contract route, the dashboard shall render a two-column contracts inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: Targets the /contract route and contract entities; the flows inbox requirement governs the /flow route and flow entities, a separate URL and entity kind.
     - slug: systems-inbox-route-renders-list-and-detail-bzae
       distinction: Targets the /contract route for contract entities; the systems inbox requirement governs the /system route for system entities, a different URL and kind.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:38:10Z"
 ---

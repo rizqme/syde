@@ -8,9 +8,7 @@ relationships:
       type: refines
     - target: storage-engine-ahgm
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-15T11:03:44Z"
+updated_at: "2026-04-18T09:37:53Z"
 statement: The syde storage layer shall store the set of inbound relationship sources for a target entity under BadgerDB key 'r:in:<target>'.
 req_type: interface
 priority: must
@@ -19,4 +17,8 @@ source: manual
 source_ref: contract:incoming-relationship-index-key-lro0
 requirement_status: active
 rationale: Inbound relationship keys let impact analysis walk upstream in O(1) per hop.
+verified_against:
+    storage-engine-ahgm:
+        hash: f360017cda1e57fe0083d2f867db63e847625a33a670b76215d7787f434555c3
+        at: "2026-04-18T09:37:53Z"
 ---

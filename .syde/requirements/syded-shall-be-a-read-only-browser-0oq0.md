@@ -4,11 +4,9 @@ kind: requirement
 name: syded shall be a read-only browser
 slug: syded-shall-be-a-read-only-browser-0oq0
 relationships:
-    - target: syded-dashboard-e82c
+    - target: http-api-afos
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-15T10:49:02Z"
+updated_at: "2026-04-18T09:37:30Z"
 statement: The syded daemon shall not expose any HTTP endpoint that mutates entity files.
 req_type: constraint
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: system:syded-dashboard-e82c:scope
 requirement_status: active
 rationale: 'Read-only contract simplifies concurrency: only the CLI writes. Mutations would race the file watcher and confuse clients.'
+verified_against:
+    http-api-afos:
+        hash: ab080a2b2498114076ebb7cb0bdfeb444f53e7a3af2f5af4bd111c0b11855b65
+        at: "2026-04-18T09:37:30Z"
 ---

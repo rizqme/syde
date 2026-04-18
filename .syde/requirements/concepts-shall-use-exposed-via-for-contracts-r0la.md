@@ -6,9 +6,7 @@ slug: concepts-shall-use-exposed-via-for-contracts-r0la
 relationships:
     - target: entity-model
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:50:15Z"
+updated_at: "2026-04-18T09:37:34Z"
 statement: The syde entity model shall support an exposed_via relationship type from concept entities to contract entities.
 req_type: functional
 priority: must
@@ -25,4 +23,8 @@ audited_overlaps:
       distinction: Defines the exposed_via edge from concept to contract entities; the implemented_by requirement defines a different edge type targeting component entities.
     - slug: concepts-shall-use-used-in-for-flows-cyol
       distinction: Defines the exposed_via edge from concept to contract; the used_in requirement defines a different relationship name pointing to flow entities.
+verified_against:
+    entity-model-f28o:
+        hash: 7e51689e4dc181c602291eabd785a2d15d5fe4750220e6782ab3d61c0640b0b8
+        at: "2026-04-18T09:37:34Z"
 ---

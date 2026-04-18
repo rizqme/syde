@@ -6,9 +6,7 @@ slug: storage-engine-stamps-updatedat-on-write-4az7
 relationships:
     - target: storage-engine-ahgm
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-15T10:56:25Z"
+updated_at: "2026-04-18T09:36:38Z"
 statement: When Create or Update is called, the storage engine shall stamp BaseEntity.UpdatedAt with the current time and reindex the affected entity.
 req_type: functional
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:storage-engine-ahgm
 requirement_status: active
 rationale: UpdatedAt drives drift detection against source files.
+verified_against:
+    storage-engine-ahgm:
+        hash: f360017cda1e57fe0083d2f867db63e847625a33a670b76215d7787f434555c3
+        at: "2026-04-18T09:36:38Z"
 ---

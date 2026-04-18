@@ -14,7 +14,7 @@ relationships:
       type: depends_on
     - target: plans-shall-render-via-the-canonical-2-column-inbox-63p0
       type: implements
-updated_at: "2026-04-17T01:48:57Z"
+updated_at: "2026-04-18T08:08:26Z"
 responsibility: Render a selected plan's design, structured changes, phases, and nested tasks inside the right column of the Plans inbox.
 capabilities:
     - Render plan header with name, status, progress, and approved timestamp

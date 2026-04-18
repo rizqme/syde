@@ -3,10 +3,8 @@ id: REQ-0251
 kind: requirement
 name: Task Board Filter Parameter
 slug: task-board-filter-parameter-0uat
-relationships:
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-16T01:09:57Z"
+relationships: []
+updated_at: '2026-04-16T01:09:57Z'
 statement: Where a filter query parameter is provided on the /task route, the dashboard shall restrict the rendered task columns to tasks matching the status filter.
 req_type: interface
 priority: should

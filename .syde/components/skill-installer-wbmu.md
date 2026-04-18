@@ -12,6 +12,7 @@ notes:
     - All references files updated for required-description rule (2026-04-14).
     - Codex hooks template now uses a robust command wrapper that prefers syde on PATH and falls back to ./syde for source checkout workflows.
     - Codex hooks template now uses plain 'syde codex-hook' commands without a ./syde fallback, matching the expected installed syde PATH workflow.
+    - SKILL.md updated 2026-04-18 with finding-prevention rules (Phase 3 preamble, approval-req cleanup, --task requirement on add-change, exact-name-match on drafts, non-root validation line)
 files:
     - internal/skill/hooks.go
     - internal/skill/installer.go
@@ -24,12 +25,14 @@ files:
     - skill/references/clarify-guide.md
     - skill/references/commands.md
     - skill/references/entity-spec.md
+    - skill/references/plan-authoring.md
+    - skill/references/plan-review-prompt.md
     - skill/references/requirement-derivation.md
     - skill/references/sync-workflow.md
 relationships:
-    - target: syde-cli
+    - target: syde-5tdt
       type: belongs_to
-updated_at: "2026-04-17T11:14:08Z"
+updated_at: "2026-04-18T10:04:41Z"
 responsibility: Render and write skill files including the Finding-aware sync check instructions, hooks.json overlap reminder, and CLAUDE.md append rules
 capabilities:
     - Write .claude/skills/syde/SKILL.md + references/

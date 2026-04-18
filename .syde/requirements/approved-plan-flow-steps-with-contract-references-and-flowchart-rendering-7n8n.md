@@ -7,13 +7,11 @@ relationships:
     - target: flow-steps-with-contract-references-and-flowchart-rendering-m0b5
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-updated_at: "2026-04-17T10:46:37Z"
+    - target: entity-model-f28o
+      type: refines
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:53Z"
 statement: The syde flow entity shall carry an ordered step list where each step references a contract by slug, with the dashboard rendering the list as a connected flowchart and a per-user-goal decomposition replacing the catch-all flow.
 req_type: functional
 priority: must
@@ -34,4 +32,11 @@ audited_overlaps:
       distinction: Flow entity structural redesign with per-goal decomposition and flowchart rendering vs. plan authoring audit warnings on requirement-lane size and TF-IDF statement overlap — different entity kind and different concern.
     - slug: approved-plan-requirement-overlap-audit-with-mandatory-acknowledgement-xgvu
       distinction: Flow entity ordered steps and dashboard rendering vs. syde add requirement TF-IDF overlap --audited acknowledgement — different entity kind, different CLI command, different concern.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:53Z"
+    entity-model-f28o:
+        hash: 7e51689e4dc181c602291eabd785a2d15d5fe4750220e6782ab3d61c0640b0b8
+        at: "2026-04-18T09:37:53Z"
 ---

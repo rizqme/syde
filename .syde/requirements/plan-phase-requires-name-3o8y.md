@@ -6,9 +6,9 @@ slug: plan-phase-requires-name-3o8y
 relationships:
     - target: plan-phase-23bb
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:46:01Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:41Z"
 statement: The syde CLI shall require a non-empty name on every plan phase instance.
 req_type: constraint
 priority: must
@@ -22,4 +22,8 @@ audited_overlaps:
       distinction: Requires a non-empty name field on plan phases; target requires a non-empty description on every entity.
     - slug: plan-requires-objective-vacv
       distinction: Requires non-empty name on plan phases; target requires non-empty objective on the plan itself.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:41Z"
 ---

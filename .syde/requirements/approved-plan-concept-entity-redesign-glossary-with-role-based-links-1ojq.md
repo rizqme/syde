@@ -7,9 +7,9 @@ relationships:
     - target: concept-entity-redesign-glossary-with-role-based-links-uxm1
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:19:28Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:13Z"
 statement: The syde concept entity shall be a glossary term whose only fields are meaning invariants and lifecycle, with role-based relationships implemented_by exposed_via and used_in replacing the former ERD canvas.
 req_type: functional
 priority: must
@@ -19,4 +19,8 @@ source_ref: plan:concept-entity-redesign-glossary-with-role-based-links-uxm1
 requirement_status: active
 rationale: Captured automatically when the plan was approved.
 approved_at: "2026-04-17T02:45:17Z"
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:13Z"
 ---

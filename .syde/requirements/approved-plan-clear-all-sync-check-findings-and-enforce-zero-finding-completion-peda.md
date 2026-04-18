@@ -7,11 +7,11 @@ relationships:
     - target: clear-all-sync-check-findings-and-enforce-zero-finding-completion-nk7a
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-updated_at: "2026-04-17T10:45:43Z"
+    - target: audit-engine-4ktg
+      type: refines
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:37:13Z"
 statement: When syde plan complete is invoked, the syde CLI shall refuse to mark the plan completed if syde sync check reports any errors unless the author passes --force.
 req_type: functional
 priority: must
@@ -34,4 +34,11 @@ audited_overlaps:
       distinction: Triggers on syde plan complete blocking on sync errors vs. triggers on syde add requirement requiring --audited for TF-IDF matches — different command and different subject entity.
     - slug: plan-complete-shall-require-clean-sync-check-9jcs
       distinction: approved-plan requirement records plan intent at approval time whereas the clean-sync-check rule is the behavioural gate on syde plan complete — both exist by design as intent vs implementation
+verified_against:
+    audit-engine-4ktg:
+        hash: ef935d985e980f0e4d1d7dd4eab9ff52c9d0581e2f5f4a976302a3ba33822fbe
+        at: "2026-04-18T09:37:13Z"
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:37:13Z"
 ---

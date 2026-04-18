@@ -1,4 +1,4 @@
-scanned_at: "2026-04-17T11:39:58Z"
+scanned_at: "2026-04-18T10:04:14Z"
 root: .
 nodes:
     .:
@@ -14,8 +14,8 @@ nodes:
             - scripts
             - skill
             - web
-        summary: Repository for syde, a text-first software design model that disciplines AI coding agents. Go sources in cmd/ and internal/, a React SPA in web/, skill bundles for Claude Code and Codex in skill/ and .agents/, and a self-hosted design model in .syde/. Build and install via make install (which also runs syde install-skill --all when run from a project with .syde/). Agents activate the skill via 'load skill syde'; new projects start the architecture from the first session, existing projects bootstrap entities via the sync workflow under references/sync-workflow.md.
-        updated_at: "2026-04-17T11:40:13Z"
+        summary: 'syde: text-first software design CLI + dashboard. Go module with cobra CLI (cmd/syde), syded daemon (cmd/syded), internal packages (audit with finding-prevention rules, model, storage, query, graph, cli), embedded skill bundle, React SPA, and .syde/ design model data.'
+        updated_at: "2026-04-18T10:04:25Z"
     .gitignore:
         type: file
         parent: .
@@ -125,13 +125,14 @@ nodes:
             - internal/tree
             - internal/uiml
             - internal/utils
-        summary: 'Go internal packages for syde: CLI commands (cobra tree with --audited overlap acknowledgement on requirements, plan/task lifecycles, tree/files subcommands; --strict flag dropped from sync check and validate), audit engine (single Finding severity, Surface detector, parity registry, contract-surface + flow coverage at planning and post-plan, rubber-stamp ack rule), storage (markdown FileStore + BadgerDB Index unified in Store), query engine, model (typed entity structs including AuditedOverlap{slug, distinction}), tree (summary tree mirror with cascade-stale tracking), graph, config, utils, scan, memory, skill (installer + embedded templates), uiml, and dashboard (HTTP/WS server + embedded SPA).'
-        updated_at: "2026-04-17T11:15:43Z"
+        summary: 'Go internal packages: audit engine (findings, bidirectional coupling, plan authoring/completion), CLI cobra tree (CRUD, plan lifecycle, requirement verify), model entities, storage (FileStore + BadgerDB index), query engine, graph traversal, dashboard HTTP API, memory generation, scan, UIML parser, config, and utils.'
+        updated_at: "2026-04-18T09:57:53Z"
     internal/audit:
         type: dir
         parent: internal
         children:
             - internal/audit/audit.go
+            - internal/audit/bidirectional.go
             - internal/audit/cycles.go
             - internal/audit/entity_fields.go
             - internal/audit/graph_rules.go
@@ -148,16 +149,24 @@ nodes:
             - internal/audit/surfaces_test.go
             - internal/audit/symmetry.go
             - internal/audit/symmetry_test.go
-        summary: Audit engine for syde with a single collapsed Finding severity (Error/Warning/Hint retained as non-blocking aliases — every finding blocks). Covers entity-field validation, relationship integrity, cycle detection, orphan-file coverage, screen-tsx discovery, requirement lifecycle + EARS quality + fanout + TF-IDF overlap with rubber-stamp acknowledgement enforcement, contract-flow coverage, plan-phase rules, plan authoring (requirements lane, change.tasks claims, contract-surface coverage, flow coverage), plan completion, and tree drift. surfaces.go extracts CLI/REST/screen/event mentions from requirement statements; symmetry.go pairs every planning-time rule with its post-plan counterpart so no rule fires on only one side.
-        updated_at: "2026-04-17T11:15:25Z"
+        summary: 'Syde audit engine: single SeverityFinding level, category-tagged findings (hierarchy, requirement, traceability, broken-rel), bidirectional req-component coupling, plan authoring/completion checks, surface coverage, overlap symmetry, EARS validation, and cycle detection.'
+        updated_at: "2026-04-18T09:57:33Z"
     internal/audit/audit.go:
         type: file
         parent: internal/audit
-        size: 5739
-        hash: e0dd46ab21c61c6f18aa3e2406efa0a1a985dd81a2669254efd0a5cffd1faac1
-        mtime: "2026-04-17T10:24:38Z"
-        summary: Top-level audit orchestrator with single SeverityFinding (Error/Warning/Hint kept as aliases that all collapse to one blocking level — no --strict toggle anymore). Defines Finding/Report/Options and Run, which aggregates entity-field, relationship, requirement traceability/fanout/EARS-quality/overlap/contract-surface, cycles, hierarchy, contract-flow, plan authoring/completion, screens, and tree/orphan/drift findings.
-        updated_at: "2026-04-17T10:57:30Z"
+        size: 5927
+        hash: bf1ebd0acc7d85f3e63f2a2d433148f5e30fa2488cf20a70eae6d07f449dc255
+        mtime: "2026-04-18T08:11:51Z"
+        summary: 'Central audit package entry: defines single Severity level (SeverityFinding), Category enum, Finding struct, Report (HasErrors/Counts preserving legacy 3-tuple). Run orchestrates every check: entity validation, relationship+hierarchy+trace+fanout+good-reqs+coverage+contract-flow, cycles+planPhase+requirements+overlap+contractSurface+bidirectional+requirementStale+planAuthoring+planCompletion, then tree-scoped screen/fileRef/orphan/drift when tree non-nil. Options struct skips specific categories for narrower audits.'
+        updated_at: "2026-04-18T08:24:32Z"
+    internal/audit/bidirectional.go:
+        type: file
+        parent: internal/audit
+        size: 7961
+        hash: 8e1f03a5a92ad1581a18a912ffb774a611ae4479b55a929899250b5bdb8b8a4c
+        mtime: "2026-04-18T08:10:56Z"
+        summary: 'Bidirectional requirement-component coupling findings (PLN-0018): bidirectionalFindings emits requirement_no_component (active req with 0 refines:component), requirement_targets_system (active req with refines/belongs_to to system), component_no_requirement (component with files but 0 incoming refines from active reqs). requirementStaleFindings recomputes SHA-256 of each refining component''s file bytes (sorted paths, length-prefixed concat) and compares to req.VerifiedAgainst; missing or drifted snapshots emit requirement_stale.'
+        updated_at: "2026-04-18T08:24:32Z"
     internal/audit/cycles.go:
         type: file
         parent: internal/audit
@@ -177,11 +186,11 @@ nodes:
     internal/audit/graph_rules.go:
         type: file
         parent: internal/audit
-        size: 14842
-        hash: 66d526833fb3b34f66e83512bff40822cda81b76e284f007dc10fab3c85b270b
-        mtime: "2026-04-17T11:05:12Z"
-        summary: 'Graph-shape audit rules that emit at the single Finding level: requirementTraceFindings (non-coverage kinds must link to at least one requirement), coverageFindings (system/component/contract/concept must connect to a requirement in either direction), requirementFanoutFindings (caps same-kind inbound links per requirement at 10 to stop catch-all baselines), goodRequirementFindings (EARS pattern + req_type + priority + verification + no files list), hierarchyFindings (exactly one root system without belongs_to), and contractFlowFindings (every contract must be referenced by at least one flow step; step contract/on_success/on_failure refs must resolve; duplicate step IDs rejected).'
-        updated_at: "2026-04-17T11:14:42Z"
+        size: 14886
+        hash: 87b8231e12e31b4fc7fe490cd9c161183341b412548bfbb043337f4711f9a6d8
+        mtime: "2026-04-18T09:27:22Z"
+        summary: Graph-oriented audit rules covering traceability (non-req entities need an outgoing requirement link), coverage (system/component/contract/concept must connect to at least one requirement), hierarchy (every non-root entity needs belongs_to; requirements are exempt under PLN-0018 since refines:component anchors them), and goodRequirementFindings (EARS format, type, priority, verification, source, and rationale required on active requirements).
+        updated_at: "2026-04-18T09:56:15Z"
     internal/audit/orphans.go:
         type: file
         parent: internal/audit
@@ -307,6 +316,7 @@ nodes:
             - internal/cli/query.go
             - internal/cli/reindex.go
             - internal/cli/remove.go
+            - internal/cli/requirement.go
             - internal/cli/requirements.go
             - internal/cli/root.go
             - internal/cli/scan.go
@@ -319,8 +329,8 @@ nodes:
             - internal/cli/validate.go
             - internal/cli/wireframe.go
             - internal/cli/writes.go
-        summary: 'Cobra CLI commands: entity CRUD (add with --audited acknowledgement of TF-IDF overlap candidates and a --force escape hatch, get, update with cascade-aware requirement edits and --audited dedup, remove), plan lifecycle (create, approve, add-change, add-phase, check, complete, open, show-changes, estimate), task lifecycle (create/start/done/block/sub/list/show), reads (status/list/query/search/graph/context), and the strict health gates ''syde sync check'' and the deprecated ''syde validate'' (the --strict flag was removed — every audit finding blocks). Also hosts the hidden codex-hook command and shared requirement-capture helpers.'
-        updated_at: "2026-04-17T10:59:53Z"
+        summary: 'Cobra CLI command tree: entity CRUD (add/update/remove/list/get), query engine (--file/--code/--search/--refined-by), plan lifecycle (create/approve/complete/add-phase/add-change), task management, requirement verify, tree scan/summarize, and init/install-skill.'
+        updated_at: "2026-04-18T09:57:33Z"
     internal/cli/add.go:
         type: file
         parent: internal/cli
@@ -428,19 +438,19 @@ nodes:
     internal/cli/plan.go:
         type: file
         parent: internal/cli
-        size: 43225
-        hash: 81f98df416341f33ff67e9c2a22c83b081483947564efb187c82defddfb5d8f7
-        mtime: "2026-04-17T01:55:49Z"
-        summary: 'Implements syde plan lifecycle commands: create, list, show, update, approve; phase management; execute with task claiming and duration estimation; audit checks; sync import; and structured workflows for adding/removing/displaying changes across requirement/system/concept/component/contract/flow lanes with field_changes and task references.'
-        updated_at: "2026-04-17T02:40:25Z"
+        size: 44720
+        hash: 91b61dd2cc3f0678455e711384e63237330f330ae2b3e39bae627cf8b9f7587c
+        mtime: "2026-04-18T09:35:54Z"
+        summary: 'Implements all syde plan CLI commands: create/list/show/update/approve, phase management (add-phase), structured change lanes (add-change/remove-change/list-changes) across requirement/system/concept/component/contract/flow kinds with field_changes and task references, audit check (plan check), execute (bulk task creation with duration estimation), and sync import from external plan files.'
+        updated_at: "2026-04-18T09:56:24Z"
     internal/cli/query.go:
         type: file
         parent: internal/cli
-        size: 8035
-        hash: 44f9d1388c2f2ed228f7176318e81bf5502ab1f424459b432d68efb524b05759
-        mtime: "2026-04-14T09:32:13Z"
-        summary: Thin HTTP wrapper for 'syde query' — dispatches all modes (entity lookup, --full, --search, --code, --file [--content], --impacts/--related-to/--depends-on/--depended-by, --flow --components, and kind/tag filters) to syded's /api/<project>/query endpoint and prints the rendered response. The Long help frames syde query as the unified architecture+code context surface, with a three-question checklist, drift signals (⚠ DRIFT / ⚠ orphan), and an explicit prohibition on Grep/Read of tracked files. Flags include --code, --content, --any (OR fallback), --no-related, and --format.
-        updated_at: "2026-04-14T09:33:05Z"
+        size: 8445
+        hash: d676df1c5bb9f1fb7f6d2f07c50ac7241f50f8fa73d1213e07e8166d4d5d8661
+        mtime: "2026-04-18T08:19:58Z"
+        summary: syde query CLI thin wrapper over syded /api/<project>/query. Selects mode from flag set (--related-to, --depends-on, --depended-by, --refined-by, --impacts, --flow, --search, --file, --code, --full, --kind, --tag) and prints the response. --refined-by lists active requirements refining a component slug; suppresses rich-mode banner in json/refs format.
+        updated_at: "2026-04-18T08:24:32Z"
     internal/cli/reindex.go:
         type: file
         parent: internal/cli
@@ -457,6 +467,14 @@ nodes:
         mtime: "2026-04-15T06:25:11Z"
         summary: Implements entity deletion with confirmation/force handling and blocks requirement deletion so requirement history remains append-only.
         updated_at: "2026-04-15T06:42:44Z"
+    internal/cli/requirement.go:
+        type: file
+        parent: internal/cli
+        size: 3645
+        hash: ba6cf04858279ba5de88d8c4f72b097dd6e1edff3996e60f433f58adb6b371a5
+        mtime: "2026-04-18T08:14:06Z"
+        summary: 'syde requirement subcommand root with ''verify <slug>'' subcommand: opens writeClient, loads requirement by slug, walks each refines:component edge, computes CombinedFilesSHA256 per component (length-prefixed concat, sorted paths), writes VerifiedAgainst[component-canonical-slug] = {Hash, At: now RFC3339}. Idempotent; fails fast on unreadable files; skips design-phase components with no files.'
+        updated_at: "2026-04-18T08:24:32Z"
     internal/cli/requirements.go:
         type: file
         parent: internal/cli
@@ -618,24 +636,24 @@ nodes:
             - internal/dashboard/registry.go
             - internal/dashboard/run.go
             - internal/dashboard/websocket.go
-        summary: 'syded daemon HTTP/WebSocket server: embedded SPA frontend, project registry, REST APIs for entity CRUD/detail, validation/constraints/orphans/coverage/query endpoints (single-finding payload with empty warnings/hints retained for backward compat), WebSocket hub for reload/navigate events with fsnotify-driven .syde watchers, idle-timeout daemon lifecycle, and fallback legacy HTML dashboard.'
-        updated_at: "2026-04-17T10:59:56Z"
+        summary: 'syded daemon HTTP/WebSocket server: embedded SPA frontend, project registry, REST APIs for entity CRUD/detail, graph (canonical-ID edge resolution), refined-by query mode (active reqs refining a component), validation/constraints/orphans/coverage/query endpoints (single-finding payload with empty warnings/hints retained for backward compat), WebSocket hub for reload/navigate events with fsnotify-driven .syde watchers, idle-timeout daemon lifecycle, and fallback legacy HTML dashboard.'
+        updated_at: "2026-04-18T08:25:01Z"
     internal/dashboard/api.go:
         type: file
         parent: internal/dashboard
-        size: 16778
-        hash: 003d8777c6a943bb7f375209e13708aa2959da39d8e40ea5f9af2e10852489ac
-        mtime: "2026-04-16T11:51:35Z"
-        summary: Project-scoped syded REST API router and handlers serving entity CRUD, detail with field resolution, entity write/delete, graphs, plan detail with task/change resolution, search, validation, constraints, tree navigation, reindex, and query operations.
-        updated_at: "2026-04-17T02:40:57Z"
+        size: 17431
+        hash: b21f025af1be85f670ecb8b6e36fca338daa1c9b72597788f3aa22d480f7f570
+        mtime: "2026-04-18T04:52:08Z"
+        summary: 'Per-project HTTP API handlers for the syded dashboard: status, entities, entity detail, graph, plans, plan detail, navigate, tasks, search, constraints, validate, context, query, reindex, entity write/delete, raw entity. handleGraph builds an alias-to-ID map (ID, canonical slug, base slug, name-slug) so every relationship target resolves to a canonical entity ID before edges are emitted; unresolvable targets are dropped.'
+        updated_at: "2026-04-18T07:48:44Z"
     internal/dashboard/api_readall.go:
         type: file
         parent: internal/dashboard
-        size: 15489
-        hash: e4980292ff064f494b992aeb6b766dba3c07a8c2178b53bbf3a954e859ecdbf5
-        mtime: "2026-04-17T10:24:58Z"
-        summary: 'Read-side HTTP handlers for syded: handleValidateAPI runs audit.Run (and folds tree staleness into a tree_stale finding when called via /sync-check), buildHealthPayload returns a single findings array with empty warnings/hints kept for backward compat, plus handleContextAPI (project snapshot of active requirements), handleConstraintsCheckAPI (file→component mapping), handleFilesAPI (orphans/coverage), handleQueryAPI (rich/json/compact/refs), and handleReindexAPI (full or incremental BadgerDB rebuild). The legacy strict query parameter is parsed but ignored — every finding blocks.'
-        updated_at: "2026-04-17T10:59:01Z"
+        size: 15631
+        hash: 90958d01f22f9b3205029e8abebfaa1a1ba9d082c100080b3c2e0cb2a39e437b
+        mtime: "2026-04-18T08:17:17Z"
+        summary: 'Per-project read-only HTTP handlers: status, entities list (with optional full body), entity detail, plans, plan detail, tasks list, query (modes: related-to, impacts, depends-on, depended-by, refined-by, flow-components, filter, search, by-file, code), sync-check/validate, context. refined-by mode returns active requirements that refine a named component via eng.RefinedBy.'
+        updated_at: "2026-04-18T08:24:32Z"
     internal/dashboard/api_write.go:
         type: file
         parent: internal/dashboard
@@ -710,16 +728,16 @@ nodes:
             - internal/model/relationship.go
             - internal/model/task.go
             - internal/model/validation.go
-        summary: 'Entity types for the syde design model: BaseEntity + typed structs for system, component, contract, glossary-style concept (meaning/invariants/lifecycle, no attributes/actions), flow with steps, requirement with EARS validation and the new AuditedOverlap{slug, distinction} type (custom UnmarshalYAML accepting legacy slug-only strings), plan with structured changes, and task with affected entities/files. relationship.go declares the canonical relationship constants including the role-based concept types implemented_by, exposed_via, used_in.'
-        updated_at: "2026-04-17T11:00:00Z"
+        summary: 'Entity type system: BaseEntity + kind-specific structs (System/Component/Contract/Concept/Flow/Decision/Requirement/Plan/Task). Requirement carries VerifiedAgainst map for content-hash recheck gate. Validation enforces EARS shall-form statements, kind-required fields, relationship target resolution. NewEntityForKind dispatches on kind.'
+        updated_at: "2026-04-18T08:25:01Z"
     internal/model/entity.go:
         type: file
         parent: internal/model
-        size: 15320
-        hash: 44f609eb73da2a66b5d26be47b0a3b0674053fa31d3223123a082bf6f6f7f8fa
-        mtime: "2026-04-17T10:03:36Z"
-        summary: 'Core domain model: EntityKind enum with plural/ID-prefix dispatch, BaseEntity (slug, tags, relationships, updated_at, deprecation), and typed structs for System, Component (responsibility/capabilities/boundaries), Contract (I/O params + UIML wireframe), Concept (meaning/lifecycle/invariants only), Flow (FlowStep graph), and Requirement. Defines Relationship{target,type,label} and the new AuditedOverlap{slug, distinction} type with a custom UnmarshalYAML accepting either legacy slug-only strings or the full map form so distinction can be required by the audit engine.'
-        updated_at: "2026-04-17T10:58:55Z"
+        size: 15982
+        hash: 393c5a27b1db5dca46991875a60a1eab84d1109907a6e19029066bd66e314285
+        mtime: "2026-04-18T08:09:09Z"
+        summary: 'Typed entity structs: BaseEntity (inline yaml) + SystemEntity, ComponentEntity, ContractEntity, ConceptEntity, FlowEntity, DecisionEntity, RequirementEntity (with VerifiedAgainst map[canonical-slug]VerifiedSnapshot{Hash, At} for PLN-0018 recheck gate), AuditedOverlap, Relationship, RequirementType/Priority/Status enums. NewEntityForKind dispatches by kind.'
+        updated_at: "2026-04-18T08:24:32Z"
     internal/model/plan.go:
         type: file
         parent: internal/model
@@ -768,8 +786,8 @@ nodes:
             - internal/query/engine.go
             - internal/query/formatter.go
             - internal/query/resolver.go
-        summary: 'Query engine backed by storage.Store: entity lookup with resolved inbound/outbound relationships, filtering (with plan_status/updated_at surfaced in summaries), formatted output (rich and JSON), graph walks (impacts, depends_on, depended_by), code/file/search helpers, and git-diff scoping. Concept payloads no longer carry attributes/actions.'
-        updated_at: "2026-04-17T08:34:48Z"
+        summary: Rich query engine with resolver (related-to/impacts/depends-on/depended-by/refined-by graph walks), kind+tag filter, full-text search (TF-IDF-ish BadgerDB index), code search (ripgrep+fallback), file-to-entity lookup, flow decomposition, and format helpers (rich, json, compact, refs). RefinedBy uses four-way alias tolerance (ID/canonical/base/name).
+        updated_at: "2026-04-18T08:25:01Z"
     internal/query/diff.go:
         type: file
         parent: internal/query
@@ -781,11 +799,11 @@ nodes:
     internal/query/engine.go:
         type: file
         parent: internal/query
-        size: 31465
-        hash: 6b3c4281bc47154638bdfdd07143deb3ba8ced041fdb43f5397bc05e85823376
-        mtime: "2026-04-17T08:08:56Z"
-        summary: Rich query engine backed by storage.Store exposing relationship-aware reads (Lookup, FullContext, Filter, Impacts), full-text and code search, file participation lookups, and flow/impact analysis built on top of the graph and audit packages.
-        updated_at: "2026-04-17T08:33:58Z"
+        size: 32841
+        hash: 0a9ea4115e03fd5f7afeab9d6d64996303cc14c1227309d308dd599ec80eea86
+        mtime: "2026-04-18T08:16:46Z"
+        summary: 'Rich query engine: resolver (BFS relatedTo/impacts/dependsOn/dependedBy/refinedBy), filter by kind+tag, flow decomposition, file-to-entity lookup with owner prefix matching, code search (ripgrep+fallback), full-context dump. RefinedBy walks active requirements for a refines edge whose target matches a four-way alias (ID/canonical/base/name) of the component slug.'
+        updated_at: "2026-04-18T08:24:32Z"
     internal/query/formatter.go:
         type: file
         parent: internal/query
@@ -1070,10 +1088,19 @@ nodes:
         type: dir
         parent: internal
         children:
+            - internal/utils/hash.go
             - internal/utils/id.go
             - internal/utils/slug.go
-        summary: Shared utility helpers. slug.go provides Slugify, SlugifyWithSuffix (adds 4-char random alnum), BaseSlug (strips suffix), and HasSuffix. id.go is legacy/deprecated (NextID lives in storage/counters.go).
-        updated_at: "2026-04-13T04:43:00Z"
+        summary: 'Shared helpers: Slugify/SlugifyWithSuffix/BaseSlug/HasSuffix for slug canonicalization with 4-char suffix disambiguation, NextID generation per entity kind (kind-scoped BadgerDB counters), ParseIDKind decoding, FileSHA256 and CombinedFilesSHA256 for content-hash-based verified_against snapshots.'
+        updated_at: "2026-04-18T08:25:01Z"
+    internal/utils/hash.go:
+        type: file
+        parent: internal/utils
+        size: 1246
+        hash: 4924d9e5a210cb67c9e8cab745ac3a40e62f04d769de2e95236357e337dd9d91
+        mtime: "2026-04-18T08:09:48Z"
+        summary: FileSHA256 hex-encodes a file's SHA-256. CombinedFilesSHA256 length-prefix-concats file bytes in given order and hashes — used by the requirement verify command and requirement_stale audit rule for stable ordering-agnostic component-files hashing.
+        updated_at: "2026-04-18T08:24:32Z"
     internal/utils/id.go:
         type: file
         parent: internal/utils
@@ -1114,16 +1141,16 @@ nodes:
             - skill/embed.go
             - skill/hooks.json
             - skill/references
-        summary: 'Embedded skill files for Claude Code integration: SKILL.md (Phase 0 tree cleanup, clarify-before-design-before-code workflow, glossary-style concepts, plan lifecycle, EARS requirements, Requirement Overlap Resolution via --audited slug:distinction with ≥20-char rationale), reference docs (entity-spec, commands, clarify-guide, requirement-derivation, sync-workflow), hooks.json template (PostToolUse overlap reminder on ''syde add requirement''), Codex skill variant, all bundled into the Go binary via embed.go and installed by ''syde install-skill''. Vocabulary aligned with the current audit: single Finding severity (no tiering), parity between planning-time and post-plan rules, no --strict flag.'
-        updated_at: "2026-04-17T11:15:47Z"
+        summary: 'Embedded skill bundle: SKILL.md primary workflow rules with finding-prevention rules, Codex variant, PostToolUse/PreToolUse hooks, plan-authoring and plan-review-prompt reference docs, entity-spec, commands, clarify-guide, sync-workflow, and requirement-derivation references.'
+        updated_at: "2026-04-18T10:04:25Z"
     skill/SKILL.md:
         type: file
         parent: skill
-        size: 78547
-        hash: fc3a022786737072eed543c1e20329da81eb8946047a30208e7977bee3c64a40
-        mtime: "2026-04-17T11:12:35Z"
-        summary: 'Core syde agent skill: session-start context loading, Phase 0 tree cleanup, EARS requirement authoring, clarify-before-design-before-code workflow, glossary-style concepts (meaning/invariants/lifecycle + implemented_by/exposed_via/used_in/relates_to roles), plan/task gating, wireframe-backed screen contracts, finish-time tree refresh. Updated to the new audit vocabulary: a single Finding severity (no tiering), --audited slug:"distinction" acknowledgement for TF-IDF requirement overlap with a substantive ≥20-char distinction (rubber-stamp acks fail audit), and planning-time contract-surface coverage + flow coverage rules that mirror the post-plan rules via the parity registry. --strict is no longer referenced; sync check and validate are always strict.'
-        updated_at: "2026-04-17T11:15:11Z"
+        size: 84547
+        hash: 0743c60bfbb4de3658c45b21f18a5820b6e6f4256145c3b6a73e0e95215e14a8
+        mtime: "2026-04-18T10:03:57Z"
+        summary: 'Primary syde skill definition: session context loading, three-question entity lookup, Phase 0 tree survey, clarify→plan→execute, entity rules (bidirectional req-component invariant, content-hash recheck gate, standalone systems), plan authoring with finding-prevention rules (no in_progress tasks, requirements refine components never systems, approval requirement cleanup, exact-name match for drafts), and tool preferences.'
+        updated_at: "2026-04-18T10:04:25Z"
     skill/codex:
         type: dir
         parent: skill
@@ -1159,11 +1186,11 @@ nodes:
     skill/hooks.json:
         type: file
         parent: skill
-        size: 6221
-        hash: bf6f271801b29fba09e321c57f49d2a4eaa0460228a78b060ade1bcd8ad5dfe5
-        mtime: "2026-04-17T10:26:35Z"
-        summary: Claude Code hook template installed by 'syde install-skill'. PreToolUse blocks Write/Edit/MultiEdit without an approved plan + active task. PostToolUse Write warns on unmapped files; PostToolUse Bash warns on git commit/push when tasks are pending or 'syde sync check' fails (every finding blocks — orphans, drift, stale tree, missing fields, overlap rationale gaps), and a new PostToolUse Bash matcher for 'syde add requirement' surfaces overlap candidates with a system message demanding MERGE/RENAME/DISTINCT resolution per slug. SessionStart injects 'syde context'; Stop runs 'syde tree scan' + 'syde sync check' as the finish gate.
-        updated_at: "2026-04-17T10:59:25Z"
+        size: 7521
+        hash: fbf511a1e4d46c2a58835975a567c694a7b274d78b92ef106b26ca72f50f581e
+        mtime: "2026-04-18T08:20:04Z"
+        summary: 'Claude Code hook config: PreToolUse(Write|Edit|MultiEdit|NotebookEdit) blocks writes without an approved plan + active task. PostToolUse(Write) warns on unmapped files. PostToolUse(Write|Edit|MultiEdit) surfaces active requirements refining the owning component via syde query --file + --refined-by (RECHECK AFFECTED REQUIREMENTS context block). PostToolUse(Bash) warns on git commit/push with pending tasks or sync-check failures; also fires overlap-resolution reminder after syde add requirement. SessionStart loads syde context. Stop runs syde tree scan + sync check.'
+        updated_at: "2026-04-18T08:24:32Z"
     skill/references:
         type: dir
         parent: skill
@@ -1171,10 +1198,12 @@ nodes:
             - skill/references/clarify-guide.md
             - skill/references/commands.md
             - skill/references/entity-spec.md
+            - skill/references/plan-authoring.md
+            - skill/references/plan-review-prompt.md
             - skill/references/requirement-derivation.md
             - skill/references/sync-workflow.md
-        summary: 'Reference docs embedded in the syde skill: entity-spec (kind-by-kind field schema with concept glossary fields, EARS requirement patterns, and the audited_overlaps {slug, distinction} field), commands (CLI reference including --audited and dropping --strict on sync check / validate), clarify-guide (project-type clarification checklists), requirement-derivation (deterministic backfill procedure from existing code), sync-workflow (bootstrap procedure). All docs aligned with the single Finding severity and the parity between planning-time and post-plan audits. Bundled into the Go binary via go:embed and installed by ''syde install-skill''.'
-        updated_at: "2026-04-17T11:15:29Z"
+        summary: 'Embedded skill reference docs: entity-spec (per-kind field tables + bidirectional invariant + recheck workflow), commands (CLI cheatsheet), plan-authoring (superpowers-derived discipline), plan-review-prompt (subagent reviewer template), plus clarify-guide, sync-workflow, and requirement-derivation.'
+        updated_at: "2026-04-18T09:57:33Z"
     skill/references/clarify-guide.md:
         type: file
         parent: skill/references
@@ -1194,11 +1223,27 @@ nodes:
     skill/references/entity-spec.md:
         type: file
         parent: skill/references
-        size: 17238
-        hash: eb856b7fcd161e2b1465efe51b70e09bb00bdc6fb3d840cce2241e7a0fe112a2
-        mtime: "2026-04-17T11:13:08Z"
-        summary: Kind-by-kind field specification for the eight entity kinds (system, component, contract, concept, flow, requirement, plan, task). Documents glossary-style concepts (meaning/invariants/lifecycle + role-based relationships), EARS templates, contract surface vocabulary (cli/rest/screen/event) and the audited_overlaps {slug, distinction} field on requirements (≥20-char rationale to clear the rubber-stamp audit). Validator rules now describe contract-surface and flow-coverage parity at planning and post-plan, the single Finding severity (Error/Warning/Hint aliases that all block), and the removal of the --strict flag — sync check and validate are always strict now.
-        updated_at: "2026-04-17T11:15:07Z"
+        size: 19430
+        hash: 7ea4e10e04b8533e6cd27bce4fd69feac0e74250873fa8ee08dd455ed7b196d6
+        mtime: "2026-04-18T09:32:46Z"
+        summary: 'Reference doc for all syde entity kinds: per-kind field tables with YAML keys, CLI flags, and descriptions covering system, component, contract, concept, flow, decision, and requirement. Requirement section documents the verified_against map, the bidirectional invariant (≥1 refines:component required, system targets forbidden), and the content-hash recheck gate workflow via syde requirement verify.'
+        updated_at: "2026-04-18T09:56:31Z"
+    skill/references/plan-authoring.md:
+        type: file
+        parent: skill/references
+        size: 8529
+        hash: 5d049f5034932b682fe0a1354e2a27424cb30f522978105eb3641a5c279c123a
+        mtime: "2026-04-18T09:33:57Z"
+        summary: 'Plan quality discipline for syde agents: rules for writing plans complete enough for a zero-context executor. Covers per-phase file mapping (create/modify/test with exact paths), bite-sized checkbox task steps with exact commands and expected output, requirement lane hygiene (one EARS statement per change), and explicit acceptance criteria for each phase.'
+        updated_at: "2026-04-18T09:56:41Z"
+    skill/references/plan-review-prompt.md:
+        type: file
+        parent: skill/references
+        size: 3803
+        hash: 09fef1ead5e85603122ff4696c47a1de86efb86550758b21667b6e22ae06c054
+        mtime: "2026-04-18T09:34:29Z"
+        summary: 'Template prompt for syde plan review subagents: checks completeness (no TODOs/placeholders), requirement coverage (every Requirements-lane entry maps to a task), task decomposition (bite-sized steps with exact commands), phase ordering correctness, and executor handoff. Calibrated to block only on implementation-blocking gaps, not style; outputs Approved or Issues-Found with specific citations.'
+        updated_at: "2026-04-18T09:56:49Z"
     skill/references/requirement-derivation.md:
         type: file
         parent: skill/references
@@ -1231,8 +1276,8 @@ nodes:
             - web/tsconfig.json
             - web/tsconfig.node.json
             - web/vite.config.ts
-        summary: 'React SPA for the syded dashboard: Vite + React 19 + TypeScript + Tailwind v4. Features: glossary-style concept panels, role-based relationship chips, plan inbox with structured changes, flow charts, file tree browser, and force-directed entity graph. Built into dist/ then embedded into the Go daemon via web/embed.go.'
-        updated_at: "2026-04-17T08:35:27Z"
+        summary: 'React 19 + Vite + TypeScript + Tailwind v4 SPA for the syded dashboard: source pages/components, Go embed wrapper, ESLint config, and package manifest.'
+        updated_at: "2026-04-18T09:58:08Z"
     web/.gitignore:
         type: file
         parent: web
@@ -1320,8 +1365,8 @@ nodes:
             - web/src/lib
             - web/src/main.tsx
             - web/src/pages
-        summary: 'React SPA source: App router, hooks (useApi, useWebSocket), API client library, CSS tokens, components (EntityDetail with glossary-style concepts, EntityList, PlanDetailPanel, FlowChart, SearchPalette), and pages (Overview, FileTree, Graph). Rendering uses Tailwind with a dark theme and a fixed sidebar layout.'
-        updated_at: "2026-04-17T08:35:10Z"
+        summary: 'React SPA source: App router with WebSocket live-reload, hooks (useApi, useWebSocket), API client, and page/component layout for the syded dashboard.'
+        updated_at: "2026-04-18T09:57:53Z"
     web/src/App.tsx:
         type: file
         parent: web/src
@@ -1542,8 +1587,8 @@ nodes:
             - web/src/pages/FileTree.tsx
             - web/src/pages/Graph.tsx
             - web/src/pages/Overview.tsx
-        summary: 'Top-level dashboard page components: Overview (grid of kind-count cards), FileTree (recursive file explorer), Graph (force-directed entity graph). The former ERD canvas page has been deleted — concepts now render in the standard 2-column inbox layout.'
-        updated_at: "2026-04-17T08:34:47Z"
+        summary: 'Dashboard SPA page components: FileTree (recursive explorer), Graph (force-directed architecture graph with id-keyed canonical edge resolution and flat single-tier system rendering), and Overview (kind-count landing page).'
+        updated_at: "2026-04-18T09:57:33Z"
     web/src/pages/FileTree.tsx:
         type: file
         parent: web/src/pages
@@ -1555,11 +1600,11 @@ nodes:
     web/src/pages/Graph.tsx:
         type: file
         parent: web/src/pages
-        size: 27106
-        hash: 41ca55927b55d74084fa2556c937ebd74d9b44ea3742e087619231fb9b2cfb76
-        mtime: "2026-04-15T09:07:21Z"
-        summary: 'Interactive force-directed graph page: fetches /graph data, renders nodes colored/sized by kind with d3-force simulation, supports hover highlighting of neighbors, filtering by kind, and a side panel showing the selected entity''s details with a link to its full page.'
-        updated_at: "2026-04-15T09:28:54Z"
+        size: 25971
+        hash: 5c8cd115e628f692ebafe9665565988e416da33f54aaae19eebb64b9a80635c0
+        mtime: "2026-04-18T09:28:13Z"
+        summary: Force-directed architecture graph page rendering syde entities (system/component/contract/concept/flow/decision) using d3-force on a canvas. Backend resolves edge targets to canonical IDs; the frontend uses a single id-keyed nodeById index for source and target lookup, dropping edges that touch filtered-out kinds. Includes hover tooltips, kind-filter checkboxes, and a slide-in detail panel.
+        updated_at: "2026-04-18T09:56:08Z"
     web/src/pages/Overview.tsx:
         type: file
         parent: web/src/pages

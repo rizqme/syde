@@ -5,6 +5,8 @@
 package audit
 
 import (
+	"path/filepath"
+
 	"github.com/feedloop/syde/internal/model"
 	"github.com/feedloop/syde/internal/storage"
 	"github.com/feedloop/syde/internal/tree"
@@ -126,6 +128,8 @@ func Run(store *storage.Store, t *tree.Tree, opts Options) (*Report, error) {
 		rep.Findings = append(rep.Findings, requirementFindings(all)...)
 		rep.Findings = append(rep.Findings, requirementOverlapFindings(all)...)
 		rep.Findings = append(rep.Findings, requirementContractSurfaceFindings(all)...)
+		rep.Findings = append(rep.Findings, bidirectionalFindings(all)...)
+		rep.Findings = append(rep.Findings, requirementStaleFindings(all, filepath.Dir(store.FS.Root))...)
 		rep.Findings = append(rep.Findings, planAuthoringFindings(all)...)
 		rep.Findings = append(rep.Findings, planCompletionFindings(all)...)
 	}

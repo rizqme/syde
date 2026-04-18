@@ -6,9 +6,9 @@ slug: decisions-inbox-route-renders-list-and-detail-eg0l
 relationships:
     - target: decisions-inbox-screen-wnsc
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:46:14Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:37:25Z"
 statement: When the user navigates to the /decision route, the dashboard shall render a two-column decisions inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: Covers the /decision route and the decisions entity kind, not the /flow route or flow entities.
     - slug: systems-inbox-route-renders-list-and-detail-bzae
       distinction: Covers the /decision route and the decisions entity kind, not the /system route or system entities.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:37:25Z"
 ---

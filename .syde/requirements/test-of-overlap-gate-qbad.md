@@ -3,10 +3,8 @@ id: REQ-0406
 kind: requirement
 name: Test of overlap gate
 slug: test-of-overlap-gate-qbad
-relationships:
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T11:18:14Z"
+relationships: []
+updated_at: '2026-04-17T11:18:14Z'
 statement: The syde audit engine shall test the overlap gate by attempting a high-overlap requirement creation.
 req_type: functional
 priority: should

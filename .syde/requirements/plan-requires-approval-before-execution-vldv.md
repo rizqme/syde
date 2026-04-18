@@ -6,9 +6,9 @@ slug: plan-requires-approval-before-execution-vldv
 relationships:
     - target: plan-sk33
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-17T10:46:01Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:36:39Z"
 statement: While a plan has plan_status draft, the syde CLI shall not allow any task under that plan to transition to in_progress or completed.
 req_type: functional
 priority: must
@@ -20,4 +20,8 @@ rationale: Approval gates prevent implementation work from starting on unreviewe
 audited_overlaps:
     - slug: plan-phase-completion-gate-1jat
       distinction: Gates task execution on plan draft status; target gates phase completion on unfinished tasks within the phase.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:36:39Z"
 ---

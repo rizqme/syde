@@ -6,9 +6,9 @@ slug: flows-inbox-route-renders-list-and-detail-1eij
 relationships:
     - target: flows-inbox-screen-uh6s
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:45:51Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:36:50Z"
 statement: When the user navigates to the /flow route, the dashboard shall render a two-column flows inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: Targets the /flow route rendering flows; target covers the /decision route rendering decisions.
     - slug: systems-inbox-route-renders-list-and-detail-bzae
       distinction: Targets the /flow route rendering flows; target covers the /system route rendering systems.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:36:50Z"
 ---

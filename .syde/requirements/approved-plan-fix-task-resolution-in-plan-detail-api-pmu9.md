@@ -7,11 +7,9 @@ relationships:
     - target: fix-task-resolution-in-plan-detail-api-otih
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-updated_at: "2026-04-17T10:46:19Z"
+    - target: http-api-afos
+      type: refines
+updated_at: "2026-04-18T09:38:03Z"
 statement: When the syded plan detail API cannot resolve a task by exact slug match, the API shall fall back to bare-slug comparison so plans that reference tasks by bare name still resolve.
 req_type: functional
 priority: must
@@ -32,4 +30,8 @@ audited_overlaps:
       distinction: HTTP API runtime task-slug resolution fallback vs. CLI authoring-time audit emitting warnings on requirement-lane size and statement overlap — runtime resolver vs authoring advisory.
     - slug: approved-plan-requirement-overlap-audit-with-mandatory-acknowledgement-xgvu
       distinction: syded plan detail API bare-slug fallback for tasks vs. syde add requirement TF-IDF overlap acknowledgement — different binary, different command, different subject entity.
+verified_against:
+    http-api-afos:
+        hash: ab080a2b2498114076ebb7cb0bdfeb444f53e7a3af2f5af4bd111c0b11855b65
+        at: "2026-04-18T09:38:03Z"
 ---

@@ -6,9 +6,9 @@ slug: concepts-inbox-route-renders-list-mode-insk
 relationships:
     - target: concepts-inbox-screen-bpow
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:45:44Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:37:28Z"
 statement: When the user navigates to the /concept route with the List toggle active, the dashboard shall render a two-column concepts inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: Governs the /concept route with List toggle active; the flows inbox requirement addresses the /flow route rendering flow entities and has no List-mode precondition.
     - slug: systems-inbox-route-renders-list-and-detail-bzae
       distinction: Covers the /concept route in List mode; the systems inbox requirement targets the /system route for system entities, a different URL without a list-mode toggle.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:37:28Z"
 ---

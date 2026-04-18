@@ -203,6 +203,25 @@ func handleGraph(w http.ResponseWriter, r *http.Request, store *storage.Store) {
 		Label  string `json:"label,omitempty"`
 	}
 
+	// Alias-to-ID map mirrors internal/audit/relationships.go: a YAML
+	// `target:` may be stored as ID, canonical slug, base slug, or
+	// slugified name. Resolve every form to the canonical entity ID so
+	// the frontend can match edges with a single nodeById lookup.
+	targetToID := make(map[string]string)
+	add := func(key, id string) {
+		if key == "" {
+			return
+		}
+		targetToID[key] = id
+	}
+	for _, ewb := range all {
+		b := ewb.Entity.GetBase()
+		add(b.ID, b.ID)
+		add(b.CanonicalSlug(), b.ID)
+		add(utils.BaseSlug(b.CanonicalSlug()), b.ID)
+		add(utils.Slugify(b.Name), b.ID)
+	}
+
 	var nodes []GraphNode
 	var edges []GraphEdge
 	seen := make(map[string]bool)
@@ -214,9 +233,13 @@ func handleGraph(w http.ResponseWriter, r *http.Request, store *storage.Store) {
 			seen[b.ID] = true
 		}
 		for _, rel := range b.Relationships {
+			targetID, ok := targetToID[rel.Target]
+			if !ok {
+				continue
+			}
 			edges = append(edges, GraphEdge{
 				Source: b.ID,
-				Target: rel.Target,
+				Target: targetID,
 				Type:   rel.Type,
 				Label:  rel.Label,
 			})

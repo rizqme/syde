@@ -362,6 +362,13 @@ func handleQueryAPI(w http.ResponseWriter, r *http.Request, store *storage.Store
 			return
 		}
 		writeSummaries(res)
+	case "refined-by":
+		res, err := eng.RefinedBy(slug)
+		if err != nil {
+			jsonError(w, err.Error(), 404)
+			return
+		}
+		writeSummaries(res)
 	case "flow-components":
 		res, err := eng.FlowComponents(slug)
 		if err != nil {

@@ -6,9 +6,7 @@ slug: http-api-does-not-discover-projects-m9qc
 relationships:
     - target: http-api-afos
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-15T10:52:22Z"
+updated_at: "2026-04-18T09:37:18Z"
 statement: The syded HTTP API shall not discover projects on the filesystem by itself.
 req_type: constraint
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:http-api-afos
 requirement_status: active
 rationale: Separating discovery from routing keeps handlers thin and testable.
+verified_against:
+    http-api-afos:
+        hash: ab080a2b2498114076ebb7cb0bdfeb444f53e7a3af2f5af4bd111c0b11855b65
+        at: "2026-04-18T09:37:18Z"
 ---

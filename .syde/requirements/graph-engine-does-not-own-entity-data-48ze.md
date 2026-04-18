@@ -6,9 +6,7 @@ slug: graph-engine-does-not-own-entity-data-48ze
 relationships:
     - target: graph-engine-xgjy
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-15T10:54:53Z"
+updated_at: "2026-04-18T09:37:07Z"
 statement: The graph engine shall not own entity data and shall read relationships through the storage engine.
 req_type: constraint
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:graph-engine-xgjy
 requirement_status: active
 rationale: Decoupling traversal from storage keeps the graph engine stateless and testable.
+verified_against:
+    graph-engine-xgjy:
+        hash: 008188a7a397c93a8d847fa561e5274e77480780d36faacff440a814f6d605fe
+        at: "2026-04-18T09:37:07Z"
 ---

@@ -6,9 +6,7 @@ slug: summary-tree-does-not-persist-entities-i2bl
 relationships:
     - target: summary-tree-fq6u
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-15T10:57:06Z"
+updated_at: "2026-04-18T09:37:57Z"
 statement: The summary tree shall not persist syde entities and shall only own the hashed file tree state.
 req_type: constraint
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:summary-tree-fq6u
 requirement_status: active
 rationale: Keeping tree state separate from entity state prevents cross-contamination.
+verified_against:
+    summary-tree-fq6u:
+        hash: 51703195026629fb17ef88e0859de7cdd45e6cd90f54ba62f52398aaf2cb378a
+        at: "2026-04-18T09:37:57Z"
 ---

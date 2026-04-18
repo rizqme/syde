@@ -341,19 +341,30 @@ func AllRequirementPriorities() []RequirementPriority {
 // changes, not by deleting historical requirement files.
 type RequirementEntity struct {
 	BaseEntity        `yaml:",inline"`
-	Statement         string              `yaml:"statement,omitempty"`
-	ReqType           RequirementType     `yaml:"req_type,omitempty"`
-	Priority          RequirementPriority `yaml:"priority,omitempty"`
-	Verification      string              `yaml:"verification,omitempty"`
-	Source            string              `yaml:"source,omitempty"`     // user, plan, migration, manual
-	SourceRef         string              `yaml:"source_ref,omitempty"` // plan slug, transcript ref, issue URL, etc.
-	RequirementStatus RequirementStatus   `yaml:"requirement_status,omitempty"`
-	Rationale         string              `yaml:"rationale,omitempty"`
-	Supersedes        []string            `yaml:"supersedes,omitempty"`
-	SupersededBy      []string            `yaml:"superseded_by,omitempty"`
-	ObsoleteReason    string              `yaml:"obsolete_reason,omitempty"`
-	ApprovedAt        string              `yaml:"approved_at,omitempty"`
-	AuditedOverlaps   []AuditedOverlap    `yaml:"audited_overlaps,omitempty" json:"audited_overlaps,omitempty"`
+	Statement         string                      `yaml:"statement,omitempty"`
+	ReqType           RequirementType             `yaml:"req_type,omitempty"`
+	Priority          RequirementPriority         `yaml:"priority,omitempty"`
+	Verification      string                      `yaml:"verification,omitempty"`
+	Source            string                      `yaml:"source,omitempty"`     // user, plan, migration, manual
+	SourceRef         string                      `yaml:"source_ref,omitempty"` // plan slug, transcript ref, issue URL, etc.
+	RequirementStatus RequirementStatus           `yaml:"requirement_status,omitempty"`
+	Rationale         string                      `yaml:"rationale,omitempty"`
+	Supersedes        []string                    `yaml:"supersedes,omitempty"`
+	SupersededBy      []string                    `yaml:"superseded_by,omitempty"`
+	ObsoleteReason    string                      `yaml:"obsolete_reason,omitempty"`
+	ApprovedAt        string                      `yaml:"approved_at,omitempty"`
+	AuditedOverlaps   []AuditedOverlap            `yaml:"audited_overlaps,omitempty" json:"audited_overlaps,omitempty"`
+	VerifiedAgainst   map[string]VerifiedSnapshot `yaml:"verified_against,omitempty" json:"verified_against,omitempty"`
+}
+
+// VerifiedSnapshot records the SHA-256 content hash of all files in a
+// single refining component at the time `syde requirement verify` was
+// run. The audit engine compares the stored hash to the current file
+// bytes; any drift emits a requirement_stale finding until the agent
+// re-reads the requirement and runs verify again.
+type VerifiedSnapshot struct {
+	Hash string `yaml:"hash" json:"hash"`
+	At   string `yaml:"at" json:"at"`
 }
 
 // AuditedOverlap is an acknowledgement that a requirement overlaps with

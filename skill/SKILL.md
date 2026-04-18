@@ -754,30 +754,34 @@ relationships with `--add-rel`, e.g. `syde update order-sk3a
 
 ### System rules
 
-A `system` represents a standalone process/app. Most projects have a single
-top-level system, but a project shipping multiple binaries / daemons / apps
-should model each as its own sub-system.
+A `system` represents a **standalone process / binary / long-running app**.
+Every system is top-level — there is no root, no hierarchy, no sub-systems
+(PLN-0019 retired that model).
 
-- **Top system**: no `belongs_to` — it is the root of the project.
-- **Sub-system**: `belongs_to:<parent-system-slug>` — nests under another system.
-- System nesting is acyclic (validator enforces).
-- Components, contracts, and concepts `belongs_to:<system-slug>` of the
-  system they are part of — for a sub-system, that's the sub-system, not the
-  top-level one.
-- Every entity except the single root system needs a `belongs_to` parent.
-- Every non-requirement entity, including components and contracts, must carry
-  an outbound relationship to at least one requirement.
-- Every contract must participate in at least one flow.
+- **Systems must NOT carry `belongs_to`.** The audit rejects any system with
+  a `belongs_to` edge.
+- **One system per process binary.** A project that ships a `foo` CLI and a
+  `food` daemon has exactly two systems: `foo` + `food`. Shared libraries
+  live in components that belong_to both.
+- **Components may belong_to multiple systems.** When a component's files are
+  linked into more than one binary (e.g. an Audit Engine used by both the CLI
+  and the daemon), it carries a `belongs_to` edge to every relevant system.
+- **Every non-system non-requirement entity** (component, contract, concept,
+  flow, decision, plan, task) needs ≥1 `belongs_to` — can be multiple.
+- **Every non-requirement entity** must carry an outbound relationship to at
+  least one requirement (tasks link via `implements`).
+- **Every contract** must participate in at least one flow.
 
-Example: a project with a CLI binary and a daemon:
+Example: a project shipping a CLI (`foo`) and a daemon (`food`) that share an
+audit library:
 ```
-syde add system "MyApp"  # top-level
-syde add system "MyApp CLI" \
-  --description "The myapp CLI binary" \
-  --add-rel "myapp:belongs_to"
-syde add system "MyApp Daemon" \
-  --description "The myappd HTTP daemon" \
-  --add-rel "myapp:belongs_to"
+syde add system "foo"           # no belongs_to — standalone
+syde add system "food"          # no belongs_to — standalone
+
+syde add component "Audit Engine" \
+  --description "Shared audit library used by both binaries" \
+  --add-rel "foo:belongs_to" \
+  --add-rel "food:belongs_to"
 ```
 
 ### Requirement rules
@@ -820,13 +824,33 @@ Do not pass `--file` when creating a requirement.
 
 **Requirement relationships:**
 
-- `refines` — requirement → component / contract / concept / system, or
-  requirement → requirement. Use when a requirement narrows a higher-level
-  intent against a specific design target. Example: a performance requirement
-  `refines` the HTTP API component.
+- `refines` — requirement → **component** (required, ≥1). Every active
+  requirement MUST refine at least one component. Multiple components are
+  allowed for cross-cutting reqs that constrain several components.
+  Requirements may also `refines` contracts or concepts when narrowing a
+  specific design target of that kind. **Requirements must NOT `refines` or
+  `belongs_to` a system** — the audit rejects system-targeted requirements
+  (see PLN-0018). Every component with files mapped must have ≥1 incoming
+  refines from an active requirement.
 - `derives_from` — requirement → parent requirement. Use when a child
   requirement is logically implied by a parent (derivation chain).
-- `belongs_to` — requirement → system, same as every other entity.
+
+**Recheck workflow (content-hash gate).** Every active requirement stores
+a `verified_against` snapshot — the SHA-256 content hash of every file in
+each refining component at the moment `syde requirement verify <slug>` was
+last run. When any refining component's file content drifts from the
+snapshot, `syde sync check` emits a `requirement_stale` finding per
+divergent edge. Clear it by:
+
+1. Read the requirement and the current code under the refining component
+2. Confirm the requirement still holds (or open a plan to revise it)
+3. Run `syde requirement verify <slug>` — snapshots the current hashes
+
+The PostToolUse hook surfaces the affected requirements automatically
+whenever an Edit / Write / MultiEdit touches a file mapped to any
+component, so re-verification is a known-next-step, not a discovery
+exercise. Use `syde query --refined-by <component-slug>` to list
+refining requirements manually.
 
 **Backfilling requirements from an existing codebase.** When the design model
 already has components / contracts / concepts / systems but lacks requirements,
@@ -847,7 +871,8 @@ requirement layer.
 - Requirements must not carry a `files` list
 - Superseded requirements must point to replacements; obsolete requirements must say why
 - Every non-requirement entity has an outbound relationship to a requirement
-- Every entity except the root system has `belongs_to`
+- Every non-system non-requirement entity has at least one `belongs_to` (may point at multiple systems)
+- Systems must NOT have `belongs_to` (standalone top-level, per PLN-0019)
 - Every contract has at least one flow relationship
 - No cyclic `depends_on` relationships between components
 - All relationship targets must exist
@@ -891,17 +916,36 @@ lives without at least one flow traversing it.
 
 ### Phase 2: CREATE PLAN
 
+> **Read [`references/plan-authoring.md`](references/plan-authoring.md)
+> before drafting.** It codifies the plan-quality rules — Files section
+> per phase, bite-sized checkbox steps, No-Placeholder blacklist,
+> Self-Review checklist, Execution Handoff — that overlay the structural
+> workflow below. Every plan must satisfy both the structural rules in this
+> section and the discipline rules in `plan-authoring.md`.
+
 A plan has five levels of detail:
 1. **Plan header**: `background`, `objective`, `scope` — why, what success is, what changes at a high level
 2. **Design**: prose implementation design — the detailed "how we're going to build it" narrative
 3. **Changes**: structured diff of every entity that will be deleted, extended, or newly created, organized into six per-kind lanes (requirements, systems, concepts, components, contracts, flows)
-4. **Phases**: `objective`, `changes`, `details`, `notes` — per-milestone plan
-5. **Tasks**: `objective`, `details`, `acceptance` — per-work-item plan, referencing real entities and files
+4. **Phases**: `objective`, `changes`, `details`, `notes` — per-milestone plan (each phase's `details` should open with a **Files section** listing Create / Modify / Test targets before its tasks)
+5. **Tasks**: `objective`, `details`, `acceptance` — per-work-item plan. `details` should decompose the work into **bite-sized checkbox steps** (2-5 min each) with exact paths, code, commands, and expected output
 
 Every plan MUST answer: **WHY** (background), **WHAT SUCCESS LOOKS LIKE**
 (objective), **WHAT CHANGES AT A HIGH LEVEL** (scope), **HOW WE'LL BUILD IT**
 (design), and **WHICH ENTITIES MOVE** (structured changes). Without these the
 plan is unreviewable.
+
+**Plan-authoring discipline (enforced by `syde plan review`):**
+
+1. **Files section per phase** — before tasks, list Create/Modify/Test paths with one-line responsibility each (see `plan-authoring.md` §2).
+2. **Bite-sized checkbox steps** — each task's `details` decomposes into `[ ]`-prefixed 2-5 min steps with exact code blocks, commands, and expected output for verifications (§3).
+3. **No Placeholders** — the blacklist (`TBD`, `TODO`, "similar to Task N", "add appropriate error handling", etc.) is a hard fail (§4).
+4. **Self-Review checklist** — before presenting for approval, run the five-item checklist (spec coverage, placeholder scan, cross-task consistency, phase ordering, execution handoff prepared). Fix issues inline (§5).
+5. **Execution Handoff** — after approval, explicitly prompt the user for subagent-driven vs inline execution (§7), unless a pre-captured user preference overrides.
+
+Run `syde plan review <slug>` to dispatch a plan-reviewer subagent against the
+drafted plan. The reviewer returns `Approved` or `Issues Found` with specific
+pointers; it is calibrated to flag only implementation-blocking gaps.
 
 Per REQ-0331, every plan records its entity changes as a structured diff with
 deleted / extended / new entries, and the completion validator verifies that
@@ -1023,10 +1067,13 @@ literal values (arrays, objects, numbers, booleans), so structured fields like
 The sentinel value `DELETE` on a `--field` means "this field must be the zero
 value when the plan completes".
 
-Once tasks exist, every deleted / extended / new change must list the task
-slug(s) that implement it with repeatable `--task <task-slug>` flags. If you
-draft changes before creating tasks, return to the change list after Step 3 and
-make sure every change is claimed by at least one task in the same plan.
+**Every change entry MUST carry `--task <slug>` for each implementing task.**
+`syde sync check` emits one finding per change with no task list, so an
+unlinked change is a guaranteed gate failure. If you draft changes before the
+tasks exist, return to the change list after Step 3 and re-add each change
+with the correct `--task` flags — there is no `update-change` command, so
+you must `syde plan remove-change <plan> <id>` and `syde plan add-change ...`
+with tasks.
 
 You can drop a change that's no longer needed:
 ```
@@ -1179,11 +1226,16 @@ syde task create "Harden JWT middleware" \
 **If a task needs to CREATE a brand-new entity**, it MUST be declared in the
 plan's structured diff via `syde plan add-change new <plan> <kind> --name
 "..." --draft ...` (Step 2). That's the plan-level record of intent. When the
-task executes, run `syde add <kind> "<name>" ...` using the same name and the
-draft fields as defaults, then attach the freshly-created slug to the task
-with `syde task update <task> --affected-entity <new-slug>`. The plan
-completion validator will refuse to close the plan unless every declared
-`new` change corresponds to a real entity with a matching name + kind.
+task executes, run `syde add <kind> "<name>" ...` using the **exact same
+`--name` string** as the draft (character-for-character, including underscores
+vs. spaces), then attach the freshly-created slug to the task with
+`syde task update <task> --affected-entity <new-slug>`. The plan completion
+validator matches drafts to entities by name + kind, so a typo or a
+paraphrased name leaves the draft orphaned. Easiest path: run
+`syde plan execute <plan>` to let syde materialise the new entities directly
+from their drafts. Otherwise, if the live entity name drifts from the draft,
+convert the `new` change to an `extended` change pointing at the real slug
+(`syde plan remove-change` then `syde plan add-change extend`).
 
 #### Step 5: Estimate and present
 
@@ -1236,6 +1288,26 @@ Treat all user prompts and approved plans as durable requirements: if intent
 changes later, create a new requirement and mark the older one superseded or
 obsolete; never delete requirement history.
 
+**Fix the auto-created approval requirement immediately.** `syde plan approve`
+generates a sparse `approved-plan-<slug>` requirement with no EARS statement,
+no `req_type`, no `priority`, no `verification`, no `refines:component` edge,
+and (until this is fixed) a spurious `belongs_to:<system>` inherited from the
+plan. Left alone it produces seven blocking findings and makes
+`syde plan complete` impossible. Right after running `syde plan approve`, run:
+
+```
+syde update approved-plan-<slug> \
+  --statement "When <plan name> is approved, the <subject> shall <action>." \
+  --type functional --priority must \
+  --verification "<how the approval is demonstrated>" \
+  --source plan --rationale "Approval requirement for <plan name>" \
+  --remove-rel <inherited-system-slug> \
+  --add-rel "<refining-component-slug>:refines"
+syde requirement verify approved-plan-<slug>
+```
+
+Do this before starting Phase 3 so the finding gate stays clean.
+
 **STOP. Do NOT implement until the plan is approved.** Check the plan status
 with `syde plan show <plan-slug>` — if it says `draft`, you are not allowed to
 start any tasks. Only after the user approves in chat, run `syde plan approve
@@ -1245,6 +1317,26 @@ start any tasks. Only after the user approves in chat, run `syde plan approve
 
 Work through the plan **one phase at a time**. Complete all tasks in a phase
 before moving to the next. Never jump ahead.
+
+**Finding-prevention rules that bite most often** (learned from rework
+sessions):
+
+1. **Never leave a task `in_progress`.** Every `syde task start` must pair
+   with `syde task done` before the phase can auto-complete. An abandoned
+   `●` task blocks plan completion even when the code changes are done.
+2. **Requirements refine components, never systems.** `syde add requirement
+   ... --add-rel <component>:refines` is the only correct shape. Never use
+   `--add-rel <system>:belongs_to` or `--add-rel <system>:refines` on a
+   requirement — the audit rejects it and you'll have to retrofit the fix.
+3. **Before deleting an entity, list its incoming references.** Run
+   `syde query --depended-by <slug>` and clear every `relates_to` /
+   `references` / `refines` edge pointing at it, otherwise you leave
+   dangling-target findings the moment the entity goes away.
+4. **When an existing component's `--file` list changes, re-verify every
+   refining requirement.** Adding or removing a file mutates the combined
+   file hash and drifts every `verified_against` snapshot. Run
+   `syde query --refined-by <component> --format refs` then
+   `syde requirement verify <slug>` on each.
 
 **Do not stop until every task in every phase of the approved plan is done.**
 Once the user has approved a plan, executing it through to completion is a

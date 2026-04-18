@@ -6,9 +6,9 @@ slug: components-inbox-route-renders-list-and-detail-m6jv
 relationships:
     - target: components-inbox-screen-c5jh
       type: refines
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-17T10:46:08Z"
+    - target: web-spa-jy9z
+      type: refines
+updated_at: "2026-04-18T09:36:40Z"
 statement: When the user navigates to the /component route, the dashboard shall render a two-column components inbox with a list panel and a detail panel.
 req_type: interface
 priority: must
@@ -28,4 +28,8 @@ audited_overlaps:
       distinction: Targets the /component route rendering component entities; the flows inbox requirement governs the /flow route rendering flow entities, a distinct URL and entity kind.
     - slug: systems-inbox-route-renders-list-and-detail-bzae
       distinction: Covers the /component route and component list/detail; the systems inbox requirement covers the /system route and system entities, which are separate URL and entity kind.
+verified_against:
+    web-spa-jy9z:
+        hash: 3e31271ac2769b109897c09240242676ec33b6a4c31e4e49f30f94ef09dccb45
+        at: "2026-04-18T09:36:40Z"
 ---

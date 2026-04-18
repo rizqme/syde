@@ -6,9 +6,7 @@ slug: skill-installer-installs-codex-mirror-8agm
 relationships:
     - target: skill-installer-wbmu
       type: refines
-    - target: syde-5tdt
-      type: belongs_to
-updated_at: "2026-04-15T10:55:44Z"
+updated_at: "2026-04-18T10:04:49Z"
 statement: Where Codex support is requested, the skill installer shall mirror the embedded skill under .agents/skills/syde and update .codex and AGENTS.md idempotently.
 req_type: functional
 priority: must
@@ -17,4 +15,8 @@ source: manual
 source_ref: component:skill-installer-wbmu
 requirement_status: active
 rationale: Codex and Claude users share the same syde skill content.
+verified_against:
+    skill-installer-wbmu:
+        hash: cffead9ff459eb538d256d9a782208243779e6c2132e2e5437b9c07de9b37e20
+        at: "2026-04-18T10:04:49Z"
 ---

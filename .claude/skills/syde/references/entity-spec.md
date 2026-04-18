@@ -32,6 +32,12 @@
 ## Kind-Specific Fields
 
 ### System
+
+A **system** represents a standalone process / binary / long-running app.
+Every system is top-level — PLN-0019 retired the root/sub-system hierarchy,
+so systems must not carry `belongs_to` edges. One system per process binary;
+shared libraries live in components that belong_to multiple systems.
+
 | YAML key | CLI flag | Description |
 |----------|----------|-------------|
 | `context` | `--context-text` | System context |
@@ -39,6 +45,13 @@
 | `design_principles` | `--design-principles` | Design principles |
 | `quality_goals` | `--quality-goals` | Quality goals |
 | `assumptions` | `--assumptions` | Assumptions |
+
+**System-specific rules** (enforced by audit):
+
+- Systems MUST NOT carry `belongs_to` — they are standalone top-level entities.
+- A project shipping N binaries has exactly N systems.
+- Components with code linked into multiple binaries carry `belongs_to` edges
+  to every relevant system.
 
 ### Component (purpose REQUIRED from base)
 | YAML key | CLI flag | Description |
@@ -172,6 +185,7 @@ mark the older requirement `superseded` or `obsolete`.
 | `obsolete_reason` | `--obsolete-reason` | Required when status is `obsolete` |
 | `approved_at` | `--approved-at` | Approval/capture timestamp |
 | `audited_overlaps` | `--audited` | List of `{slug, distinction}` acknowledging TF-IDF overlap pairs. Pass as `slug:distinction text` (distinction ≥20 chars, must describe real semantic difference). |
+| `verified_against` | *(set by `syde requirement verify`)* | Map keyed by refining component canonical slug; value `{hash: sha256-hex, at: RFC3339}`. The audit compares the current SHA-256 of each refining component's files to this snapshot — any drift emits a `requirement_stale` finding until the agent re-reads the requirement and runs verify again. |
 
 **EARS patterns** — every `statement` must match exactly one of these:
 
@@ -193,11 +207,23 @@ link only via the relationships below. Do not pass `--file` on a requirement.
 
 **Requirement-specific relationships:**
 
-- `refines` — requirement → component / contract / concept / system, or
-  requirement → requirement. Used when a requirement narrows higher-level
-  intent against a specific design target.
+- `refines` — requirement → **component** (REQUIRED — every active
+  requirement must refine ≥1 component; multiple targets allowed for
+  cross-cutting reqs). May additionally target contracts or concepts
+  when narrowing a specific design. **System targets forbidden** — the
+  audit rejects `refines: system` and `belongs_to: system` on
+  requirements (see PLN-0018). Every component with files mapped must
+  have ≥1 incoming refines from an active requirement.
 - `derives_from` — requirement → parent requirement. Used for derivation
   chains where a child requirement is logically implied by a parent.
+
+**Recheck gate.** `syde requirement verify <slug>` snapshots the current
+SHA-256 hash of every file in each refining component into
+`verified_against`. Any subsequent drift in those files triggers a
+`requirement_stale` finding until the agent re-reads the requirement
+and runs verify again. The PostToolUse hook surfaces affected
+requirements automatically on any Edit / Write / MultiEdit; use
+`syde query --refined-by <component-slug>` to list them manually.
 
 Validation rules:
 
@@ -263,7 +289,7 @@ Add with `--add-rel "target-slug:type"`. Valid types:
 
 | Type | Meaning |
 |------|---------|
-| `belongs_to` | Is part of (system→system for sub-systems, component→system, contract→system, concept→system) |
+| `belongs_to` | Is part of (component/contract/concept/flow/decision/plan/task → system; components may carry multiple `belongs_to` edges for shared libs spanning more than one binary; **systems MUST NOT carry `belongs_to` — they are standalone top-level entities per PLN-0019**) |
 | `depends_on` | Requires (component→component, must be acyclic) |
 | `exposes` | Provides interface |
 | `consumes` | Uses interface |
@@ -276,12 +302,16 @@ Add with `--add-rel "target-slug:type"`. Valid types:
 | `exposed_via` | Concept → contract that exposes it externally |
 | `used_in` | Concept → flow that operates on or produces it |
 | `applies_to` | Applies to target (requirement→component) |
-| `refines` | Requirement narrows a design target (requirement→component/contract/concept/system, or requirement→requirement) |
+| `refines` | Requirement narrows a design target (requirement→component or requirement→contract/concept; **requirement→system is forbidden** — PLN-0018 bidirectional rule) |
 | `derives_from` | Requirement is derived from a parent requirement (requirement→requirement) |
 | `modifies` | Changes target |
 | `visualizes` | UI for target |
 
-Every entity except the single root system must have a `belongs_to` parent.
+Every non-system non-requirement entity must carry ≥1 `belongs_to` parent;
+components may carry multiple `belongs_to` edges for shared libraries that
+span more than one system. Systems themselves must NOT carry `belongs_to`
+(PLN-0019 — systems are standalone top-level). Requirements are anchored
+by `refines:component` (PLN-0018) instead of `belongs_to`.
 Every non-requirement entity, including every component and contract, must
 carry an outbound relationship to at least one requirement, usually with
 `references` or `implements`. Every contract must participate in at least one

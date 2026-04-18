@@ -7,11 +7,11 @@ relationships:
     - target: requirement-overlap-audit-with-mandatory-acknowledgement-u5lj
       type: references
       label: approved_plan
-    - target: syde-5tdt
-      type: belongs_to
-    - target: syde
-      type: belongs_to
-updated_at: "2026-04-17T10:46:59Z"
+    - target: audit-engine-4ktg
+      type: refines
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:36:52Z"
 statement: When syde add requirement creates a new requirement, the syde CLI shall compute TF-IDF similarity against every active requirement, print each overlap candidate, and require --audited acknowledgement for every match.
 req_type: functional
 priority: must
@@ -32,4 +32,11 @@ audited_overlaps:
       distinction: 'Different plan scope: overlap audit enforces requirement dedup, while the flow-steps plan adds ordered contract-linked steps and flowchart rendering.'
     - slug: approved-plan-plan-requirement-coverage-and-overlap-audit-eikl
       distinction: This plan enforces mandatory --audited acknowledgement at requirement creation; the coverage plan only emits advisory warnings for lane imbalance and TF-IDF overlap.
+verified_against:
+    audit-engine-4ktg:
+        hash: ef935d985e980f0e4d1d7dd4eab9ff52c9d0581e2f5f4a976302a3ba33822fbe
+        at: "2026-04-18T09:36:52Z"
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:36:52Z"
 ---

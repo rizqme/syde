@@ -15,6 +15,7 @@ var (
 	queryRelatedTo  string
 	queryDependsOn  string
 	queryDependedBy string
+	queryRefinedBy  string
 	queryImpacts    string
 	queryFlow       string
 	queryFlowComps  bool
@@ -158,6 +159,16 @@ assets, .git/, build artifacts, and binary blobs only.
 			fmt.Printf("Depended by %s:\n\n", queryDependedBy)
 			printBytes(raw)
 			return nil
+		case queryRefinedBy != "":
+			raw, err := c.Query("refined-by", queryRefinedBy, format, nil)
+			if err != nil {
+				return err
+			}
+			if format == "rich" {
+				fmt.Printf("Active requirements refining %s:\n\n", queryRefinedBy)
+			}
+			printBytes(raw)
+			return nil
 		case querySearch != "":
 			extra := url.Values{}
 			extra.Set("q", querySearch)
@@ -232,6 +243,7 @@ func init() {
 	queryCmd.Flags().StringVar(&queryRelatedTo, "related-to", "", "all entities related to slug")
 	queryCmd.Flags().StringVar(&queryDependsOn, "depends-on", "", "what slug depends on")
 	queryCmd.Flags().StringVar(&queryDependedBy, "depended-by", "", "what depends on slug")
+	queryCmd.Flags().StringVar(&queryRefinedBy, "refined-by", "", "active requirements that refine this component slug")
 	queryCmd.Flags().StringVar(&queryImpacts, "impacts", "", "transitive impact analysis")
 	queryCmd.Flags().StringVar(&queryFlow, "flow", "", "flow slug for decomposition")
 	queryCmd.Flags().BoolVar(&queryFlowComps, "components", false, "show flow components")

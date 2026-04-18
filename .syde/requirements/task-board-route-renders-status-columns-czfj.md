@@ -3,10 +3,8 @@ id: REQ-0249
 kind: requirement
 name: Task Board Route Renders Status Columns
 slug: task-board-route-renders-status-columns-czfj
-relationships:
-    - target: syded-dashboard-e82c
-      type: belongs_to
-updated_at: "2026-04-16T01:09:57Z"
+relationships: []
+updated_at: '2026-04-16T01:09:57Z'
 statement: When the user navigates to the /task route, the dashboard shall render a kanban board grouping tasks into Pending, In Progress, and Done columns.
 req_type: interface
 priority: must

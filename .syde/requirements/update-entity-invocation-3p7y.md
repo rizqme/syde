@@ -6,9 +6,9 @@ slug: update-entity-invocation-3p7y
 relationships:
     - target: update-entity-zpnh
       type: refines
-    - target: syde-cli-2478
-      type: belongs_to
-updated_at: "2026-04-17T10:46:07Z"
+    - target: cli-commands-hpjb
+      type: refines
+updated_at: "2026-04-18T09:38:10Z"
 statement: When the user runs syde update <slug>, the syde CLI shall apply the provided field flags to the named entity and print its updated slug.
 req_type: interface
 priority: must
@@ -22,4 +22,8 @@ audited_overlaps:
       distinction: syde update targets generic entities; syde plan update is the plan-specific command with distinct invocation syntax.
     - slug: update-task-invocation-q9hh
       distinction: syde update targets generic entities; syde task update is the task-specific command with distinct invocation syntax.
+verified_against:
+    cli-commands-hpjb:
+        hash: 9ac9799d70204c6b6eb6e65813516e5b489e49982b2d96ec4becb22a2d4dfbc5
+        at: "2026-04-18T09:38:10Z"
 ---
